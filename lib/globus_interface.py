@@ -1,4 +1,5 @@
 import logging
+import socket
 from time import sleep
 from lib.util import print_debug, format_debug, print_line
 

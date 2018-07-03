@@ -256,24 +256,25 @@ Please add a space and run again.'''.format(num=line_index)
             line="skipping globus setup",
             event_list=event_list)
     else:
-        endpoints = [endpoint for endpoint in filemanager.get_endpoints()]
-        local_endpoint = config['global'].get('local_globus_uuid')
-        if local_endpoint:
-            endpoints.append(local_endpoint)
-        addr = config['global'].get('email')
-        msg = 'Checking authentication for {} endpoints'.format(endpoints)
-        print_line(line=msg, event_list=event_list)
-        setup_success = setup_globus(
-            endpoints=endpoints,
-            event_list=event_list)
-
-        if not setup_success:
-            print "Globus setup error"
-            return False, False, False
-        else:
-            print_line(
-                line='Globus authentication complete',
+        if config['global'].get('local_globus_uuid'):
+            endpoints = [endpoint for endpoint in filemanager.get_endpoints()]
+            local_endpoint = config['global'].get('local_globus_uuid')
+            if local_endpoint:
+                endpoints.append(local_endpoint)
+            addr = config['global'].get('email')
+            msg = 'Checking authentication for {} endpoints'.format(endpoints)
+            print_line(line=msg, event_list=event_list)
+            setup_success = setup_globus(
+                endpoints=endpoints,
                 event_list=event_list)
+
+            if not setup_success:
+                print "Globus setup error"
+                return False, False, False
+            else:
+                print_line(
+                    line='Globus authentication complete',
+                    event_list=event_list)
     # setup the runmanager
     runmanager = RunManager(
         event_list=event_list,
