@@ -21,7 +21,7 @@ from lib.util import print_message
 from lib.util import print_debug
 
 __version__ = '2.0.0'
-__branch__ = 'manymodel'
+__branch__ = 'nightly'
 
 # set variable to make vcs shut up
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
