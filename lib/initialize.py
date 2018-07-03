@@ -14,7 +14,7 @@ from shutil import copyfile
 from filemanager import FileManager
 from runmanager import RunManager
 from mailer import Mailer
-from JobStatus import JobStatus
+from jobstatus import JobStatus
 from globus_interface import setup_globus
 from util import print_message
 from util import print_debug
