@@ -23,9 +23,8 @@ from lib.util import print_debug
 __version__ = '2.0.0'
 __branch__ = 'nightly'
 
-# set variable to make vcs shut up
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
-os.environ['NCO_PATH_OVERRIDE'] = 'Yes'
+os.environ['NCO_PATH_OVERRIDE'] = 'True'
 
 # create global EventList
 event_list = EventList()
