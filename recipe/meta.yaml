@@ -24,7 +24,7 @@ requirements:
     - e3sm_diags
     - markupsafe
     - matplotlib
-    - nco ==4.7.3
+    - nco
     - pip
     - python
     - setuptools
