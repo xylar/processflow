@@ -60,13 +60,13 @@ class RunManager(object):
 
         self.slurm = Slurm()
         max_jobs = config['global']['max_jobs']
-        self.max_running_jobs = max_jobs if max_jobs else self.slurm.get_node_number() * 6
+        self.max_running_jobs = max_jobs if max_jobs else self.slurm.get_node_number() * 3
         while self.max_running_jobs == 0:
             sleep(1)
             msg = 'Unable to communication with scontrol, checking again'
             print_line(msg, event_list)
             logging.error(msg)
-            self.max_running_jobs = self.slurm.get_node_number() * 6
+            self.max_running_jobs = self.slurm.get_node_number() * 3
 
     def check_max_running_jobs(self):
         """
