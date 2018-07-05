@@ -36,6 +36,7 @@ class Diag(Job):
     # -----------------------------------------------
     def setup_hosting(self, config, img_source, host_path, event_list):
         if config['global']['always_copy']:
+            # aprime automatically removes all previous plots itself
             if os.path.exists(host_path) and self.job_type != 'aprime':
                 msg = '{prefix}: Removing previous output from host location'.format(
                     prefix=self.msg_prefix())
