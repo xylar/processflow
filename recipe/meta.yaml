@@ -21,7 +21,7 @@ requirements:
   
   run:
     - peewee
-    - e3sm_diags >=1.2.1
+    - e3sm_diags
     - markupsafe
     - matplotlib
     - nco ==4.7.3
@@ -33,10 +33,6 @@ requirements:
     - globus-sdk ==1.1.1
     - globus-cli ==1.1.2
     - jmespath
-    - six >=1.10
-    - libcf
-    - hdf5
-    - scipy ==0.19.1=np113py27_0
-    - beautiful-soup
+    - beautifulsoup4
     - paramiko
     - ncl
