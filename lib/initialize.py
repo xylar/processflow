@@ -27,29 +27,21 @@ def parse_args(argv=None, print_help=None):
         '-c', '--config',
         help='Path to configuration file.')
     parser.add_argument(
-        '-v', '--version',
-        help='Print version informat and exit.',
-        action='store_true')
+        '-m', '--max-jobs',
+        help='maximum number of running jobs',
+        type=int)
     parser.add_argument(
         '-l', '--log',
         help='Path to logging output file.')
-    parser.add_argument(
-        '-s', '--scripts',
-        help='Copy the case_scripts directory from the remote machine.',
-        action='store_true')
-    parser.add_argument(
-        '-f', '--file-list',
-        help='Turn on debug output of the internal file_list so you can see what the current state of the model files are',
-        action='store_true')
-    parser.add_argument(
-        '-r', '--resource-path',
-        help='Path to custom resource directory')
     parser.add_argument(
         '-a', '--always-copy',
         help='Always copy diagnostic output, even if the output already exists in the host directory. This is much slower but ensures old output will be overwritten',
         action='store_true')
     parser.add_argument(
-        '-d', '--debug',
+        '-r', '--resource-path',
+        help='Path to custom resource directory')
+    parser.add_argument(
+        '--debug',
         help='Set log level to debug',
         action='store_true')
     parser.add_argument(
@@ -57,9 +49,10 @@ def parse_args(argv=None, print_help=None):
         help='Do everything up to starting the jobs, but dont start any jobs',
         action='store_true')
     parser.add_argument(
-        '-m', '--max-jobs',
-        help='maximum number of running jobs',
-        type=int)
+        '-v', '--version',
+        help='Print version informat and exit.',
+        action='store_true')
+
     if print_help:
         parser.print_help()
         return
@@ -149,7 +142,6 @@ Please add a space and run again.'''.format(num=line_index)
     # Setup boolean config flags
     config['global']['host'] = True if config.get('img_hosting') else False
     config['global']['print_file_list'] = True if pargs.file_list else False
-    config['global']['scripts'] = True if pargs.scripts else False
     config['global']['always_copy'] = True if pargs.always_copy else False
     config['global']['dryrun'] = True if pargs.dryrun else False
     config['global']['debug'] = True if pargs.debug else False
