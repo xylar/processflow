@@ -33,6 +33,12 @@ event_list = EventList()
 def main(test=False, **kwargs):
     """
     Processflow main
+
+    Parameters:
+        test (bool): turns on test mode. Simply stops the logger from reloading itself, which
+            stops a crash when running from inside the test runner
+        kwargs (dict): when running in test mode, arguments are passed directly through the kwargs
+            which bypasses the argument parsing.
     """
 
     # The master configuration object
@@ -88,46 +94,6 @@ def main(test=False, **kwargs):
         filemanager.transfer_needed(
             event_list=event_list,
             event=thread_kill_event)
-    
-    # msg = "Writing human readable state to file"
-    # print_line(msg, event_list)
-
-    # check if the case_scripts directory is present
-    # if its not, transfer it over
-    if config['global'].get('get_scripts'):
-        pass
-        # msg = 'transfering case_scripts from remote machine'
-        # print_line(
-        #     line=msg,
-        #     event_list=event_list)
-        # case_scripts_dir = os.path.join(
-        #     config['global']['input_path'],
-        #     'case_scripts')
-
-        # if not os.path.exists(case_scripts_dir):
-        #     logging.info(msg)
-        #     src_path = os.path.join(
-        #         config['global']['source_path'], 'case_scripts')
-        #     while True:
-        #         try:
-        #             args = {
-        #                 'source_endpoint': config['transfer']['source_endpoint'],
-        #                 'destination_endpoint': config['transfer']['destination_endpoint'],
-        #                 'src_path': src_path,
-        #                 'dst_path': case_scripts_dir,
-        #                 'event_list': event_list,
-        #                 'event': thread_kill_event
-        #             }
-        #             thread = threading.Thread(
-        #                 target=transfer_directory,
-        #                 name='transfer_directory',
-        #                 kwargs=args)
-        #         except:
-        #             sleep(1)
-        #         else:
-        #             thread_list.append(thread)
-        #             thread.start()
-        #             break
 
     # Main loop
     printed = False
