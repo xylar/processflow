@@ -7,9 +7,17 @@ post-run analysis on model data.
 
 ## Installation<a name="installation"></a>
 
+Latest stable build from the master branch:
 ```
-conda create --name <YOUR_NEW_ENVIRONMENT> -c acme -c conda-forge -c uvcdat processflow
+conda create --name <YOUR_NEW_ENVIRONMENT> -c e3sm -c conda-forge -c cdat processflow
 ```
+
+Latest (potentially unstable) build from the nightly branch:
+```
+conda create --name <YOUR_NEW_ENVIRONMENT> -c e3sm/label/nightly -c e3sm -c cdat/label/nightly -c conda-forge -c cdat processflow
+```
+
+
 
 # Usage<a name="usage"></a>
 
@@ -22,10 +30,6 @@ conda create --name <YOUR_NEW_ENVIRONMENT> -c acme -c conda-forge -c uvcdat proc
                                 Path to configuration file.
         -v, --version         Print version informat and exit.
         -l LOG, --log LOG     Path to logging output file.
-        -s, --scripts         Copy the case_scripts directory from the remote
-                                machine.
-        -f, --file-list       Turn on debug output of the internal file_list so you
-                                can see what the current state of the model files are
         -r RESOURCE_PATH, --resource-path RESOURCE_PATH
                                 Path to custom resource directory
         -a, --always-copy     Always copy diagnostic output, even if the output
