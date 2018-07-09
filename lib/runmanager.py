@@ -291,35 +291,19 @@ class RunManager(object):
                             self.config)
                         self.report_completed_job()
                         if isinstance(job, Diag):
-                            msg = '{job}-{start:04d}-{end:04d}-{case}-vs-{comp}: Job previously computed, skipping'.format(
-                                job=job.job_type, start=job.start_year, end=job.end_year, case=job.short_name, comp=job._short_comp_name)
+                            msg = '{}: Job previously computed, skipping'.format(job.msg_prefix())
                         else:
-                            msg = '{job}-{start:04d}-{end:04d}-{case}: Job previously computed, skipping'.format(
-                                job=job.job_type, start=job.start_year, end=job.end_year, case=job.short_name)
+                            msg = '{}: Job previously computed, skipping'.format(job.msg_prefix())
                         print_line(msg, self.event_list)
                         continue
 
                     # the job is ready for submission
                     if job.run_type is not None:
-                        msg = '{job}-{run_type}-{start:04d}-{end:04d}-{case}: Job ready, submitting to queue'.format(
-                            job=job.job_type,
-                            start=job.start_year,
-                            end=job.end_year,
-                            case=job.short_name,
-                            run_type=job.run_type)
+                        msg = '{}: Job ready, submitting to queue'.format(job.msg_prefix())
                     elif isinstance(job, Diag):
-                        msg = '{job}-{start:04d}-{end:04d}-{case}-vs-{comp}: Job ready, submitting to queue'.format(
-                            job=job.job_type, 
-                            start=job.start_year, 
-                            end=job.end_year, 
-                            case=job.short_name, 
-                            comp=job._short_comp_name)
+                        msg = '{}: Job ready, submitting to queue'.format(job.msg_prefix())
                     else:
-                        msg = '{job}-{start:04d}-{end:04d}-{case}: Job ready, submitting to queue'.format(
-                            job=job.job_type, 
-                            start=job.start_year, 
-                            end=job.end_year, 
-                            case=job.short_name)
+                        msg = '{}: Job ready, submitting to queue'.format(job.msg_prefix())
                     print_line(msg, self.event_list)
 
                     # set to pending before data setup so we dont double submit
@@ -339,11 +323,7 @@ class RunManager(object):
                         dryrun=self.dryrun)
 
                     if slurmid is False:
-                        msg = '{job}-{start:04d}-{end:04d}-{case}: Prevalidation FAILED'.format(
-                            job=job.job_type,
-                            start=job.start_year,
-                            end=job.end_year,
-                            case=job.short_name)
+                        msg = '{}: Prevalidation FAILED'.format(job.msg_prefix())
                         print_line(msg, self.event_list)
                         job.status = JobStatus.FAILED
                     else:
@@ -456,32 +436,10 @@ class RunManager(object):
                 continue
             status = StatusMap[job_info.get('JobState')]
             if status != job.status:
-                if job.run_type is not None:
-                    msg = '{job}-{run_type}-{start:04d}-{end:04d}-{case}: Job changed from {s1} to {s2}'.format(
-                        job=job.job_type,
-                        start=job.start_year,
-                        end=job.end_year,
+                msg = '{prefix}: Job changed from {s1} to {s2}'.format(
+                        prefix=job.msg_prefix(),
                         s1=ReverseMap[job.status],
-                        s2=ReverseMap[status],
-                        case=job.short_name,
-                        run_type=job.run_type)
-                elif isinstance(job, Diag):
-                    msg = '{job}-{start:04d}-{end:04d}-{case}-vs-{comp}: Job changed from {s1} to {s2}'.format(
-                        job=job.job_type,
-                        start=job.start_year,
-                        end=job.end_year,
-                        s1=ReverseMap[job.status],
-                        s2=ReverseMap[status],
-                        case=job.short_name,
-                        comp=job._short_comp_name)
-                else:
-                    msg = '{job}-{start:04d}-{end:04d}-{case}: Job changed from {s1} to {s2}'.format(
-                        job=job.job_type,
-                        start=job.start_year,
-                        end=job.end_year,
-                        s1=ReverseMap[job.status],
-                        s2=ReverseMap[status],
-                        case=job.short_name)
+                        s2=ReverseMap[status])
                 print_line(msg, self.event_list)
                 job.status = status
 
