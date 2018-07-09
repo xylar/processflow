@@ -11,7 +11,6 @@ if sys.path[0] != '.':
 from lib.initialize import initialize, parse_args
 from lib.events import EventList
 from lib.models import DataFile
-from lib.YearSet import YearSet
 from lib.filemanager import FileManager
 from lib.runmanager import RunManager
 from lib.util import print_message
@@ -30,21 +29,18 @@ class TestInitialize(unittest.TestCase):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         argv = ['-c', 'tests/test_configs/valid_config_simple.cfg', 
                 '-l', 'pflow.log',
-                '-s',
                 '-r', 'resources/',
-                '-d',
                 '-m', '999',
+                '--debug',
                 '--dryrun']
         pargs = parse_args(argv)
         self.assertEqual(pargs.config, 'tests/test_configs/valid_config_simple.cfg')
         self.assertEqual(pargs.resource_path, 'resources/')
         self.assertEqual(pargs.log, 'pflow.log')
         self.assertEqual(pargs.max_jobs, 999)
-        self.assertTrue(pargs.scripts)
         self.assertTrue(pargs.debug)
         self.assertTrue(pargs.dryrun)
         self.assertFalse(pargs.always_copy)
-        self.assertFalse(pargs.file_list)
     
     def test_parse_args_print_help(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
