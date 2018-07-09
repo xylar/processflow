@@ -214,7 +214,7 @@ class AMWG(Diag):
         hostname = config['img_hosting']['img_host_server']
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'amwg',
             '{start:04d}_{end:04d}_vs_{comp}'.format(
                 start=self.start_year,

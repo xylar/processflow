@@ -156,7 +156,7 @@ class Aprime(Diag):
         hostname = config['img_hosting']['img_host_server']
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'aprime')
 
         self.setup_hosting(
