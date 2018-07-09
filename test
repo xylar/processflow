@@ -5,7 +5,7 @@ SECONDS=0
 BRANCH="$(git name-rev --name-only HEAD)"
 echo "Running tests for branch $BRANCH"
 
-tests=( "tests/test_e3sm.py" ) \
+tests=( "tests/test_e3sm.py"  \
         "tests/test_initialize.py") # \
         # "tests/test_filemanager.py" \
         # "tests/test_util.py" \
