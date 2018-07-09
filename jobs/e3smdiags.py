@@ -160,7 +160,7 @@ class E3SMDiags(Diag):
         self._host_url = 'https://{server}/{prefix}/{case}/e3sm_diags/{start:04d}_{end:04d}_vs_{comp}/viewer/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
-            case=self.case,
+            case=self.short_name,
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
@@ -176,9 +176,13 @@ class E3SMDiags(Diag):
                 comp=self._short_comp_name))
         viewer_path = os.path.join(self._output_path, 'viewer', 'index.html')
         if not os.path.exists(viewer_path):
+            msg = '{}: could not find page index at {}'.format(self.msg_prefix(), viewer_path)
+            logging.error(msg)
             return False
         viewer_head = os.path.join(self._output_path, 'viewer')
         if not os.path.exists(viewer_head):
+            msg = '{}: could not find output viewer at {}'.format(self.msg_prefix(), viewer_head)
+            logging.error(msg)
             return False
         missing_links = list()
         with open(viewer_path, 'r') as viewer_pointer:

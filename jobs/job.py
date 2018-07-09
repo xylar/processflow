@@ -38,10 +38,6 @@ class Job(object):
         msg = '{} has not implemented the setup_dependencies method'.format(self.job_type)
         raise Exception(msg)
     # -----------------------------------------------
-    def prevalidate(self, *args, **kwargs):
-        msg = '{} has not implemented the prevalidate method'.format(self.job_type)
-        raise Exception(msg)
-    # -----------------------------------------------
     def execute(self, *args, **kwargs):
         msg = '{} has not implemented the execute method'.format(self.job_type)
         raise Exception(msg)

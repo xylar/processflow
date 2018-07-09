@@ -236,7 +236,7 @@ class AMWG(Diag):
         self._host_url = 'https://{server}/{prefix}/{case}/amwg/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
-            case=self.case,
+            case=self.short_name,
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
