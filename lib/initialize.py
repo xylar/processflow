@@ -141,7 +141,6 @@ Please add a space and run again.'''.format(num=line_index)
 
     # Setup boolean config flags
     config['global']['host'] = True if config.get('img_hosting') else False
-    config['global']['print_file_list'] = True if pargs.file_list else False
     config['global']['always_copy'] = True if pargs.always_copy else False
     config['global']['dryrun'] = True if pargs.dryrun else False
     config['global']['debug'] = True if pargs.debug else False

@@ -97,9 +97,6 @@ class Job(object):
                 tail, head = os.path.split(file)
                 filesnames.append(head)
 
-            # keep a reference to the input data for later
-            self._input_file_paths.extend([os.path.join(temp_path, x) for x in filesnames])
-            
             # setup the temp directory to hold symlinks
             if self._run_type is not None:
                 temp_path = os.path.join(
@@ -124,7 +121,8 @@ class Job(object):
             if not os.path.exists(temp_path):
                 os.makedirs(temp_path)
             
-            
+            # keep a reference to the input data for later
+            self._input_file_paths.extend([os.path.join(temp_path, x) for x in filesnames])
 
             # create the symlinks
             create_symlink_dir(
