@@ -2,6 +2,7 @@ import os
 import logging
 import time
 
+from shutil import rmtree
 from lib.mailer import Mailer
 from lib.util import print_message, print_line, print_debug
 
