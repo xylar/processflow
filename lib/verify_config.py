@@ -255,13 +255,6 @@ def verify_config(config):
             if not config['diags']['aprime'].get('aprime_code_path'):
                 msg = 'no aprime_code_path given for aprime'
                 messages.append(msg)
-            if not config['diags']['aprime'].get('test_atm_res'):
-                msg = 'no test_atm_res given for aprime'
-                messages.append(msg)
-            if not config['diags']['aprime'].get('test_mpas_mesh_name'):
-                msg = 'no test_mpas_mesh_name given for aprime'
-                messages.append(msg) 
-
     return messages
 # ------------------------------------------------------------------------
 def check_config_white_space(filepath):

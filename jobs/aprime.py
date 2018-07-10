@@ -153,17 +153,16 @@ class Aprime(Diag):
                 comp=self._short_comp_name))
 
         # setup the web hosting
-        hostname = config['img_hosting']['img_host_server']
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
             self.short_name,
             'aprime')
 
-        self.setup_hosting(
-            config,
-            img_source,
-            self._host_path,
-            event_list)
+        # self.setup_hosting(
+        #     config,
+        #     img_source,
+        #     self._host_path,
+        #     event_list)
         
         self._host_url = 'https://{server}/{prefix}/{case}/aprime/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
