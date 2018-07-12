@@ -86,37 +86,37 @@
 # Root directory where all analysis output is stored
 # (e.g., plots will go in a specific subdirectory of $output_base_dir,
 # as will log files, generated climatologies, etc)
-export output_base_dir=%%output_base_dir%%
+export output_base_dir={{ output_base_dir }}
 
 # ** Variables relevant for main test case **
 #  Case Name (NB: $test_casename will be appended to $test_archive_dir)
-export test_casename=%%test_casename%%
+export test_casename={{ test_casename }}
 #  Root directory pointing to model data. If test_short_term_archive=0,
 #  $test_casename/run will be appended to test_archive_dir. If
 #  test_short_term_archive=1, $test_casename/archive/modelcomponent/hist
 #  will instead be appended.
-export test_archive_dir=%%test_archive_dir%%
+export test_archive_dir={{ test_archive_dir }}
 #  Short-term archive option
 export test_short_term_archive=0
 
 #  Atmosphere grid resolution name (e.g. ne30, ne60, ne120) 
-export test_atm_res=%%test_atm_res%%
+export test_atm_res={{ test_atm_res }}
 #  MPAS mesh name (e.g. oEC60to30v1, oEC60to30v3, oRRS18to6v3)
 #  NB: test_atm_res and test_mpas_mesh_name may change with a different choice
 #  of test_casename. For example, the MPAS meshes ending with 'v1' should be
 #  used for beta0 and older runs, while those ending with 'v3' should be
 #  used for beta1 and newer runs.
-export test_mpas_mesh_name=%%test_mpas_mesh_name%%
+export test_mpas_mesh_name={{ test_mpas_mesh_name }}
 #  Year start/end for climatologies
-export test_begin_yr_climo=%%test_begin_yr_climo%%
-export test_end_yr_climo=%%test_end_yr_climo%%
+export test_begin_yr_climo={{ test_begin_yr_climo }}
+export test_end_yr_climo={{ test_end_yr_climo }}
 #  Year start/end for time series
-export test_begin_yr_ts=%%test_begin_yr_climo%%
-export test_end_yr_ts=%%test_end_yr_climo%%
+export test_begin_yr_ts={{ test_begin_yr_climo }}
+export test_end_yr_ts={{ test_end_yr_climo }}
 #  Year start/end for ocean Nino3.4 index diagnostics (both ocn/ice and
 #  atm diagnostics)
-export test_begin_yr_climateIndex_ts=%%test_begin_yr_climo%%
-export test_end_yr_climateIndex_ts=%%test_end_yr_climo%%
+export test_begin_yr_climateIndex_ts={{ test_begin_yr_climo }}
+export test_end_yr_climateIndex_ts={{ test_end_yr_climo }}
 
 #  Atmosphere switches (True(1)/False(0)) to condense variables, compute climos, remap climos and condensed time series file
 #  If no pre-processing is done (climatology, remapping), all the switches below should be 1
@@ -172,7 +172,7 @@ elif [ $machname == "theta" ]; then
   projdir=/projects/ClimateEnergy_2
 fi
 
-export www_dir=%%www_dir%%
+export www_dir={{ www_dir }}
 
 # ** Reference case variables (similar to test_case variables) **
 export ref_case=obs
@@ -243,9 +243,9 @@ export ref_condense_field_enso_atm=1
 export ref_remap_ts_enso_atm=1
 
 # Select sets of diagnostics to generate (False = 0, True = 1)
-export generate_atm_diags=1
-export generate_atm_enso_diags=1
-export generate_ocnice_diags=1
+export generate_atm_diags={{ atm_diags }}
+export generate_atm_enso_diags={{ enso_diags }}
+export generate_ocnice_diags={{ ocnice_diags }}
 
 # The following ocn/ice diagnostic switches are ignored if generate_ocnice_diags is set to 0
 export generate_ohc_trends=1
@@ -548,8 +548,8 @@ echo $test_scratch_dir
 # GENERATE HTML PAGE IF ASKED
 if [ $atm_status -eq 0 ]    || [ $atm_status -eq -2 ]   ||
    [ $ocnice_status -eq 0 ] || [ $ocnice_status -eq -2 ]; then
-  source $log_dir/case_info.temp 
-  n_cases=${#case_set[@]}
+  source $log_dir/case_info.temp
+  n_cases=${#case_set[@]} #}
   n_test_cases=$((n_cases - 1))
 
   for j in `seq 1 $n_test_cases`; do

@@ -104,15 +104,15 @@ setenv DIAG_VERSION 140804  # version number YYMMDD
 #
 # Don t forget the trailing / when setting the paths
 
-setenv NCARG_ROOT %%NCARG_ROOT%%
+setenv NCARG_ROOT {{ NCARG_ROOT }}
 
-set test_casename  = %%test_casename%%
+set test_casename  = {{ test_casename }}
 set test_filetype = monthly_history 
-#set test_filetype = time_series
 
-set test_path_history = %%test_path_history%%
-set test_path_climo   = %%test_path_climo%%
-set test_path_diag    = %%test_path_diag%%
+
+set test_path_history = {{ test_path_history }}
+set test_path_climo   = {{ test_path_climo }}
+set test_path_diag    = {{ test_path_diag }}
 set test_path_HPSS    = NONE
 
 #******************************************************************
@@ -137,11 +137,11 @@ set CNTL = USER           # user defined model control (see below)
 
 # Don t forget the trailing / when setting the paths
 
-set cntl_casename   = %%cntl_casename%%
+set cntl_casename   = {{ cntl_casename }}
 set cntl_filetype = monthly_history 
 
-set cntl_path_history = %%cntl_path_history%%
-set cntl_path_climo   = %%cntl_path_climo%%
+set cntl_path_history = {{ cntl_path_history }}
+set cntl_path_climo   = {{ cntl_path_climo }}
 set cntl_path_HPSS    = NONE
 
 #******************************************************************
@@ -201,24 +201,24 @@ set weight_months = 1     # (0=ON,1=OFF)
 # Select the diagnostic sets to be done. You can do one at a
 # time or as many as you want at one time, or all at once.
 
-set all_sets = 1  # (0=ON,1=OFF)  Do all the CAM sets (1-16)
-set set_1  = 0    # (0=ON,1=OFF)  tables of global,regional means
-set set_2  = 0    # (0=ON,1=OFF)  implied transport plots 
-set set_3  = 0    # (0=ON,1=OFF)  zonal mean line plots
-set set_4  = 0    # (0=ON,1=OFF)  vertical zonal mean contour plots
-set set_4a = 0    # (0=ON,1=OFF)  vertical zonal mean contour plots
-set set_5  = 0    # (0=ON,1=OFF)  2D-field contour plots
-set set_6  = 0    # (0=ON,1=OFF)  2D-field vector plots
-set set_7  = 0    # (0=ON,1=OFF)  2D-field polar plots
-set set_8  = 0    # (0=ON,1=OFF)  annual cycle (vs lat) contour plots
-set set_9  = 0    # (0=ON,1=OFF)  DJF-JJA difference plots
-set set_10 = 0    # (0=ON,1=OFF)  annual cycle line plots    
-set set_11 = 0    # (0=ON,1=OFF)  miscellaneous plots
-set set_12 = 1    # (0=selected stations: 1=NONE, 2=ALL stations
-set set_13 = 0    # (0=ON,1=OFF)  COSP cloud simulator plots
-set set_14 = 0    # (0=ON,1=OFF)  Taylor diagram plots 
-set set_15 = 1    # (0=ON,1=OFF)  Annual Cycle Plots for Select stations
-set set_16 = 1    # (0=ON,1=OFF)  Budget Terms for Select stations
+set all_sets = {{ all_sets }}  # (0=ON,1=OFF)  Do all the CAM sets (1-16)
+set set_1  = {{ set_1 }}       # (0=ON,1=OFF)  tables of global,regional means
+set set_2  = {{ set_2 }}       # (0=ON,1=OFF)  implied transport plots 
+set set_3  = {{ set_3 }}       # (0=ON,1=OFF)  zonal mean line plots
+set set_4  = {{ set_4 }}       # (0=ON,1=OFF)  vertical zonal mean contour plots
+set set_4a = {{ set_4a }}      # (0=ON,1=OFF)  vertical zonal mean contour plots
+set set_5  = {{ set_5 }}       # (0=ON,1=OFF)  2D-field contour plots
+set set_6  = {{ set_6 }}       # (0=ON,1=OFF)  2D-field vector plots
+set set_7  = {{ set_7 }}       # (0=ON,1=OFF)  2D-field polar plots
+set set_8  = {{ set_8 }}       # (0=ON,1=OFF)  annual cycle (vs lat) contour plots
+set set_9  = {{ set_9 }}       # (0=ON,1=OFF)  DJF-JJA difference plots
+set set_10 = {{ set_10 }}      # (0=ON,1=OFF)  annual cycle line plots    
+set set_11 = {{ set_11 }}      # (0=ON,1=OFF)  miscellaneous plots
+set set_12 = {{ set_12 }}      # (0=selected stations: 1=NONE, 2=ALL stations
+set set_13 = {{ set_13 }}      # (0=ON,1=OFF)  COSP cloud simulator plots
+set set_14 = {{ set_14 }}      # (0=ON,1=OFF)  Taylor diagram plots 
+set set_15 = {{ set_15 }}      # (0=ON,1=OFF)  Annual Cycle Plots for Select stations
+set set_16 = {{ set_16 }}      # (0=ON,1=OFF)  Budget Terms for Select stations
 
 set all_waccm_sets = 1 # (0=ON,1=OFF)  Do all the WACCM sets
 set all_chem_sets = 1 # (0=ON,1=OFF)   Do all the CHEM sets
