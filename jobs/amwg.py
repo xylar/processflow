@@ -90,6 +90,14 @@ class AMWG(Diag):
         variables['test_path_diag'] = self._output_path + os.sep
         variables['diag_home'] = config['diags']['amwg']['diag_home']
 
+        if config['diags']['amwg']['sets'] == 'all':
+            variables['all_sets'] = '0'
+        else:
+            sets = ['set_1', 'set_2', 'set_3', 'set_4', 'set_4a', 'set_5', 'set_6', 'set_7', 'set_8', 'set_9', 'set_10', 'set_11', 'set_12', 'set_13', 'set_14', 'set_15', 'set_16']
+            for diag in sets:
+                variables[diag] = '0' if diag in config['diags']['amwg']['sets'] else '1'
+            
+
         if self.comparison == 'obs':
             template_input_path = os.path.join(
                 config['global']['resource_path'],

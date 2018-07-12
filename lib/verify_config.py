@@ -245,6 +245,17 @@ def verify_config(config):
                     if not config.get('post-processing') or not config['post-processing'].get('climo') or freq not in config['post-processing']['climo']['run_frequency']:
                         msg = 'amwg is set to run at frequency {} but no climo job for this frequency is set'.format(freq)
                         messages.append(msg)
+            if not config['diags']['amwg'].get('sets'):
+                msg = 'no sets given for amwg'
+                messages.append(msg)
+            else:
+                allowed_sets = ['all', 'set_1', 'set_2', 'set_3', 'set_4', 'set_4a', 'set_5', 'set_6', 'set_7', 'set_8', 'set_9', 'set_10', 'set_11', 'set_12', 'set_13', 'set_14', 'set_15', 'set_16']
+                if not isinstance(config['diags']['amwg']['sets'], list):
+                    config['diags']['amwg']['sets'] = [config['diags']['amwg']['sets']]
+                for s in config['diags']['amwg']['sets']:
+                    if s not in allowed_sets:
+                        msg = '{} is not in the allowed sets for amwg, allowed sets are {}'.format(s, allowed_sets)
+                        messages.append(msg)
         # ------------------------------------------------------------------------
         # check aprime
         # ------------------------------------------------------------------------
