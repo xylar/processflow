@@ -4,6 +4,7 @@ import traceback
 import re
 import os
 import socket
+import jinja2
 
 from shutil import rmtree
 from time import sleep
@@ -152,67 +153,21 @@ def print_message(message, status='error'):
     elif status == 'ok':
         print colors.OKGREEN + '[+] ' + colors.ENDC + str(message)
 
-def render(variables, input_path, output_path, delimiter='%%'):
+def render(variables, input_path, output_path):
     """
-    Takes an input file path, an output file path, a set of variables, and a delimiter.
-    For each instance of that delimiter wrapped around a substring, replaces the
-    substring with its matching element from the varialbes dict
-
-    An example variable dict and delimiter would be:
-
-    variables = {
-        'test_casename': '20161117.beta0.A_WCYCL1850S.ne30_oEC_ICG.edison',
-        'test_native_res': 'ne30',
-        'test_archive_dir': '/space2/test_data/ACME_simulations',
-        'test_short_term_archive': '0',
-        'test_begin_yr_climo': '6',
-        'test_end_yr_climo': '10'
-    }
-    delim = '%%'
-
+    Renders the jinja2 template from the input_path into the output_path
+    using the variables from variables
     """
+    tail, head = os.path.split(input_path)
 
-    try:
-        infile = open(input_path, 'r')
-    except IOError as e:
-        print 'unable to open input file: {}'.format(input_path)
-        print_debug(e)
-        return False
-    try:
-        outfile = open(output_path, 'w')
-    except IOError as e:
-        print 'unable to open output file: {}'.format(output_path)
-        print_debug(e)
-        return False
+    template_path = os.path.abspath(tail)
+    loader = jinja2.FileSystemLoader(searchpath=template_path)
+    env = jinja2.Environment(loader=loader)
+    template = env.get_template(head)
+    outstr = template.render(variables)
 
-    for line in infile.readlines():
-        rendered_string = ''
-        match = re.search(delimiter + '[a-zA-Z_0-9]*' + delimiter, line)
-        if match:
-            while match:
-                delim_index = [m.start() for m in re.finditer(delimiter, line)]
-                if len(delim_index) < 2:
-                    continue
-
-                template_string = line[delim_index[0] +
-                                    len(delimiter): delim_index[1]]
-                for item in variables:
-                    if item == template_string:
-                        rendered_start = line[:delim_index[0]]
-                        rendered_middle = variables[item]
-                        rendered_end = line[delim_index[0] +
-                                            len(delimiter) + len(item) + len(delimiter):]
-                        line_tmp = str(rendered_start) + \
-                            str(rendered_middle) + str(rendered_end)
-                        line = line_tmp
-                    else:
-                        continue
-                match = re.search(delimiter + '[a-zA-Z_0-9]*' + delimiter, line_tmp)
-            rendered_string += line_tmp
-        else:
-            rendered_string = line
-        outfile.write(rendered_string)
-    return True
+    with open(output_path, 'w') as outfile:
+        outfile.write(outstr)
 
 def create_symlink_dir(src_dir, src_list, dst):
     """

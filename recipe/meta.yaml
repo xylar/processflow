@@ -36,3 +36,4 @@ requirements:
     - beautifulsoup4
     - paramiko
     - ncl
+    - jinja2
