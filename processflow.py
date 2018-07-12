@@ -21,7 +21,7 @@ from lib.util import print_message
 from lib.util import print_debug
 
 __version__ = '2.0.0'
-__branch__ = 'nightly'
+__branch__ = 'beta3'
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
 os.environ['NCO_PATH_OVERRIDE'] = 'True'
@@ -46,7 +46,6 @@ def main(test=False, **kwargs):
 
     # An event to kill the threads on terminal exception
     thread_kill_event = threading.Event()
-    mutex = threading.Lock()
 
     # A flag to tell if we have all the data locally
     all_data = False
@@ -67,7 +66,6 @@ def main(test=False, **kwargs):
             branch=__branch__,
             event_list=event_list,
             kill_event=thread_kill_event,
-            mutex=mutex,
             testing=True)
     else:
         config, filemanager, runmanager = initialize(
@@ -75,8 +73,7 @@ def main(test=False, **kwargs):
             version=__version__,
             branch=__branch__,
             event_list=event_list,
-            kill_event=thread_kill_event,
-            mutex=mutex)
+            kill_event=thread_kill_event)
     # setup returned an error code
     if isinstance(config, int):
         print "Error in setup, exiting"

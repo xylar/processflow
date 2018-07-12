@@ -33,14 +33,12 @@ class FileManager(object):
     Manage all files required by jobs
     """
 
-    def __init__(self, mutex, event_list, config, database='processflow.db'):
+    def __init__(self, event_list, config, database='processflow.db'):
         """
         Parameters:
-            mutex (theading.Lock) the mutext for accessing the database
             database (str): the path to where to create the sqlite database file
             config (dict): the global configuration dict
         """
-        self._mutex = mutex
         self._event_list = event_list
         self._db_path = database
         self._config = config
@@ -48,15 +46,12 @@ class FileManager(object):
         if os.path.exists(database):
             os.remove(database)
 
-        self._mutex.acquire()
         DataFile._meta.database.init(database)
         if DataFile.table_exists():
             DataFile.drop_table()
 
         DataFile.create_table()
-        if self._mutex.locked():
-            self._mutex.release()
-        
+
         self.thread_list = list()
         self.kill_event = threading.Event()
 
@@ -70,7 +65,6 @@ class FileManager(object):
         """
         Return a list of globus endpoints for all cases
         """
-        self._mutex.acquire()
         q = (DataFile
              .select()
              .where(
@@ -79,7 +73,6 @@ class FileManager(object):
         for x in q.execute():
             if x.remote_uuid not in endpoints:
                 endpoints.append(x.remote_uuid)
-        self._mutex.release()
         return endpoints
 
     def write_database(self):
@@ -91,7 +84,6 @@ class FileManager(object):
             'output',
             'file_list.txt')
         with open(file_list_path, 'w') as fp:
-            self._mutex.acquire()
             try:
                 for case in self._config['simulations']:
                     if case in ['start_year', 'end_year', 'comparisons']:
@@ -131,25 +123,14 @@ class FileManager(object):
                             filestr += '\n\t     local_size: ' + \
                                 str(datafile.local_size)
                             filestr += '\n\t     local_path: ' + datafile.local_path
-                            filestr += '\n\t     remote_path: ' + datafile.remote_path + '\n'
+                            filestr += '\n\t     remote_path: ' + datafile.remote_path
+                            filestr += '\n\t     year: ' + str(datafile.year)
+                            filestr += '\n\t     month: ' + str(datafile.month) + '\n'
                             fp.write(filestr)
             except Exception as e:
                 print_debug(e)
-            finally:
-                if self._mutex.locked():
-                    self._mutex.release()
-
-    # def render_string(self, instring, **kwargs):
-    #     """
-    #     take a list of keyword arguments and replace uppercase instances of them in the input string
-    #     """
-    #     for string, val in kwargs.items():
-    #         if string in instring:
-    #             instring = instring.replace(string, val)
-    #     return instring
 
     def check_data_ready(self, data_required, case, start_year=None, end_year=None):
-        self._mutex.acquire()
         try:
             for datatype in data_required:
                 if start_year and end_year:
@@ -177,8 +158,8 @@ class FileManager(object):
                     if df.local_status != FileStatus.PRESENT.value:
                         return False
             return True
-        finally:
-            self._mutex.release()
+        except Exception as e:
+            print_debug(e)
 
     def render_file_string(self, data_type, data_type_option, case, year=None, month=None):
         """
@@ -227,8 +208,6 @@ class FileManager(object):
         start_year = int(self._config['simulations']['start_year'])
         end_year = int(self._config['simulations']['end_year'])
         with DataFile._meta.database.atomic():
-            self._mutex.acquire()
-
             # for each case
             for case in self._config['simulations']:
                 if case in ['start_year', 'end_year', 'comparisons']:
@@ -247,7 +226,7 @@ class FileManager(object):
                         case=case)
 
                     new_files = list()
-                    if self._config['data_types'][_type].get('monthly'):
+                    if self._config['data_types'][_type].get('monthly') and self._config['data_types'][_type]['monthly'] in ['True', 'true', '1', 1]:
                         # handle monthly data
                         for year in range(start_year, end_year + 1):
                             for month in range(1, 13):
@@ -311,12 +290,8 @@ class FileManager(object):
                         DataFile.insert_many(
                             new_files[idx: idx + step]).execute()
 
-            if self._mutex.locked():
-                self._mutex.release()
             msg = 'Database update complete'
-            print_line(
-                line=msg,
-                event_list=self._event_list)
+            print_line(msg, self._event_list)
     
     def terminate_transfers(self):
         self.kill_event.set()
@@ -326,7 +301,6 @@ class FileManager(object):
             thread.join()
 
     def print_db(self):
-        self._mutex.acquire()
         for df in DataFile.select():
             print {
                 'case': df.case,
@@ -336,7 +310,6 @@ class FileManager(object):
                 'remote_path': df.remote_path,
                 'transfer_type': df.transfer_type,
             }
-        self._mutex.release()
     
     def add_files(self, data_type, file_list):
         """
@@ -355,7 +328,6 @@ class FileManager(object):
                 remote_uuid (str): remote globus endpoint id, optional
                 remote_hostname (str): remote hostname for sftp transfer, optional
         """
-        self._mutex.acquire()
         try:
             new_files = list()
             for file in file_list:
@@ -378,8 +350,8 @@ class FileManager(object):
             for idx in range(0, len(new_files), step):
                 DataFile.insert_many(
                     new_files[idx: idx + step]).execute()
-        finally:
-            self._mutex.release()
+        except Exception as e:
+            print_debug(e)
         
 
     def update_local_status(self):
@@ -388,7 +360,6 @@ class FileManager(object):
 
         Return True if there was new local data found, False othewise
         """
-        self._mutex.acquire()
         try:
             query = (DataFile
                      .select()
@@ -417,22 +388,14 @@ class FileManager(object):
                         marked = True
                 if marked:
                     datafile.save()
-        except OperationalError as operror:
-            line = 'Error writing to database, database is locked by another process'
-            print_line(
-                line=line,
-                event_list=self._event_list)
-            logging.error(line)
-        finally:
-            if self._mutex.locked():
-                self._mutex.release()
+        except Exception as e:
+            print_debug(e)
         return change
 
     def all_data_local(self):
         """
         Returns True if all data is local, False otherwise
         """
-        self._mutex.acquire()
         try:
             query = (DataFile
                      .select()
@@ -447,9 +410,6 @@ class FileManager(object):
                 return False
         except Exception as e:
             print_debug(e)
-        finally:
-            if self._mutex.locked():
-                self._mutex.release()
         logging.debug('All data is local')
         return True
 
@@ -463,7 +423,6 @@ class FileManager(object):
         # required files dont exist locally, do exist remotely
         # or if they do exist locally have a different local and remote size
         target_files = list()
-        self._mutex.acquire()
         try:
             q = (DataFile
                  .select(DataFile.case)
@@ -540,9 +499,6 @@ class FileManager(object):
         except Exception as e:
             print_debug(e)
             return False
-        finally:
-            if self._mutex.locked():
-                self._mutex.release()
 
     def _ssh_transfer(self, target_files, client, event):
         sftp_client = client.open_sftp()
@@ -564,47 +520,6 @@ class FileManager(object):
 
             msg = self.report_files_local()
             print_line(msg, self._event_list)
-
-    def years_ready(self, data_type, start_year, end_year):
-        """
-        Checks if data_type files exist from start year to end of endyear
-
-        Parameters:
-            start_year (int): the first year to start checking
-            end_year (int): the last year to check for
-        Returns:
-            -1 if no data present
-            0 if partial data present
-            1 if all data present
-        """
-        data_ready = True
-        non_zero_data = False
-
-        self._mutex.acquire()
-        try:
-            query = (DataFile
-                     .select()
-                     .where(
-                            (DataFile.datatype == data_type) &
-                            (DataFile.year >= start_year) &
-                            (DataFile.year <= end_year)))
-            for datafile in query.execute():
-                if datafile.local_status != FileStatus.NOT_PRESENT.value:
-                    data_ready = False
-                else:
-                    non_zero_data = True
-        except Exception as e:
-            print_debug(e)
-        finally:
-            if self._mutex.locked():
-                self._mutex.release()
-
-        if data_ready:
-            return 1
-        elif not data_ready and non_zero_data:
-            return 0
-        elif not data_ready and not non_zero_data:
-            return -1
 
     def report_files_local(self):
         """
@@ -633,7 +548,6 @@ class FileManager(object):
             start_year (int): the first year to return data for
             end_year (int): the last year to return data for
         """
-        self._mutex.acquire()
         try:
             if start_year and end_year:
                 query = (DataFile
@@ -657,7 +571,3 @@ class FileManager(object):
             return [x.local_path for x in datafiles]
         except Exception as e:
             print_debug(e)
-        finally:
-            if self._mutex.locked():
-                self._mutex.release()
-

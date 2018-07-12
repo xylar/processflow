@@ -66,7 +66,6 @@ def initialize(argv, **kwargs):
     Parameters:
         argv (list): a list of arguments
         event_list (EventList): The main list of events
-        mutex (threading.Lock): A mutex to handle db access
         kill_event (threading.Event): An event used to kill all running threads
         __version__ (str): the current version number for processflow
         __branch__ (str): the branch this version was built from
@@ -81,7 +80,6 @@ def initialize(argv, **kwargs):
         parse_args(print_help=True)
         return False, False, False
     event_list = kwargs['event_list']
-    mutex = kwargs['mutex']
     event = kwargs['kill_event']
     print_line(
         line='Entering setup',
@@ -217,7 +215,6 @@ Please add a space and run again.'''.format(num=line_index)
     filemanager = FileManager(
         database=db,
         event_list=event_list,
-        mutex=mutex,
         config=config)
     
     filemanager.populate_file_list()
