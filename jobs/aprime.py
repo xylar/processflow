@@ -61,7 +61,7 @@ class Aprime(Diag):
         
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'aprime')
         
         # setup template
@@ -109,7 +109,7 @@ class Aprime(Diag):
 
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'aprime')
         num_missing = self._check_links(config)
 
