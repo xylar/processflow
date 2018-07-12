@@ -310,8 +310,8 @@ set tick_marks = 1       # (0=ON,1=OFF)
 set custom_names = 0     # (0=ON,1=OFF)
 
 # if needed set the names
-set test_name = %%short_name%%         # test case name 
-set cntl_name = %%cntl_short_name%%         # control case name
+set test_name = {{ short_name }}         # test case name 
+set cntl_name = {{ cntl_short_name }}         # control case name
 
 #----------------------------------------------------------------
 # Convert output postscript files to GIF, JPG or PNG image files 
@@ -372,7 +372,7 @@ set sig_lvl = 0.05           # level of significance
 # The obs data in $DIAG_HOME/obs_data
 # The cam3.5 data in $DIAG_HOME/cam35_data 
 
-setenv DIAG_HOME %%diag_home%%
+setenv DIAG_HOME  {{ diag_home }}
 
 
 #*****************************************************************
@@ -854,15 +854,15 @@ else
 endif
 
 $DIAG_CODE/determine_output_attributes.csh   test  \
-					     $test_casename \
-					     $test_path_HPSS \
-					     $test_path_history \
-					     $test_path_climo \
-					     $test_path_diag \
-					     $test_first_yr \
-					     $test_compute_climo \
-                                             $test_filetype \
-                                             $test_keyFile  >&! /dev/null 
+  $test_casename \
+  $test_path_HPSS \
+  $test_path_history \
+  $test_path_climo \
+  $test_path_diag \
+  $test_first_yr \
+  $test_compute_climo \
+  $test_filetype \
+  $test_keyFile  >&! /dev/null 
 
 
 set test_rootname  = `cat $test_path_diag/attributes/test_rootname`

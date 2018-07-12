@@ -249,7 +249,7 @@ def verify_config(config):
                 msg = 'no sets given for amwg'
                 messages.append(msg)
             else:
-                allowed_sets = ['all', 'set_1', 'set_2', 'set_3', 'set_4', 'set_4a', 'set_5', 'set_6', 'set_7', 'set_8', 'set_9', 'set_10', 'set_11', 'set_12', 'set_13', 'set_14', 'set_15', 'set_16']
+                allowed_sets = [str(x) for x in range(1, 17)] + ['all', '4a']
                 if not isinstance(config['diags']['amwg']['sets'], list):
                     config['diags']['amwg']['sets'] = [config['diags']['amwg']['sets']]
                 for s in config['diags']['amwg']['sets']:

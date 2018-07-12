@@ -90,14 +90,16 @@ class AMWG(Diag):
         variables['test_path_diag'] = self._output_path + os.sep
         variables['diag_home'] = config['diags']['amwg']['diag_home']
 
-        if config['diags']['amwg']['sets'] == 'all':
+        if 'all' in config['diags']['amwg']['sets']:
             variables['all_sets'] = '0'
+            sets = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
+            for diag in sets:
+                variables[diag] = '0'
         else:
-            sets = ['set_1', 'set_2', 'set_3', 'set_4', 'set_4a', 'set_5', 'set_6', 'set_7', 'set_8', 'set_9', 'set_10', 'set_11', 'set_12', 'set_13', 'set_14', 'set_15', 'set_16']
+            sets = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
             for diag in sets:
                 variables[diag] = '0' if diag in config['diags']['amwg']['sets'] else '1'
             
-
         if self.comparison == 'obs':
             template_input_path = os.path.join(
                 config['global']['resource_path'],
@@ -156,44 +158,104 @@ class AMWG(Diag):
                     end=self.end_year,
                     comp=self._short_comp_name))
         
-        # check that there have been enough plots created to call this a successful run
-        num_found = sum(len(files) for r, d, files in os.walk(self._output_path))
-        num_expected = 1900 if self.comparison == 'obs' else 1500
-        enough_files = bool(num_found > num_expected)
-        if not enough_files:
-            if not self._has_been_executed:
-                msg = '{prefix}: Job hasnt been run yet, starting from scratch'.format(
-                    prefix=self.msg_prefix())
-                logging.info(msg)
-                return False
-            else:
-                img_source = os.path.join(
-                    self._output_path,
-                    '{case}-vs-{comp}'.format(
-                        case=self.short_name,
-                        comp=self._short_comp_name))
-                if os.path.exists(img_source + '.tar'):
-                    msg = '{prefix}: extracting images from tar archive'.format(
-                        prefix=self.msg_prefix())
-                    print_line(msg, kwargs['event_list'])
-                    call(['tar', '-xf', img_source + '.tar', '--directory', self._output_path])
-                    num_found = sum(len(files) for r, d, files in os.walk(self._output_path))
-                    enough_files = bool(num_found > num_expected)
-                    if not enough_files:
-                        msg = '{prefix}: Not enough images generated, only {num_found} but expected > {num_expected}'.format(
-                            prefix=self.msg_prefix(),
-                            num_found=num_found,
-                            num_expected=num_expected)
-                        logging.error(msg)
-                        return False
-                    else:
-                        msg = '{prefix}: Found expected output after extracting archive'.format(prefix=self.msg_prefix())
-                        logging.info(msg)
-                        self._check_links(config)
-                        return True
+        if self.comparison == 'obs':
+            expected_files = {
+                "set4": 60,
+                "set5_6": 400,
+                "set7": 300,
+                "set1": 10,
+                "set2": 3,
+                "set3": 300,
+                "set8": 50,
+                "set9": 20,
+                "set16": 3,
+                "set14": 10,
+                "set15": 50,
+                "set12": 50,
+                "set13": 300,
+                "set10": 100,
+                "set11": 10,
+                "set4a": 60
+            }
         else:
+            expected_files = {
+                "set4": 60,
+                "set5_6": 280,
+                "set7": 200,
+                "set1": 10,
+                "set2": 5,
+                "set3": 240,
+                "set8": 50,
+                "set9": 20,
+                "set16": 3,
+                "set14": 10,
+                "set15": 50,
+                "set12": 50,
+                "set13": 300,
+                "set10": 100,
+                "set11": 10,
+                "set4a": 50
+            }
+        passed = True
+        if 'all' in config['diags']['amwg']['sets']:
+            sets = [str(x) for x in range(1, 17)] + ['4a']
+        else:
+            sets = config['diags']['amwg']['sets']
+        # check that there have been enough plots created to call this a successful run
+        for item in sets:
+            setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
+            directory = os.path.join(
+                self._output_path,
+                '{}-vs-{}'.format(self.short_name, self._short_comp_name),
+                setname)
+            if not os.path.exists(directory):
+                return False
+            count = len(os.listdir(directory))
+            if count < expected_files[setname]:
+                if not self._has_been_executed:
+                    return False
+                msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                    prefix=self.msg_prefix(),
+                    set=setname,
+                    numProduced=count,
+                    numExpected=expected_files[setname])
+                logging.error(msg)
+                passed = False
+        
+        if not passed:
+            img_source = os.path.join(
+                self._output_path,
+                '{case}-vs-{comp}'.format(
+                    case=self.short_name,
+                    comp=self._short_comp_name))
+            if os.path.exists(img_source):
+                msg = '{prefix}: extracting images from tar archive'.format(
+                    prefix=self.msg_prefix())
+                print_line(msg, kwargs['event_list'])
+                call(['tar', '-xf', img_source + '.tar', '--directory', self._output_path])
+                passed = True
+                for item in config['diags']['amwg']['sets']:
+                    setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
+                    directory = os.path.join(
+                        self._output_path,
+                        '{}-vs-{}'.format(self.short_name, self._short_comp_name),
+                        setname)
+                    if not os.path.exists(directory):
+                        passed = False
+                    else:
+                        count = len(os.listdir(directory))
+                        if count < expected_files[setname]:
+                            passed = False
+        
+        if passed:
+            msg = '{prefix}: all expected output images found'.format(
+                prefix=self.msg_prefix())
+            print_line(msg, kwargs['event_list'])
+            logging.info(msg)
             self._check_links(config)
             return True
+        else:
+            return False
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
         
@@ -231,7 +293,7 @@ class AMWG(Diag):
         
         if not os.path.exists(img_source):
             if os.path.exists(img_source + '.tar'):
-                self.extract_img_tar(img_source)
+                call(['tar', '-xf', img_source + '.tar', '--directory', self._output_path])
             else:
                 msg = '{prefix}: Unable to find output directory or tar archive'.format(
                     prefix=self.msg_prefix())
