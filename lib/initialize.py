@@ -249,7 +249,6 @@ Please add a space and run again.'''.format(num=line_index)
             local_endpoint = config['global'].get('local_globus_uuid')
             if local_endpoint:
                 endpoints.append(local_endpoint)
-            addr = config['global'].get('email')
             msg = 'Checking authentication for {} endpoints'.format(endpoints)
             print_line(line=msg, event_list=event_list)
             setup_success = setup_globus(
