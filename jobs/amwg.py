@@ -185,17 +185,18 @@ class AMWG(Diag):
                 "set1": 10,
                 "set2": 5,
                 "set3": 240,
-                "set8": 50,
-                "set9": 20,
+                "set8": 40,
+                "set9": 10,
                 "set16": 3,
                 "set14": 10,
                 "set15": 50,
                 "set12": 50,
                 "set13": 300,
-                "set10": 100,
+                "set10": 80,
                 "set11": 10,
                 "set4a": 50
             }
+
         passed = True
         if 'all' in config['diags']['amwg']['sets']:
             sets = [str(x) for x in range(1, 17)] + ['4a']
@@ -209,6 +210,8 @@ class AMWG(Diag):
                 '{}-vs-{}'.format(self.short_name, self._short_comp_name),
                 setname)
             if not os.path.exists(directory):
+                msg = 'could not find output directory {}'.format(directory)
+                logging.error(msg)
                 return False
             count = len(os.listdir(directory))
             if count < expected_files[setname]:
@@ -241,10 +244,18 @@ class AMWG(Diag):
                         '{}-vs-{}'.format(self.short_name, self._short_comp_name),
                         setname)
                     if not os.path.exists(directory):
+                        msg = 'could not find output directory {}'.format(directory)
+                        logging.error(msg)
                         passed = False
                     else:
                         count = len(os.listdir(directory))
                         if count < expected_files[setname]:
+                            msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                                prefix=self.msg_prefix(),
+                                set=setname,
+                                numProduced=count,
+                                numExpected=expected_files[setname])
+                            logging.error(msg)
                             passed = False
         
         if passed:
@@ -259,16 +270,14 @@ class AMWG(Diag):
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
         
-        if self.status != JobStatus.COMPLETED:
-            msg = '{prefix}: Job failed'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
-        else:
+        if self.status == JobStatus.COMPLETED:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
+        else:
+            msg = '{prefix}: Job failed'.format(
+                prefix=self.msg_prefix())
+        print_line(msg, event_list)
+        logging.info(msg)
 
         # if hosting is turned off, simply return
         if not config['global']['host']:
