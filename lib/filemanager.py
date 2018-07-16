@@ -175,7 +175,8 @@ class FileManager(object):
             'CASEID': case,
             'REST_YR': '{:04d}'.format(start_year + 1),
             'START_YR': '{:04d}'.format(start_year),
-            'END_YR': '{:04d}'.format(end_year)
+            'END_YR': '{:04d}'.format(end_year),
+            'LOCAL_PATH': self._config['simulations'][case].get('local_path', '')
         }
         if year is not None:
             replace['YEAR'] = '{:04d}'.format(year)
