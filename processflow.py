@@ -154,7 +154,6 @@ def main(test=False, **kwargs):
                     config=config,
                     event_list=event_list,
                     status=status,
-                    kill_event=thread_kill_event,
                     runmanager=runmanager)
                 # SUCCESS EXIT
                 return 0
