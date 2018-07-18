@@ -243,9 +243,9 @@ export ref_condense_field_enso_atm=1
 export ref_remap_ts_enso_atm=1
 
 # Select sets of diagnostics to generate (False = 0, True = 1)
-export generate_atm_diags={{ atm_diags }}
-export generate_atm_enso_diags={{ enso_diags }}
-export generate_ocnice_diags={{ ocnice_diags }}
+export generate_atm_diags=1
+export generate_atm_enso_diags=1
+export generate_ocnice_diags=1
 
 # The following ocn/ice diagnostic switches are ignored if generate_ocnice_diags is set to 0
 export generate_ohc_trends=1

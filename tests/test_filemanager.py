@@ -90,6 +90,7 @@ class TestFileManager(unittest.TestCase):
         filemanager.write_database()
         self.assertFalse(filemanager.all_data_local())
         
+        # test that the filemanager returns correct paths
         paths = filemanager.get_file_paths_by_year(
             datatype='atm',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
@@ -98,12 +99,14 @@ class TestFileManager(unittest.TestCase):
         for path in paths:
             self.assertTrue(os.path.exists(path))
 
+        # test that the filemanager returns correct paths with no year
         paths = filemanager.get_file_paths_by_year(
             datatype='ocn_streams',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison')
         for path in paths:
             self.assertTrue(os.path.exists(path))
 
+        # test nothing is returned for incorrect yeras
         paths = filemanager.get_file_paths_by_year(
             datatype='ocn_streams',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
@@ -111,6 +114,7 @@ class TestFileManager(unittest.TestCase):
             end_year=100)
         self.assertTrue(paths is None)
 
+        # test the filemanager knows when data is ready
         ready = filemanager.check_data_ready(
             data_required=['atm'], 
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
@@ -118,6 +122,7 @@ class TestFileManager(unittest.TestCase):
             end_year=2)
         self.assertTrue(ready)
 
+        # test the filemanager knows when data is NOT ready
         ready = filemanager.check_data_ready(
             data_required=['atm'], 
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',

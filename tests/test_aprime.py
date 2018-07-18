@@ -17,10 +17,10 @@ from lib.initialize import initialize
 from jobs.e3smdiags import E3SMDiags
 from jobs.diag import Diag
 
-class TestE3SM(unittest.TestCase):
+class TestAprime(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        super(TestE3SM, self).__init__(*args, **kwargs)
+        super(TestAprime, self).__init__(*args, **kwargs)
         self.event_list = EventList()
         self.config_path = 'tests/test_configs/e3sm_diags_complete.cfg'
         self.config = ConfigObj(self.config_path)
