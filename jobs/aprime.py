@@ -191,15 +191,15 @@ class Aprime(Diag):
         page_path = os.path.join(web_dir, 'index.html')
 
         if not os.path.exists(page_path):
-            msg = '{prefix}: No output page found'.format(
+            msg = '{prefix}: No output page found at {outpath}'.format(
                 prefix=self.msg_prefix(),
-                case=self.short_name)
+                outpath=page_path)
             logging.error(msg)
             return None
         else:
-            msg = '{prefix}: found output index.html at {page}'.format(
+            msg = '{prefix}: found output index.html at {outpath}'.format(
                 prefix=self.msg_prefix(),
-                page=page_path)
+                outpath=page_path)
             logging.info(msg)
 
         missing_pages = list()
@@ -243,10 +243,5 @@ class Aprime(Diag):
             if os.path.exists(new_path):
                 self._input_file_paths[idx] = new_path
                 continue
-            msg = '{prefix}: moving input file from {src} to {dst}'.format(
-                prefix=self.msg_prefix(),
-                src=item,
-                dst=new_path)
-            logging.info(msg)
             move(item, fixed_input_path)
             self._input_file_paths[idx] = new_path
