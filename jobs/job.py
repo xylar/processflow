@@ -251,8 +251,12 @@ class Job(object):
     # -----------------------------------------------
     def prevalidate(self, *args, **kwargs):
         if not self.data_ready:
+            msg = '{prefix}: data not ready'.format(prefix=self.msg_prefix())
+            logging.error(msg)
             return False
         if not self.check_data_in_place():
+            msg = '{prefix}: data not in place'.format(prefix=self.msg_prefix())
+            logging.error(msg)
             return False
         return True
     # -----------------------------------------------

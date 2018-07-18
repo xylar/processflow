@@ -261,7 +261,6 @@ class RunManager(object):
         Loop over the list of jobs for each case, first setting up the data for, and then
         submitting each job to the queue
         """
-
         for case in self.cases:
             for job in case['jobs']:
                 if job.status != JobStatus.VALID:
@@ -290,10 +289,7 @@ class RunManager(object):
                             self.event_list,
                             self.config)
                         self.report_completed_job()
-                        if isinstance(job, Diag):
-                            msg = '{}: Job previously computed, skipping'.format(job.msg_prefix())
-                        else:
-                            msg = '{}: Job previously computed, skipping'.format(job.msg_prefix())
+                        msg = '{}: Job previously computed, skipping'.format(job.msg_prefix())
                         print_line(msg, self.event_list)
                         continue
 
@@ -308,10 +304,13 @@ class RunManager(object):
 
                     # set to pending before data setup so we dont double submit
                     job.status = JobStatus.PENDING
+
+                    # setup the data needed for the job
                     job.setup_data(
                         config=self.config,
                         filemanager=self.filemanager,
                         case=job.case)
+                    # if this job needs data from another case, set that up too
                     if isinstance(job, Diag):
                         if job.comparison != 'obs':
                             job.setup_data(

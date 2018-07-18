@@ -31,6 +31,10 @@ def parse_args(argv=None, print_help=None):
         help='maximum number of running jobs',
         type=int)
     parser.add_argument(
+        '--verify',
+        help='Run verification for remote file paths, this process can take some time',
+        action='store_true')
+    parser.add_argument(
         '-l', '--log',
         help='Path to logging output file.')
     parser.add_argument(
@@ -142,6 +146,7 @@ Please add a space and run again.'''.format(num=line_index)
     config['global']['always_copy'] = True if pargs.always_copy else False
     config['global']['dryrun'] = True if pargs.dryrun else False
     config['global']['debug'] = True if pargs.debug else False
+    config['global']['verify'] = True if pargs.verify else False
     config['global']['max_jobs'] = pargs.max_jobs if pargs.max_jobs else False
 
      # setup logging

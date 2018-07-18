@@ -1,24 +1,24 @@
 import logging
 from time import sleep
-from lib.util import print_debug, format_debug, print_line
+from lib.util import print_debug, format_debug, print_line, print_message
 
 from globus_sdk import TransferData
-from globus_cli.commands.ls import _get_ls_res as get_ls
+from globus_cli.commands.ls import _get_ls_res as globus_ls
 from globus_cli.commands.login import do_link_login_flow, check_logged_in
 from globus_cli.services.transfer import get_client
 
 def get_ls(client, path, endpoint):
     for fail_count in xrange(10):
         try:
-            res = get_ls(
+            res = globus_ls(
                 client,
                 path,
                 endpoint,
                 False, 0, False)
         except Exception as e:
             sleep(fail_count)
-            if fail_count >= 9:
-                print_debug(e)
+            print_message("Globus server error, retrying")
+            print_debug(e)
         else:
             return res
 

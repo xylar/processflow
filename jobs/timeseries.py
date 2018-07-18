@@ -149,6 +149,7 @@ class Timeseries(Job):
                 'local_path': os.path.join(ts_path, ts_file),
                 'case': self.case,
                 'year': self.start_year,
+                'month': self.end_year,
                 'local_status': FileStatus.PRESENT.value
             })
         filemanager.add_files(
@@ -171,6 +172,7 @@ class Timeseries(Job):
                     'local_path': os.path.join(regrid_path, regrid_file),
                     'case': self.case,
                     'year': self.start_year,
+                    'month': self.end_year,
                     'local_status': FileStatus.PRESENT.value
                 })
             filemanager.add_files(

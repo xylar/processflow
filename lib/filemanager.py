@@ -14,11 +14,14 @@ from models import DataFile
 from lib.jobstatus import JobStatus
 from lib.util import print_debug
 from lib.util import print_line
+from lib.util import print_message
 
 from lib.globus_interface import transfer as globus_transfer
+from lib.globus_interface import get_ls as globus_ls
 from globus_cli.services.transfer import get_client
 
 from lib.ssh_interface import transfer as ssh_transfer
+from lib.ssh_interface import get_ls as ssh_ls
 from lib.ssh_interface import get_ssh_client
 
 
@@ -294,6 +297,60 @@ class FileManager(object):
             msg = 'Database update complete'
             print_line(msg, self._event_list)
     
+    def verify_remote_files(self, client, case):
+        """
+        Check that the user supplied file paths are valid for remote files
+
+        Parameters:
+            client: either an ssh_client or a globus_client
+            case: the case to check remote paths for
+        """
+        if not self._config['global']['verify']:
+            return True
+        msg = 'verifying remote file paths'
+        print_line(msg, self._event_list)
+
+        data_types_to_verify = []
+        q = (DataFile
+                .select()
+                .where(
+                    (DataFile.case == case) & 
+                    (DataFile.local_status != FileStatus.PRESENT.value)))
+        for datafile in  q.execute():
+            if datafile.datatype not in data_types_to_verify:
+                data_types_to_verify.append(datafile.datatype)
+        for datatype in data_types_to_verify:
+            q = (DataFile
+                    .select()
+                    .where(
+                        (DataFile.case == case) &
+                        (DataFile.datatype == datatype)))
+            files = q.execute()
+            remote_path, _ = os.path.split(files[0].remote_path)
+            msg = 'Checking {} files in {}'.format(datatype, remote_path)
+            print_line(msg, self._event_list)
+            if files[0].transfer_type == 'globus':
+                remote_contents = globus_ls(
+                    client=client,
+                    path=remote_path,
+                    endpoint=self._config['simulations'][case]['remote_uuid'])
+            elif files[0].transfer_type == 'sftp':
+                remote_contents = ssh_ls(
+                    client=client,
+                    remote_path=remote_path)
+            remote_names = [x['name'] for x in remote_contents]
+            for df in files:
+                if df.name not in remote_names:
+                    import ipdb; ipdb.set_trace()
+                    msg = 'Unable to find file {name} at {remote_path}'.format(
+                        name=df.name,
+                        remote_path=remote_path)
+                    print_message(msg, 'error')
+                    return False
+        msg = 'found all remote files for {}'.format(case)
+        print_message(msg, 'ok')
+        return True
+
     def terminate_transfers(self):
         self.kill_event.set()
         for thread in self.thread_list:
@@ -471,6 +528,8 @@ class FileManager(object):
                     print_line(msg, self._event_list)
 
                     client = get_client()
+                    if not self.verify_remote_files(client=client, case=case):
+                        return False
                     remote_uuid = required_files[0].remote_uuid
                     local_uuid = self._config['global']['local_globus_uuid']
                     thread_name = '{}_globus_transfer'.format(required_files[0].case)
@@ -489,6 +548,8 @@ class FileManager(object):
                     print_line(msg, self._event_list)
 
                     client = get_ssh_client(required_files[0].remote_hostname)
+                    if not self.verify_remote_files(client=client, case=case):
+                        return False
                     thread_name = '{}_sftp_transfer'.format(required_files[0].case)
                     _args = (target_files, client, self.kill_event)
                     thread = Thread(
@@ -551,14 +612,24 @@ class FileManager(object):
         """
         try:
             if start_year and end_year:
-                query = (DataFile
+                if datatype in ['climo_regrid', 'climo_native', 'ts_regrid', 'ts_native']:
+                    query = (DataFile
                          .select()
                          .where(
-                                (DataFile.year <= end_year) &
-                                (DataFile.year >= start_year) &
+                                (DataFile.month == end_year) &
+                                (DataFile.year == start_year) &
                                 (DataFile.case == case) &
                                 (DataFile.datatype == datatype) &
                                 (DataFile.local_status == FileStatus.PRESENT.value)))
+                else:
+                    query = (DataFile
+                            .select()
+                            .where(
+                                    (DataFile.year <= end_year) &
+                                    (DataFile.year >= start_year) &
+                                    (DataFile.case == case) &
+                                    (DataFile.datatype == datatype) &
+                                    (DataFile.local_status == FileStatus.PRESENT.value)))
             else:
                 query = (DataFile
                          .select()

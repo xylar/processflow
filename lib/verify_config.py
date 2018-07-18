@@ -71,7 +71,7 @@ def verify_config(config):
             messages.append(msg)
         else:
             config['simulations']['end_year'] = int(config['simulations']['end_year'])
-        if int(config['simulations'].get('end_year')) < int(config['simulations'].get('start_year')):
+        if int(config['simulations'].get('end_year', 0)) < int(config['simulations'].get('start_year', 0)):
             msg = 'simulation end_year is less then start_year, is time going backwards!?'
             messages.append(msg)
         if not config['simulations'][sim].get('data_types'):
@@ -92,7 +92,7 @@ def verify_config(config):
             for job_type in config['simulations'][sim]['job_types']:
                 if job_type == 'all':
                     continue
-                if job_type not in config['post-processing'] and job_type not in config['diags']:
+                if job_type not in config.get('post-processing', []) and job_type not in config.get('diags', []):
                     msg = '{} is set to run job {}, but this run type is not in either the post-processing or diags config sections'.format(sim, job_type)
                     messages.append(msg)
         
@@ -148,9 +148,9 @@ def verify_config(config):
                 for sim in config['simulations']:
                     if sim in ['start_year', 'end_year', 'comparisons']: 
                         continue
-                    if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
-                        if item not in config['simulations'][sim].get('job_types'):
-                            continue
+                    # if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
+                    #     if item not in config['simulations'][sim].get('data_types'):
+                    #         continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
                         if item not in config['simulations'][sim].get('data_types'):
                             msg = 'regrid is set to run on data_type {}, but this type is not set in simulation {}'.format(item, sim)
