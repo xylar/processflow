@@ -102,6 +102,9 @@
 # PART I
 # USER DEFINED, CASE-SPECIFIC VARIABLES TO SPECIFY (REQUIRED)
 
+# Turn of hdf5 file locking
+export HDF5_USE_FILE_LOCKING=FALSE
+
 # Root directory where all analysis output is stored
 # (e.g., plots will go in a specific subdirectory of $output_base_dir,
 # as will log files, generated climatologies, etc)
