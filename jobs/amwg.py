@@ -160,41 +160,41 @@ class AMWG(Diag):
         
         if self.comparison == 'obs':
             expected_files = {
-                "set4": 60,
-                "set5_6": 400,
-                "set7": 300,
+                "set4": 50,
+                "set5_6": 100,
+                "set7": 100,
                 "set1": 10,
                 "set2": 3,
-                "set3": 300,
-                "set8": 50,
+                "set3": 100,
+                "set8": 20,
                 "set9": 20,
                 "set16": 3,
                 "set14": 10,
                 "set15": 50,
                 "set12": 50,
-                "set13": 300,
+                "set13": 100,
                 "set10": 100,
                 "set11": 10,
-                "set4a": 60
+                "set4a": 50
             }
         else:
             expected_files = {
                 "set4": 60,
-                "set5_6": 280,
-                "set7": 200,
+                "set5_6": 100,
+                "set7": 100,
                 "set1": 10,
                 "set2": 5,
-                "set3": 240,
-                "set8": 40,
-                "set9": 10,
+                "set3": 100,
+                "set8": 20,
+                "set9": 5,
                 "set16": 3,
                 "set14": 10,
                 "set15": 50,
                 "set12": 50,
                 "set13": 300,
-                "set10": 80,
+                "set10": 50,
                 "set11": 10,
-                "set4a": 50
+                "set4a": 20
             }
 
         passed = True
