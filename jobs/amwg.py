@@ -92,13 +92,15 @@ class AMWG(Diag):
 
         if 'all' in config['diags']['amwg']['sets']:
             variables['all_sets'] = '0'
-            sets = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
-            for diag in sets:
+            set_names = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
+            for diag in set_names:
                 variables[diag] = '0'
         else:
-            sets = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
-            for diag in sets:
-                variables[diag] = '0' if diag in config['diags']['amwg']['sets'] else '1'
+            variables['all_sets'] = '1'
+            set_numbers = [str(x) for x in range(1, 17)] + ['4a']
+            set_names = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
+            for idx, diag in enumerate(set_names):
+                variables[diag] = '0' if set_numbers[idx] in config['diags']['amwg']['sets'] else '1'
             
         if self.comparison == 'obs':
             template_input_path = os.path.join(
@@ -120,7 +122,7 @@ class AMWG(Diag):
             variables=variables,
             input_path=template_input_path,
             output_path=csh_template_out)
-        
+
         if not dryrun:
             self._dryrun = False
             if not self.prevalidate():
@@ -202,6 +204,13 @@ class AMWG(Diag):
             sets = [str(x) for x in range(1, 17)] + ['4a']
         else:
             sets = config['diags']['amwg']['sets']
+        
+        img_source = os.path.join(
+            self._output_path,
+            '{case}-vs-{comp}'.format(
+                case=self.short_name,
+                comp=self._short_comp_name))
+        img_source_tar = img_source + '.tar'
         # check that there have been enough plots created to call this a successful run
         for item in sets:
             setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
@@ -210,32 +219,35 @@ class AMWG(Diag):
                 '{}-vs-{}'.format(self.short_name, self._short_comp_name),
                 setname)
             if not os.path.exists(directory):
-                msg = 'could not find output directory {}'.format(directory)
-                logging.error(msg)
-                return False
-            count = len(os.listdir(directory))
-            if count < expected_files[setname]:
                 if not self._has_been_executed:
-                    return False
-                msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                    passed = False
+                    if not os.path.exists(img_source_tar):
+                        return False
+                    else:
+                        break
+                msg = '{prefix}: could not find output directory {dir}'.format(
                     prefix=self.msg_prefix(),
-                    set=setname,
-                    numProduced=count,
-                    numExpected=expected_files[setname])
+                    dir=directory)
                 logging.error(msg)
-                passed = False
-        
+            else:
+                count = len(os.listdir(directory))
+                if count < expected_files[setname]:
+                    if not self._has_been_executed:
+                        return False
+                    msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                        prefix=self.msg_prefix(),
+                        set=setname,
+                        numProduced=count,
+                        numExpected=expected_files[setname])
+                    logging.error(msg)
+                    passed = False
+
         if not passed:
-            img_source = os.path.join(
-                self._output_path,
-                '{case}-vs-{comp}'.format(
-                    case=self.short_name,
-                    comp=self._short_comp_name))
-            if os.path.exists(img_source):
+            if os.path.exists(img_source_tar):
                 msg = '{prefix}: extracting images from tar archive'.format(
                     prefix=self.msg_prefix())
                 print_line(msg, kwargs['event_list'])
-                call(['tar', '-xf', img_source + '.tar', '--directory', self._output_path])
+                call(['tar', '-xf', img_source_tar, '--directory', self._output_path])
                 passed = True
                 for item in config['diags']['amwg']['sets']:
                     setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
@@ -244,7 +256,9 @@ class AMWG(Diag):
                         '{}-vs-{}'.format(self.short_name, self._short_comp_name),
                         setname)
                     if not os.path.exists(directory):
-                        msg = 'could not find output directory {}'.format(directory)
+                        msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
+                            prefix=self.msg_prefix(),
+                            dir=directory)
                         logging.error(msg)
                         passed = False
                     else:
