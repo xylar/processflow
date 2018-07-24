@@ -152,7 +152,7 @@ def verify_config(config):
                     #     if item not in config['simulations'][sim].get('data_types'):
                     #         continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
-                        if item not in config['simulations'][sim].get('data_types'):
+                        if item not in config['simulations'][sim].get('data_types') and ('regrid' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'regrid is set to run on data_type {}, but this type is not set in simulation {}'.format(item, sim)
                             messages.append(msg)
         # ------------------------------------------------------------------------
@@ -201,7 +201,7 @@ def verify_config(config):
                 for sim in config['simulations']:
                     if sim in ['start_year', 'end_year', 'comparisons']: continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
-                        if item not in config['simulations'][sim].get('data_types'):
+                        if item not in config['simulations'][sim].get('data_types') and ('timeseries' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'timeseries-{} is set to run for simulation {}, but this simulation does not have {} in its data_types'.format(item, sim, item)
                             messages.append(msg)
     if config.get('diags'):

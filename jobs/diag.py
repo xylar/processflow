@@ -36,8 +36,7 @@ class Diag(Job):
     # -----------------------------------------------
     def setup_hosting(self, config, img_source, host_path, event_list):
         if config['global']['always_copy']:
-            # aprime automatically removes all previous plots itself
-            if os.path.exists(host_path) and self.job_type != 'aprime':
+            if os.path.exists(host_path):
                 msg = '{prefix}: Removing previous output from host location'.format(
                     prefix=self.msg_prefix())
                 print_line(msg, event_list)
@@ -49,15 +48,14 @@ class Diag(Job):
             copytree(
                 src=img_source,
                 dst=host_path)
-            
-            # fix permissions for apache
-            msg = '{prefix}: Fixing permissions'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
         else:
             msg = '{prefix}: Files already present at host location, skipping'.format(
                 prefix=self.msg_prefix())
             print_line(msg, event_list)
+        # fix permissions for apache
+        msg = '{prefix}: Fixing permissions'.format(
+            prefix=self.msg_prefix())
+        print_line(msg, event_list)
         call(['chmod', '-R', 'a+rx', host_path])
         tail, _ = os.path.split(host_path)
         for _ in range(2):

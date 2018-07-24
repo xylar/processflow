@@ -164,6 +164,11 @@ Please add a space and run again.'''.format(num=line_index)
         from imp import reload
         reload(logging)
     config['global']['log_path'] = log_path
+    if os.path.exists(log_path):
+        logbak = log_path + '.bak'
+        if os.path.exists(logbak):
+            os.remove(logbak)
+        copyfile(log_path, log_path + '.bak')
     log_level = logging.DEBUG if pargs.debug else logging.INFO
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s: %(message)s',
