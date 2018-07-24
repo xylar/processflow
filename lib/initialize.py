@@ -14,7 +14,7 @@ from shutil import copyfile
 from filemanager import FileManager
 from runmanager import RunManager
 from mailer import Mailer
-from JobStatus import JobStatus
+from jobstatus import JobStatus
 from globus_interface import setup_globus
 from util import print_message
 from util import print_debug
@@ -27,29 +27,25 @@ def parse_args(argv=None, print_help=None):
         '-c', '--config',
         help='Path to configuration file.')
     parser.add_argument(
-        '-v', '--version',
-        help='Print version informat and exit.',
+        '-m', '--max-jobs',
+        help='maximum number of running jobs',
+        type=int)
+    parser.add_argument(
+        '--verify',
+        help='Run verification for remote file paths, this process can take some time',
         action='store_true')
     parser.add_argument(
         '-l', '--log',
         help='Path to logging output file.')
     parser.add_argument(
-        '-s', '--scripts',
-        help='Copy the case_scripts directory from the remote machine.',
-        action='store_true')
-    parser.add_argument(
-        '-f', '--file-list',
-        help='Turn on debug output of the internal file_list so you can see what the current state of the model files are',
+        '-a', '--always-copy',
+        help='Always copy diagnostic output, even if the output already exists in the host directory. This is much slower but ensures old output will be overwritten',
         action='store_true')
     parser.add_argument(
         '-r', '--resource-path',
         help='Path to custom resource directory')
     parser.add_argument(
-        '-a', '--always-copy',
-        help='Always copy diagnostic output, even if the output already exists in the host directory. This is much slower but ensures old output will be overwritten',
-        action='store_true')
-    parser.add_argument(
-        '-d', '--debug',
+        '--debug',
         help='Set log level to debug',
         action='store_true')
     parser.add_argument(
@@ -57,9 +53,10 @@ def parse_args(argv=None, print_help=None):
         help='Do everything up to starting the jobs, but dont start any jobs',
         action='store_true')
     parser.add_argument(
-        '-m', '--max-jobs',
-        help='maximum number of running jobs',
-        type=int)
+        '-v', '--version',
+        help='Print version informat and exit.',
+        action='store_true')
+
     if print_help:
         parser.print_help()
         return
@@ -73,7 +70,6 @@ def initialize(argv, **kwargs):
     Parameters:
         argv (list): a list of arguments
         event_list (EventList): The main list of events
-        mutex (threading.Lock): A mutex to handle db access
         kill_event (threading.Event): An event used to kill all running threads
         __version__ (str): the current version number for processflow
         __branch__ (str): the branch this version was built from
@@ -88,7 +84,6 @@ def initialize(argv, **kwargs):
         parse_args(print_help=True)
         return False, False, False
     event_list = kwargs['event_list']
-    mutex = kwargs['mutex']
     event = kwargs['kill_event']
     print_line(
         line='Entering setup',
@@ -148,11 +143,10 @@ Please add a space and run again.'''.format(num=line_index)
 
     # Setup boolean config flags
     config['global']['host'] = True if config.get('img_hosting') else False
-    config['global']['print_file_list'] = True if pargs.file_list else False
-    config['global']['scripts'] = True if pargs.scripts else False
     config['global']['always_copy'] = True if pargs.always_copy else False
     config['global']['dryrun'] = True if pargs.dryrun else False
     config['global']['debug'] = True if pargs.debug else False
+    config['global']['verify'] = True if pargs.verify else False
     config['global']['max_jobs'] = pargs.max_jobs if pargs.max_jobs else False
 
      # setup logging
@@ -170,6 +164,11 @@ Please add a space and run again.'''.format(num=line_index)
         from imp import reload
         reload(logging)
     config['global']['log_path'] = log_path
+    if os.path.exists(log_path):
+        logbak = log_path + '.bak'
+        if os.path.exists(logbak):
+            os.remove(logbak)
+        copyfile(log_path, log_path + '.bak')
     log_level = logging.DEBUG if pargs.debug else logging.INFO
     logging.basicConfig(
         format='%(asctime)s:%(levelname)s: %(message)s',
@@ -226,7 +225,6 @@ Please add a space and run again.'''.format(num=line_index)
     filemanager = FileManager(
         database=db,
         event_list=event_list,
-        mutex=mutex,
         config=config)
     
     filemanager.populate_file_list()
@@ -256,24 +254,24 @@ Please add a space and run again.'''.format(num=line_index)
             line="skipping globus setup",
             event_list=event_list)
     else:
-        endpoints = [endpoint for endpoint in filemanager.get_endpoints()]
-        local_endpoint = config['global'].get('local_globus_uuid')
-        if local_endpoint:
-            endpoints.append(local_endpoint)
-        addr = config['global'].get('email')
-        msg = 'Checking authentication for {} endpoints'.format(endpoints)
-        print_line(line=msg, event_list=event_list)
-        setup_success = setup_globus(
-            endpoints=endpoints,
-            event_list=event_list)
-
-        if not setup_success:
-            print "Globus setup error"
-            return False, False, False
-        else:
-            print_line(
-                line='Globus authentication complete',
+        if config['global'].get('local_globus_uuid'):
+            endpoints = [endpoint for endpoint in filemanager.get_endpoints()]
+            local_endpoint = config['global'].get('local_globus_uuid')
+            if local_endpoint:
+                endpoints.append(local_endpoint)
+            msg = 'Checking authentication for {} endpoints'.format(endpoints)
+            print_line(line=msg, event_list=event_list)
+            setup_success = setup_globus(
+                endpoints=endpoints,
                 event_list=event_list)
+
+            if not setup_success:
+                print "Globus setup error"
+                return False, False, False
+            else:
+                print_line(
+                    line='Globus authentication complete',
+                    event_list=event_list)
     # setup the runmanager
     runmanager = RunManager(
         event_list=event_list,

@@ -61,7 +61,7 @@ class Aprime(Diag):
         
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'aprime')
         
         # setup template
@@ -109,7 +109,7 @@ class Aprime(Diag):
 
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'aprime')
         num_missing = self._check_links(config)
 
@@ -153,22 +153,21 @@ class Aprime(Diag):
                 comp=self._short_comp_name))
 
         # setup the web hosting
-        hostname = config['img_hosting']['img_host_server']
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'aprime')
 
-        self.setup_hosting(
-            config,
-            img_source,
-            self._host_path,
-            event_list)
+        # self.setup_hosting(
+        #     config,
+        #     img_source,
+        #     self._host_path,
+        #     event_list)
         
         self._host_url = 'https://{server}/{prefix}/{case}/aprime/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
-            case=self.case,
+            case=self.short_name,
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
@@ -192,15 +191,15 @@ class Aprime(Diag):
         page_path = os.path.join(web_dir, 'index.html')
 
         if not os.path.exists(page_path):
-            msg = '{prefix}: No output page found'.format(
+            msg = '{prefix}: No output page found at {outpath}'.format(
                 prefix=self.msg_prefix(),
-                case=self.short_name)
+                outpath=page_path)
             logging.error(msg)
             return None
         else:
-            msg = '{prefix}: found output index.html at {page}'.format(
+            msg = '{prefix}: found output index.html at {outpath}'.format(
                 prefix=self.msg_prefix(),
-                page=page_path)
+                outpath=page_path)
             logging.info(msg)
 
         missing_pages = list()
@@ -244,10 +243,5 @@ class Aprime(Diag):
             if os.path.exists(new_path):
                 self._input_file_paths[idx] = new_path
                 continue
-            msg = '{prefix}: moving input file from {src} to {dst}'.format(
-                prefix=self.msg_prefix(),
-                src=item,
-                dst=new_path)
-            logging.info(msg)
             move(item, fixed_input_path)
             self._input_file_paths[idx] = new_path

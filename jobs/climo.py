@@ -114,6 +114,9 @@ class Climo(Job):
         return self._submit_cmd_to_slurm(config, cmd)
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
+        """
+        Adds the output files to the filemanager database as 'climo_regrid' and 'climo_native' data types
+        """
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())
@@ -125,7 +128,6 @@ class Climo(Job):
                 prefix=self.msg_prefix())
             print_line(msg, event_list)
             logging.info(msg)
-
         regrid_path = os.path.join(
             config['global']['project_path'], 'output', 'pp',
             config['post-processing']['climo']['destination_grid_name'],
@@ -138,6 +140,7 @@ class Climo(Job):
                 'local_path': os.path.join(regrid_path, regrid_file),
                 'case': self.case,
                 'year': self.start_year,
+                'month': self.end_year, # use the month to hold the end year field
                 'local_status': FileStatus.PRESENT.value
             })
         filemanager.add_files(
@@ -157,6 +160,7 @@ class Climo(Job):
                 'local_path': os.path.join(regrid_path, climo_file),
                 'case': self.case,
                 'year': self.start_year,
+                'month': self.end_year, # use the month to hold the end year field
                 'local_status': FileStatus.PRESENT.value
             })
         filemanager.add_files(
@@ -165,6 +169,7 @@ class Climo(Job):
         if not config['data_types'].get('climo_native'):
             config['data_types']['climo_native'] = {'monthly': True}
         
+        filemanager.write_database()
         msg = '{prefix}: Job completion handler done'.format(
             prefix=self.msg_prefix())
         print_line(msg, event_list)

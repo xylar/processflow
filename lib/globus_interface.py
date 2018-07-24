@@ -1,24 +1,24 @@
 import logging
 from time import sleep
-from lib.util import print_debug, format_debug, print_line
+from lib.util import print_debug, format_debug, print_line, print_message
 
 from globus_sdk import TransferData
-from globus_cli.commands.ls import _get_ls_res as get_ls
+from globus_cli.commands.ls import _get_ls_res as globus_ls
 from globus_cli.commands.login import do_link_login_flow, check_logged_in
 from globus_cli.services.transfer import get_client
 
 def get_ls(client, path, endpoint):
     for fail_count in xrange(10):
         try:
-            res = get_ls(
+            res = globus_ls(
                 client,
                 path,
                 endpoint,
                 False, 0, False)
         except Exception as e:
             sleep(fail_count)
-            if fail_count >= 9:
-                print_debug(e)
+            print_message("Globus server error, retrying")
+            print_debug(e)
         else:
             return res
 
@@ -145,18 +145,12 @@ def setup_globus(endpoints, event_list):
     """
 
     # First go through the globus login process
-    message_sent = False
-    while not check_logged_in():
-        if not message_sent:
-            status = 'Globus login needed'
-            message = 'Globus login required. Please ssh into {host} activate the environment and run {cmd}\n\n'.format(
-                host=socket.gethostname(),
-                cmd='"globus login"')
-            print_line(message, event_list)
-            message_sent = True
+    if not check_logged_in():
+        message = 'Globus login required. Please run {cmd}\n\n'.format(
+            cmd='"globus login"')
+        print_line(message, event_list)
         print '================================================'
-        do_link_login_flow()
-        sleep(10)
+        sys.exit(1)
 
     if isinstance(endpoints, str):
         endpoints = [endpoints]

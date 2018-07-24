@@ -38,10 +38,6 @@ class Job(object):
         msg = '{} has not implemented the setup_dependencies method'.format(self.job_type)
         raise Exception(msg)
     # -----------------------------------------------
-    def prevalidate(self, *args, **kwargs):
-        msg = '{} has not implemented the prevalidate method'.format(self.job_type)
-        raise Exception(msg)
-    # -----------------------------------------------
     def execute(self, *args, **kwargs):
         msg = '{} has not implemented the execute method'.format(self.job_type)
         raise Exception(msg)
@@ -91,6 +87,12 @@ class Job(object):
                 logging.error(msg)
                 continue
             
+            # extract the file names
+            filesnames = list()
+            for file in files:
+                tail, head = os.path.split(file)
+                filesnames.append(head)
+
             # setup the temp directory to hold symlinks
             if self._run_type is not None:
                 temp_path = os.path.join(
@@ -115,11 +117,8 @@ class Job(object):
             if not os.path.exists(temp_path):
                 os.makedirs(temp_path)
             
-            # extract the file names
-            filesnames = list()
-            for file in files:
-                tail, head = os.path.split(file)
-                filesnames.append(head)
+            # keep a reference to the input data for later
+            self._input_file_paths.extend([os.path.join(temp_path, x) for x in filesnames])
 
             # create the symlinks
             create_symlink_dir(
@@ -127,8 +126,6 @@ class Job(object):
                 src_list=filesnames,
                 dst=temp_path)
             
-            # keep a reference to the input data for later
-            self._input_file_paths.extend([os.path.join(temp_path, x) for x in filesnames])
         return
     # -----------------------------------------------
     def check_data_ready(self, filemanager):
@@ -254,8 +251,12 @@ class Job(object):
     # -----------------------------------------------
     def prevalidate(self, *args, **kwargs):
         if not self.data_ready:
+            msg = '{prefix}: data not ready'.format(prefix=self.msg_prefix())
+            logging.error(msg)
             return False
         if not self.check_data_in_place():
+            msg = '{prefix}: data not in place'.format(prefix=self.msg_prefix())
+            logging.error(msg)
             return False
         return True
     # -----------------------------------------------

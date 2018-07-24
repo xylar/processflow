@@ -90,6 +90,18 @@ class AMWG(Diag):
         variables['test_path_diag'] = self._output_path + os.sep
         variables['diag_home'] = config['diags']['amwg']['diag_home']
 
+        if 'all' in config['diags']['amwg']['sets']:
+            variables['all_sets'] = '0'
+            set_names = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
+            for diag in set_names:
+                variables[diag] = '0'
+        else:
+            variables['all_sets'] = '1'
+            set_numbers = [str(x) for x in range(1, 17)] + ['4a']
+            set_names = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
+            for idx, diag in enumerate(set_names):
+                variables[diag] = '0' if set_numbers[idx] in config['diags']['amwg']['sets'] else '1'
+            
         if self.comparison == 'obs':
             template_input_path = os.path.join(
                 config['global']['resource_path'],
@@ -110,7 +122,7 @@ class AMWG(Diag):
             variables=variables,
             input_path=template_input_path,
             output_path=csh_template_out)
-        
+
         if not dryrun:
             self._dryrun = False
             if not self.prevalidate():
@@ -148,57 +160,138 @@ class AMWG(Diag):
                     end=self.end_year,
                     comp=self._short_comp_name))
         
+        if self.comparison == 'obs':
+            expected_files = {
+                "set4": 50,
+                "set5_6": 100,
+                "set7": 100,
+                "set1": 10,
+                "set2": 3,
+                "set3": 100,
+                "set8": 20,
+                "set9": 20,
+                "set16": 3,
+                "set14": 10,
+                "set15": 50,
+                "set12": 50,
+                "set13": 100,
+                "set10": 100,
+                "set11": 10,
+                "set4a": 50
+            }
+        else:
+            expected_files = {
+                "set4": 60,
+                "set5_6": 100,
+                "set7": 100,
+                "set1": 10,
+                "set2": 5,
+                "set3": 100,
+                "set8": 20,
+                "set9": 5,
+                "set16": 3,
+                "set14": 10,
+                "set15": 50,
+                "set12": 50,
+                "set13": 300,
+                "set10": 50,
+                "set11": 10,
+                "set4a": 20
+            }
+
+        passed = True
+        if 'all' in config['diags']['amwg']['sets']:
+            sets = [str(x) for x in range(1, 17)] + ['4a']
+        else:
+            sets = config['diags']['amwg']['sets']
+        
+        img_source = os.path.join(
+            self._output_path,
+            '{case}-vs-{comp}'.format(
+                case=self.short_name,
+                comp=self._short_comp_name))
+        img_source_tar = img_source + '.tar'
         # check that there have been enough plots created to call this a successful run
-        num_found = sum(len(files) for r, d, files in os.walk(self._output_path))
-        num_expected = 1900 if self.comparison == 'obs' else 1500
-        enough_files = bool(num_found > num_expected)
-        if not enough_files:
-            if not self._has_been_executed:
-                msg = '{prefix}: Job hasnt been run yet, starting from scratch'.format(
-                    prefix=self.msg_prefix())
-                logging.info(msg)
-                return False
-            else:
-                img_source = os.path.join(
-                    self._output_path,
-                    '{case}-vs-{comp}'.format(
-                        case=self.short_name,
-                        comp=self._short_comp_name))
-                if os.path.exists(img_source + '.tar'):
-                    msg = '{prefix}: extracting images from tar archive'.format(
-                        prefix=self.msg_prefix())
-                    print_line(msg, kwargs['event_list'])
-                    call(['tar', '-xf', img_source + '.tar', '--directory', self._output_path])
-                    num_found = sum(len(files) for r, d, files in os.walk(self._output_path))
-                    enough_files = bool(num_found > num_expected)
-                    if not enough_files:
-                        msg = '{prefix}: Not enough images generated, only {num_found} but expected > {num_expected}'.format(
-                            prefix=self.msg_prefix(),
-                            num_found=num_found,
-                            num_expected=num_expected)
-                        logging.error(msg)
+        for item in sets:
+            setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
+            directory = os.path.join(
+                self._output_path,
+                '{}-vs-{}'.format(self.short_name, self._short_comp_name),
+                setname)
+            if not os.path.exists(directory):
+                if not self._has_been_executed:
+                    passed = False
+                    if not os.path.exists(img_source_tar):
                         return False
                     else:
-                        msg = '{prefix}: Found expected output after extracting archive'.format(prefix=self.msg_prefix())
-                        logging.info(msg)
-                        self._check_links(config)
-                        return True
-        else:
+                        break
+                msg = '{prefix}: could not find output directory {dir}'.format(
+                    prefix=self.msg_prefix(),
+                    dir=directory)
+                logging.error(msg)
+            else:
+                count = len(os.listdir(directory))
+                if count < expected_files[setname]:
+                    if not self._has_been_executed:
+                        return False
+                    msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                        prefix=self.msg_prefix(),
+                        set=setname,
+                        numProduced=count,
+                        numExpected=expected_files[setname])
+                    logging.error(msg)
+                    passed = False
+
+        if not passed:
+            if os.path.exists(img_source_tar):
+                msg = '{prefix}: extracting images from tar archive'.format(
+                    prefix=self.msg_prefix())
+                print_line(msg, kwargs['event_list'])
+                call(['tar', '-xf', img_source_tar, '--directory', self._output_path])
+                passed = True
+                for item in config['diags']['amwg']['sets']:
+                    setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
+                    directory = os.path.join(
+                        self._output_path,
+                        '{}-vs-{}'.format(self.short_name, self._short_comp_name),
+                        setname)
+                    if not os.path.exists(directory):
+                        msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
+                            prefix=self.msg_prefix(),
+                            dir=directory)
+                        logging.error(msg)
+                        passed = False
+                    else:
+                        count = len(os.listdir(directory))
+                        if count < expected_files[setname]:
+                            msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                                prefix=self.msg_prefix(),
+                                set=setname,
+                                numProduced=count,
+                                numExpected=expected_files[setname])
+                            logging.error(msg)
+                            passed = False
+        
+        if passed:
+            msg = '{prefix}: all expected output images found'.format(
+                prefix=self.msg_prefix())
+            print_line(msg, kwargs['event_list'])
+            logging.info(msg)
             self._check_links(config)
             return True
+        else:
+            return False
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
         
-        if self.status != JobStatus.COMPLETED:
-            msg = '{prefix}: Job failed'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
-        else:
+        if self.status == JobStatus.COMPLETED:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
+        else:
+            msg = '{prefix}: Job failed'.format(
+                prefix=self.msg_prefix())
+        print_line(msg, event_list)
+        logging.info(msg)
 
         # if hosting is turned off, simply return
         if not config['global']['host']:
@@ -214,7 +307,7 @@ class AMWG(Diag):
         hostname = config['img_hosting']['img_host_server']
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
-            self.case,
+            self.short_name,
             'amwg',
             '{start:04d}_{end:04d}_vs_{comp}'.format(
                 start=self.start_year,
@@ -223,7 +316,7 @@ class AMWG(Diag):
         
         if not os.path.exists(img_source):
             if os.path.exists(img_source + '.tar'):
-                self.extract_img_tar(img_source)
+                call(['tar', '-xf', img_source + '.tar', '--directory', self._output_path])
             else:
                 msg = '{prefix}: Unable to find output directory or tar archive'.format(
                     prefix=self.msg_prefix())
@@ -236,7 +329,7 @@ class AMWG(Diag):
         self._host_url = 'https://{server}/{prefix}/{case}/amwg/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
-            case=self.case,
+            case=self.short_name,
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)

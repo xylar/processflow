@@ -21,11 +21,10 @@ from lib.util import print_message
 from lib.util import print_debug
 
 __version__ = '2.0.0'
-__branch__ = 'manymodel'
+__branch__ = 'master'
 
-# set variable to make vcs shut up
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
-os.environ['NCO_PATH_OVERRIDE'] = 'Yes'
+os.environ['NCO_PATH_OVERRIDE'] = 'True'
 
 # create global EventList
 event_list = EventList()
@@ -34,6 +33,12 @@ event_list = EventList()
 def main(test=False, **kwargs):
     """
     Processflow main
+
+    Parameters:
+        test (bool): turns on test mode. Simply stops the logger from reloading itself, which
+            stops a crash when running from inside the test runner
+        kwargs (dict): when running in test mode, arguments are passed directly through the kwargs
+            which bypasses the argument parsing.
     """
 
     # The master configuration object
@@ -41,7 +46,6 @@ def main(test=False, **kwargs):
 
     # An event to kill the threads on terminal exception
     thread_kill_event = threading.Event()
-    mutex = threading.Lock()
 
     # A flag to tell if we have all the data locally
     all_data = False
@@ -62,7 +66,6 @@ def main(test=False, **kwargs):
             branch=__branch__,
             event_list=event_list,
             kill_event=thread_kill_event,
-            mutex=mutex,
             testing=True)
     else:
         config, filemanager, runmanager = initialize(
@@ -70,8 +73,7 @@ def main(test=False, **kwargs):
             version=__version__,
             branch=__branch__,
             event_list=event_list,
-            kill_event=thread_kill_event,
-            mutex=mutex)
+            kill_event=thread_kill_event)
     # setup returned an error code
     if isinstance(config, int):
         print "Error in setup, exiting"
@@ -89,46 +91,6 @@ def main(test=False, **kwargs):
         filemanager.transfer_needed(
             event_list=event_list,
             event=thread_kill_event)
-    
-    # msg = "Writing human readable state to file"
-    # print_line(msg, event_list)
-
-    # check if the case_scripts directory is present
-    # if its not, transfer it over
-    if config['global'].get('get_scripts'):
-        pass
-        # msg = 'transfering case_scripts from remote machine'
-        # print_line(
-        #     line=msg,
-        #     event_list=event_list)
-        # case_scripts_dir = os.path.join(
-        #     config['global']['input_path'],
-        #     'case_scripts')
-
-        # if not os.path.exists(case_scripts_dir):
-        #     logging.info(msg)
-        #     src_path = os.path.join(
-        #         config['global']['source_path'], 'case_scripts')
-        #     while True:
-        #         try:
-        #             args = {
-        #                 'source_endpoint': config['transfer']['source_endpoint'],
-        #                 'destination_endpoint': config['transfer']['destination_endpoint'],
-        #                 'src_path': src_path,
-        #                 'dst_path': case_scripts_dir,
-        #                 'event_list': event_list,
-        #                 'event': thread_kill_event
-        #             }
-        #             thread = threading.Thread(
-        #                 target=transfer_directory,
-        #                 name='transfer_directory',
-        #                 kwargs=args)
-        #         except:
-        #             sleep(1)
-        #         else:
-        #             thread_list.append(thread)
-        #             thread.start()
-        #             break
 
     # Main loop
     printed = False
@@ -192,7 +154,6 @@ def main(test=False, **kwargs):
                     config=config,
                     event_list=event_list,
                     status=status,
-                    kill_event=thread_kill_event,
                     runmanager=runmanager)
                 # SUCCESS EXIT
                 return 0

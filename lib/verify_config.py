@@ -71,7 +71,7 @@ def verify_config(config):
             messages.append(msg)
         else:
             config['simulations']['end_year'] = int(config['simulations']['end_year'])
-        if int(config['simulations'].get('end_year')) < int(config['simulations'].get('start_year')):
+        if int(config['simulations'].get('end_year', 0)) < int(config['simulations'].get('start_year', 0)):
             msg = 'simulation end_year is less then start_year, is time going backwards!?'
             messages.append(msg)
         if not config['simulations'][sim].get('data_types'):
@@ -92,7 +92,7 @@ def verify_config(config):
             for job_type in config['simulations'][sim]['job_types']:
                 if job_type == 'all':
                     continue
-                if job_type not in config['post-processing'] and job_type not in config['diags']:
+                if job_type not in config.get('post-processing', []) and job_type not in config.get('diags', []):
                     msg = '{} is set to run job {}, but this run type is not in either the post-processing or diags config sections'.format(sim, job_type)
                     messages.append(msg)
         
@@ -148,11 +148,11 @@ def verify_config(config):
                 for sim in config['simulations']:
                     if sim in ['start_year', 'end_year', 'comparisons']: 
                         continue
-                    if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
-                        if item not in config['simulations'][sim].get('job_types'):
-                            continue
+                    # if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
+                    #     if item not in config['simulations'][sim].get('data_types'):
+                    #         continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
-                        if item not in config['simulations'][sim].get('data_types'):
+                        if item not in config['simulations'][sim].get('data_types') and ('regrid' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'regrid is set to run on data_type {}, but this type is not set in simulation {}'.format(item, sim)
                             messages.append(msg)
         # ------------------------------------------------------------------------
@@ -201,7 +201,7 @@ def verify_config(config):
                 for sim in config['simulations']:
                     if sim in ['start_year', 'end_year', 'comparisons']: continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
-                        if item not in config['simulations'][sim].get('data_types'):
+                        if item not in config['simulations'][sim].get('data_types') and ('timeseries' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'timeseries-{} is set to run for simulation {}, but this simulation does not have {} in its data_types'.format(item, sim, item)
                             messages.append(msg)
     if config.get('diags'):
@@ -245,6 +245,17 @@ def verify_config(config):
                     if not config.get('post-processing') or not config['post-processing'].get('climo') or freq not in config['post-processing']['climo']['run_frequency']:
                         msg = 'amwg is set to run at frequency {} but no climo job for this frequency is set'.format(freq)
                         messages.append(msg)
+            if not config['diags']['amwg'].get('sets'):
+                msg = 'no sets given for amwg'
+                messages.append(msg)
+            else:
+                allowed_sets = [str(x) for x in range(1, 17)] + ['all', '4a']
+                if not isinstance(config['diags']['amwg']['sets'], list):
+                    config['diags']['amwg']['sets'] = [config['diags']['amwg']['sets']]
+                for s in config['diags']['amwg']['sets']:
+                    if s not in allowed_sets:
+                        msg = '{} is not in the allowed sets for amwg, allowed sets are {}'.format(s, allowed_sets)
+                        messages.append(msg)
         # ------------------------------------------------------------------------
         # check aprime
         # ------------------------------------------------------------------------
@@ -255,13 +266,6 @@ def verify_config(config):
             if not config['diags']['aprime'].get('aprime_code_path'):
                 msg = 'no aprime_code_path given for aprime'
                 messages.append(msg)
-            if not config['diags']['aprime'].get('test_atm_res'):
-                msg = 'no test_atm_res given for aprime'
-                messages.append(msg)
-            if not config['diags']['aprime'].get('test_mpas_mesh_name'):
-                msg = 'no test_mpas_mesh_name given for aprime'
-                messages.append(msg) 
-
     return messages
 # ------------------------------------------------------------------------
 def check_config_white_space(filepath):

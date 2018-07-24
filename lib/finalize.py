@@ -2,11 +2,12 @@ import os
 import logging
 import time
 
+from shutil import rmtree
 from lib.mailer import Mailer
 from lib.util import print_message, print_line, print_debug
 
 
-def finalize(config, event_list, status, kill_event, runmanager):
+def finalize(config, event_list, status, runmanager):
     if status == 1 and config['global'].get('native_grid_cleanup') in [1, '1', 'true', 'True']:
         message = 'Performing post run cleanup'
         native_cleanup(config)
