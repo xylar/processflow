@@ -68,7 +68,11 @@ class Job(object):
         and puts a copy of the path for the links into the _input_file_paths field
         """
         for datatype in self._data_required:
-            monthly = config['data_types'][datatype].get('monthly')
+            datainfo = config['data_types'].get(datatype)
+            if not datainfo:
+                print "ERROR: Unable to find config information for {}".format(datatype)
+                sys.exit(1)
+            monthly = datainfo.get('monthly')
             # first get the list of file paths to the data
             if monthly == 'True' or monthly == True:
                 files = filemanager.get_file_paths_by_year(

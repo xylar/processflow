@@ -21,19 +21,20 @@ requirements:
   
   run:
     - peewee
-    - e3sm_diags
-    - markupsafe
-    - matplotlib
     - nco
     - pip
     - python
     - setuptools
     - sqlite
     - configobj
-    - globus-sdk ==1.1.1
-    - globus-cli ==1.1.2
-    - jmespath
     - beautifulsoup4
+    - lxml
     - paramiko
     - ncl
     - jinja2
+    - globus-sdk ==1.1.1
+    - globus-cli ==1.1.2
+    # things that globus needs that dont get installed by it
+    - click
+    - jmespath
+    - requests

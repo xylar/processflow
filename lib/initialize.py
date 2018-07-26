@@ -28,7 +28,7 @@ def parse_args(argv=None, print_help=None):
         help='Path to configuration file.')
     parser.add_argument(
         '-m', '--max-jobs',
-        help='maximum number of running jobs',
+        help='Maximum number of jobs to run at any given time',
         type=int)
     parser.add_argument(
         '--verify',
@@ -36,7 +36,7 @@ def parse_args(argv=None, print_help=None):
         action='store_true')
     parser.add_argument(
         '-l', '--log',
-        help='Path to logging output file.')
+        help='Path to logging output file, defaults to project_path/output/processflow.log')
     parser.add_argument(
         '-a', '--always-copy',
         help='Always copy diagnostic output, even if the output already exists in the host directory. This is much slower but ensures old output will be overwritten',
@@ -54,7 +54,7 @@ def parse_args(argv=None, print_help=None):
         action='store_true')
     parser.add_argument(
         '-v', '--version',
-        help='Print version informat and exit.',
+        help='Print version information and exit.',
         action='store_true')
 
     if print_help:
@@ -133,7 +133,7 @@ Please add a space and run again.'''.format(num=line_index)
         sys.exit(1)
     
     if pargs.resource_path:
-        config['global']['resource_path'] = pargs.resource_path
+        config['global']['resource_path'] = os.path.abspath(pargs.resource_path)
     else:
         config['global']['resource_path'] = os.path.join(
             sys.prefix,
