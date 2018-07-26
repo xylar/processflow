@@ -157,17 +157,12 @@ class Aprime(Diag):
             config['img_hosting']['host_directory'],
             self.short_name,
             'aprime')
-
-        # self.setup_hosting(
-        #     config,
-        #     img_source,
-        #     self._host_path,
-        #     event_list)
         
-        self._host_url = 'https://{server}/{prefix}/{case}/aprime/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
+        self._host_url = 'https://{server}/{prefix}/{short_name}/aprime/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
-            case=self.short_name,
+            short_name=self.short_name,
+            case=self.case,
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
@@ -178,8 +173,8 @@ class Aprime(Diag):
         returns True if all the links are found, False otherwise
         """
         found = False
-        host_directory = "{experiment}_years{start}-{end}_vs_{comp}".format(
-            experiment=self.case,
+        host_directory = "{case}_years{start}-{end}_vs_{comp}".format(
+            case=self.case,
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
