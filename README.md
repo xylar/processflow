@@ -9,7 +9,7 @@ post-run analysis on model data.
 
 Latest stable build from the master branch:
 ```
-conda create --name <YOUR_NEW_ENVIRONMENT> -c e3sm -c conda-forge -c cdat processflow
+conda create --name <YOUR_NEW_ENVIRONMENT> -c e3sm -c cdat/label/nightly -c conda-forge -c cdat processflow
 ```
 
 Latest (potentially unstable) build from the nightly branch:
