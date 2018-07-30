@@ -112,7 +112,8 @@ class RunManager(object):
                         case=case['case'],
                         start=year,
                         end=year + freq - 1,
-                        run_type=run_type)
+                        run_type=run_type,
+                        config=self.config)
                     case['jobs'].append(new_job)
     
     def add_diag_type_to_cases(self, freqs, job_type, start, end, case):

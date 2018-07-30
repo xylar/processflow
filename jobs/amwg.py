@@ -19,11 +19,15 @@ class AMWG(Diag):
         self._host_path = ''
         self._host_url = ''
         self._short_comp_name = ''
-        self._slurm_args = {
-            'num_cores': '-n 24',  # 16 cores
-            'run_time': '-t 0-10:00',  # 5 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
+        custom_args = kwargs['config']['diags']['amwg'].get('slurm_args')
+        if custom_args:
+            custom_count = 0
+            for arg, val in custom_args.items():
+                new_arg = ' '.join([arg, val])
+                if new_arg in self._slurm_args.values():
+                    continue
+                self._slurm_args[str(custom_count)] = new_arg
+                custom_count += 1
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
@@ -62,7 +66,23 @@ class AMWG(Diag):
                 raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, slurm_args=None, dryrun=False):
+        """
+        Generates and submits a run script for amwg diagnostics
+        
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # add/swap any slurm args into the jobs default slurm_args
+        if slurm_args:
+            for arg, val in slurm_args.items():
+                self._slurm_args[arg] = val
+        
+        # setup the output directory, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
             'output', 'diags', self.short_name, 'amwg',
@@ -135,6 +155,7 @@ class AMWG(Diag):
             return
 
         self._change_input_file_names()
+
         # create the run command and submit it
         self._has_been_executed = True
         cmd = ['csh', csh_template_out]

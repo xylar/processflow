@@ -19,11 +19,15 @@ class E3SMDiags(Diag):
         self._host_path = ''
         self._host_url = ''
         self._short_comp_name = ''
-        self._slurm_args = {
-            'num_cores': '-n 24',  # 24 cores
-            'run_time': '-t 0-10:00',  # 10 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
+        custom_args = kwargs['config']['diags']['e3sm_diags'].get('slurm_args')
+        if custom_args:
+            custom_count = 0
+            for arg, val in custom_args.items():
+                new_arg = ' '.join([arg, val])
+                if new_arg in self._slurm_args.values():
+                    continue
+                self._slurm_args[str(custom_count)] = new_arg
+                custom_count += 1
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
@@ -62,8 +66,23 @@ class E3SMDiags(Diag):
                 raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, slurm_args=None, dryrun=False):
+        """
+        Generates and submits a run script for e3sm_diags
         
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # add/swap any slurm args into the jobs default slurm_args
+        if slurm_args:
+            for arg, val in slurm_args.items():
+                self._slurm_args[arg] = val
+
+        # setup the jobs output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
             'output', 'diags', self.short_name, 'e3sm_diags',
@@ -103,22 +122,10 @@ class E3SMDiags(Diag):
             variables['reference_data_path'] = input_path
             variables['ref_name'] = self.comparison
             variables['reference_name'] = config['simulations'][self.comparison]['short_name']
-        
         render(
             variables=variables,
             input_path=template_input_path,
             output_path=param_template_out)
-        
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
-            return
 
         # create the run command and submit it
         variables = {'parameter_file_path': param_template_out}
@@ -137,6 +144,19 @@ class E3SMDiags(Diag):
             input_path=env_loader_path,
             output_path=e3sm_runner_path)
         cmd = ['bash', e3sm_runner_path]
+
+        # exit early if in dryrun mode
+        if not dryrun:
+            self._dryrun = False
+            if not self.prevalidate():
+                return False
+            if self.postvalidate(config):
+                self.status = JobStatus.COMPLETED
+                return True
+        else:
+            self._dryrun = True
+            return
+        self._has_been_executed = True
         return self._submit_cmd_to_slurm(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):

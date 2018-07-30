@@ -13,12 +13,16 @@ class Timeseries(Job):
         self._job_type = 'timeseries'
         self._data_required = [self._run_type]
         self._regrid = False
-        self._slurm_args = {
-            'num_cores': '-n 16',  # 16 cores
-            'run_time': '-t 0-10:00',  # 5 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
-
+        custom_args = kwargs['config']['post-processing']['timeseries'].get('slurm_args')
+        if custom_args:
+            custom_count = 0
+            for arg, val in custom_args.items():
+                new_arg = ' '.join([arg, val])
+                if new_arg in self._slurm_args.values():
+                    continue
+                self._slurm_args[str(custom_count)] = new_arg
+                custom_count += 1
+    # -----------------------------------------------    
     def setup_dependencies(self, *args, **kwargs):
         """
         Timeseries doesnt require any other jobs
@@ -71,8 +75,22 @@ class Timeseries(Job):
         # if nothing was missing then we must be done
         return True
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, slurm_args=None, dryrun=False):
+        """
+        Generates and submits a run script for e3sm_diags
         
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # add/swap any slurm args into the jobs default slurm_args
+        if slurm_args:
+            for arg, val in slurm_args.items():
+                self._slurm_args[arg] = val
+
         # setup the ts output path
         ts_path = os.path.join(
             config['global']['project_path'], 'output', 'pp',
@@ -117,8 +135,18 @@ class Timeseries(Job):
         cmd.append(list_string)
         slurm_command = ' '.join(cmd)
 
+        # exit early if in dryrun mode
+        if not dryrun:
+            self._dryrun = False
+            if not self.prevalidate():
+                return False
+            if self.postvalidate(config):
+                self.status = JobStatus.COMPLETED
+                return True
+        else:
+            self._dryrun = True
+
         return self._submit_cmd_to_slurm(config, cmd)
-            
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
         
@@ -186,4 +214,3 @@ class Timeseries(Job):
         print_line(msg, event_list)
         logging.info(msg)
     # -----------------------------------------------
-

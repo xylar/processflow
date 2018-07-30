@@ -22,11 +22,15 @@ class Regrid(Job):
         super(Regrid, self).__init__(*args, **kwargs)
         self._job_type = 'regrid'
         self._data_required = [self._run_type]
-        self._slurm_args = {
-            'num_cores': '-n 2',  # 2 cores
-            'run_time': '-t 0-10:00',  # 10 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
+        custom_args = kwargs['config']['post-processing']['regrid'].get('slurm_args')
+        if custom_args:
+            custom_count = 0
+            for arg, val in custom_args.items():
+                new_arg = ' '.join([arg, val])
+                if new_arg in self._slurm_args.values():
+                    continue
+                self._slurm_args[str(custom_count)] = new_arg
+                custom_count += 1
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -34,23 +38,31 @@ class Regrid(Job):
         """
         return True
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
-        regrid_path = os.path.join(
+    def execute(self, config, slurm_args=None, dryrun=False):
+        """
+        Generates and submits a run script for ncremap to regrid model output
+        
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # add/swap any slurm args into the jobs default slurm_args
+        if slurm_args:
+            for arg, val in slurm_args.items():
+                self._slurm_args[arg] = val
+        
+        # setup output paths
+        self._output_path = os.path.join(
             config['global']['project_path'], 'output', 'pp',
             config['post-processing']['regrid'][self.run_type]['destination_grid_name'],
             self._short_name, self.job_type, self.run_type)
-        self._output_path = regrid_path
+        if not os.path.exists(self._output_path):
+            os.makedirs(self._output_path)
 
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
-
+        # setups the ncremap run command
         cmd = ['export PATH=/export/zender1/bin:$PATH\n', 
                'ncks --version\n',
                'ncremap --version\n',
@@ -89,6 +101,18 @@ class Regrid(Job):
             '-O', self._output_path,
         ])
 
+        # exit early if in dryrun mode
+        if not dryrun:
+            self._dryrun = False
+            if not self.prevalidate():
+                return False
+            if self.postvalidate(config):
+                self.status = JobStatus.COMPLETED
+                return True
+        else:
+            self._dryrun = True
+
+        self._has_been_executed = True
         return self._submit_cmd_to_slurm(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs): 

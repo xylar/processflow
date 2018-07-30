@@ -32,7 +32,11 @@ class Job(object):
         self._console_output_path = None
         self._output_path = ''
         self._dryrun = True if kwargs.get('dryrun') == True else False
-        self._slurm_args = dict()
+        self._slurm_args = {
+            'num_cores': '-n 16',  # 16 cores
+            'run_time': '-t 0-10:00',  # 10 hours run time
+            'num_machines': '-N 1',  # run on one machine
+        }
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         msg = '{} has not implemented the setup_dependencies method'.format(self.job_type)

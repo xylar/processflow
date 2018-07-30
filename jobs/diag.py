@@ -74,3 +74,4 @@ class Diag(Job):
                 status=self.status.name,
                 console_path=self._console_output_path)
         return msg
+    # -----------------------------------------------

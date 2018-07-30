@@ -19,22 +19,24 @@ class Aprime(Diag):
         self._host_path = ''
         self._host_url = ''
         self._input_base_path = ''
-        self._slurm_args = {
-            'num_cores': '-n 24',  # 24 cores
-            'run_time': '-t 0-10:00',  # 10 hours run time
-            'num_machines': '-N 1',  # run on one machine
-            'working_dir': ''
-        }
         self._data_required = ['atm', 'cice', 'ocn', 
                                'ocn_restart', 'cice_restart', 
                                'ocn_streams', 'cice_streams', 
                                'ocn_in', 'cice_in', 
                                'meridionalHeatTransport']
+        custom_args = kwargs['config']['diags']['aprime'].get('slurm_args')
+        if custom_args:
+            custom_count = 0
+            for arg, val in custom_args.items():
+                new_arg = ' '.join([arg, val])
+                if new_arg in self._slurm_args.values():
+                    continue
+                self._slurm_args[str(custom_count)] = new_arg
+                custom_count += 1
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
             self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
-        
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -42,7 +44,23 @@ class Aprime(Diag):
         """
         return
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, slrum_args=None, dryrun=False):
+        """
+        Generates and submits a run script for ncremap to regrid model output
+        
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # add/swap any slurm args into the jobs default slurm_args
+        if slurm_args:
+            for arg, val in slurm_args.items():
+                self._slurm_args[arg] = val
+        
+        # sets up the output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
             'output', 'diags', self.short_name, 'aprime',
@@ -92,6 +110,7 @@ class Aprime(Diag):
             output_path=template_out)
         
         cmd = ['bash', template_out]
+        self._has_been_executed = True
         return self._submit_cmd_to_slurm(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
@@ -240,3 +259,4 @@ class Aprime(Diag):
                 continue
             move(item, fixed_input_path)
             self._input_file_paths[idx] = new_path
+    # -----------------------------------------------

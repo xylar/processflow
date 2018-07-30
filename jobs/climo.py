@@ -12,11 +12,15 @@ class Climo(Job):
         self._data_required = ['atm']
         self._job_type = 'climo'
         self._dryrun = True if kwargs.get('dryrun') == True else False
-        self._slurm_args = {
-            'num_cores': '-n 16',  # 16 cores
-            'run_time': '-t 0-10:00',  # 5 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
+        custom_args = kwargs['config']['post-processing']['climo'].get('slurm_args')
+        if custom_args:
+            custom_count = 0
+            for arg, val in custom_args.items():
+                new_arg = ' '.join([arg, val])
+                if new_arg in self._slurm_args.values():
+                    continue
+                self._slurm_args[str(custom_count)] = new_arg
+                custom_count += 1
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -69,7 +73,23 @@ class Climo(Job):
         # nothing's gone wrong, so we must be done
         return True
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, slurm_args=None, dryrun=False):
+        """
+        Generates and submits a run script for ncremap to regrid model output
+        
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # add/swap any slurm args into the jobs default slurm_args
+        if slurm_args:
+            for arg, val in slurm_args.items():
+                self._slurm_args[arg] = val
+
+        # setup output directories for both native and regridded output
         regrid_path = os.path.join(
             config['global']['project_path'], 'output', 'pp',
             config['post-processing']['climo']['destination_grid_name'],
@@ -83,18 +103,8 @@ class Climo(Job):
             self._short_name, 'climo', '{length}yr'.format(length=self.end_year-self.start_year+1))
         if not os.path.exists(climo_path):
             os.makedirs(climo_path)
-
+        # the default output path is the native climos
         self._output_path = climo_path
-
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
               
         input_path, _ = os.path.split(self._input_file_paths[0])
         cmd = [
@@ -110,7 +120,19 @@ class Climo(Job):
             '--no_amwg_links',
         ]
         slurm_command = ' '.join(cmd)
-        
+
+        # exit early if in dry run mode
+        if not dryrun:
+            self._dryrun = False
+            if not self.prevalidate():
+                return False
+            if self.postvalidate(config):
+                self.status = JobStatus.COMPLETED
+                return True
+        else:
+            self._dryrun = True
+
+        self._has_been_executed = True
         return self._submit_cmd_to_slurm(config, cmd)
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
@@ -174,3 +196,4 @@ class Climo(Job):
             prefix=self.msg_prefix())
         print_line(msg, event_list)
         logging.info(msg)
+    # -----------------------------------------------
