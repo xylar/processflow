@@ -20,8 +20,8 @@ from lib.util import print_line
 from lib.util import print_message
 from lib.util import print_debug
 
-__version__ = '2.0.2'
-__branch__ = 'master'
+__version__ = '2.0.3'
+__branch__ = 'nightly'
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
 os.environ['NCO_PATH_OVERRIDE'] = 'True'

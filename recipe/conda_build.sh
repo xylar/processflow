@@ -1,5 +1,5 @@
-export VERSION="2.0.2"
-export BUILD_NAME="0"
+export VERSION="2.0.3"
+export BUILD_NAME="nightly"
 export CONDA_BLD_PATH=~/conda-bld
 USER="e3sm"
 PLATFORM="linux-64"
