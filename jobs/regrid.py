@@ -24,13 +24,7 @@ class Regrid(Job):
         self._data_required = [self._run_type]
         custom_args = kwargs['config']['post-processing']['regrid'].get('slurm_args')
         if custom_args:
-            custom_count = 0
-            for arg, val in custom_args.items():
-                new_arg = ' '.join([arg, val])
-                if new_arg in self._slurm_args.values():
-                    continue
-                self._slurm_args[str(custom_count)] = new_arg
-                custom_count += 1
+            self.set_slurm_args(custom_args)
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """

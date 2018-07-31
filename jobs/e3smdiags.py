@@ -21,13 +21,7 @@ class E3SMDiags(Diag):
         self._short_comp_name = ''
         custom_args = kwargs['config']['diags']['e3sm_diags'].get('slurm_args')
         if custom_args:
-            custom_count = 0
-            for arg, val in custom_args.items():
-                new_arg = ' '.join([arg, val])
-                if new_arg in self._slurm_args.values():
-                    continue
-                self._slurm_args[str(custom_count)] = new_arg
-                custom_count += 1
+            self.set_slurm_args(custom_args)
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:

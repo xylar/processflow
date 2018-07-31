@@ -59,6 +59,28 @@ class Job(object):
             return self._output_path
         else:
             return self._console_output_path
+    
+    def set_slurm_args(self, custom_args):
+        """
+        Adds the arguments in custom_args to the jobs slurm arguments
+        If any keys are already present in the jobs slurm args they are over written with the new args
+        
+        Parameters
+        ----------
+            custom_args (dict): a mapping of slurm args to the arg values
+        """
+        custom_count = 0
+        for arg, val in custom_args.items():
+            new_arg = ' '.join([arg, val])
+            found = False
+            for sarg, sval in self._slurm_args.items():
+                if arg in sval:
+                    self._slurm_args[sarg] = new_arg
+                    found = True
+                    break
+            if not found:
+                self._slurm_args[str(custom_count)] = new_arg
+                custom_count += 1
     # -----------------------------------------------
     def get_report_string(self):
         return '{prefix} :: {status} :: {output}'.format(
