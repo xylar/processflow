@@ -1,10 +1,11 @@
-import logging
 import os
+import logging
+
 from jobs.job import Job
 from lib.jobstatus import JobStatus
 from lib.filemanager import FileStatus
 from lib.util import get_climo_output_files, print_line
-from lib.slurm import Slurm
+
 
 class Climo(Job):
     def __init__(self, *args, **kwargs):
@@ -12,9 +13,9 @@ class Climo(Job):
         self._data_required = ['atm']
         self._job_type = 'climo'
         self._dryrun = True if kwargs.get('dryrun') == True else False
-        custom_args = kwargs['config']['post-processing']['climo'].get('slurm_args')
+        custom_args = kwargs['config']['post-processing']['climo'].get('custom_args')
         if custom_args:
-            self.set_slurm_args(custom_args)
+            self.set_custom_args(custom_args)
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -67,21 +68,15 @@ class Climo(Job):
         # nothing's gone wrong, so we must be done
         return True
     # -----------------------------------------------
-    def execute(self, config, slurm_args=None, dryrun=False):
+    def execute(self, config, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
         
         Parameters
         ----------
             config (dict): the globus processflow config object
-            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
-
-        # add/swap any slurm args into the jobs default slurm_args
-        if slurm_args:
-            for arg, val in slurm_args.items():
-                self._slurm_args[arg] = val
 
         # setup output directories for both native and regridded output
         regrid_path = os.path.join(
@@ -102,6 +97,7 @@ class Climo(Job):
               
         input_path, _ = os.path.split(self._input_file_paths[0])
         cmd = [
+            'conda activate {}'.format(os.environ['CONDA_PREFIX']),
             'ncclimo',
             '-c', self.case,
             '-a', 'sdd',
@@ -113,7 +109,6 @@ class Climo(Job):
             '-O', regrid_path,
             '--no_amwg_links',
         ]
-        slurm_command = ' '.join(cmd)
 
         # exit early if in dry run mode
         if not dryrun:
@@ -127,7 +122,7 @@ class Climo(Job):
             self._dryrun = True
 
         self._has_been_executed = True
-        return self._submit_cmd_to_slurm(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
         """

@@ -341,7 +341,6 @@ class FileManager(object):
             remote_names = [x['name'] for x in remote_contents]
             for df in files:
                 if df.name not in remote_names:
-                    import ipdb; ipdb.set_trace()
                     msg = 'Unable to find file {name} at {remote_path}'.format(
                         name=df.name,
                         remote_path=remote_path)

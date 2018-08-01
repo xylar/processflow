@@ -1,8 +1,6 @@
 import os
 import re
-import json
 import logging
-import subprocess
 
 from bs4 import BeautifulSoup
 from shutil import move
@@ -24,9 +22,9 @@ class Aprime(Diag):
                                'ocn_streams', 'cice_streams', 
                                'ocn_in', 'cice_in', 
                                'meridionalHeatTransport']
-        custom_args = kwargs['config']['diags']['aprime'].get('slurm_args')
+        custom_args = kwargs['config']['diags']['aprime'].get('custom_args')
         if custom_args:
-            self.set_slurm_args(custom_args)
+            self.set_custom_args(custom_args)
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
@@ -38,22 +36,16 @@ class Aprime(Diag):
         """
         return
     # -----------------------------------------------
-    def execute(self, config, slrum_args=None, dryrun=False):
+    def execute(self, config, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
         
         Parameters
         ----------
             config (dict): the globus processflow config object
-            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
 
-        # add/swap any slurm args into the jobs default slurm_args
-        if slurm_args:
-            for arg, val in slurm_args.items():
-                self._slurm_args[arg] = val
-        
         # sets up the output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
@@ -65,7 +57,8 @@ class Aprime(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
-        self._slurm_args['working_dir'] = '-D {}'.format(
+        # the -D command works with both slurm and pbs
+        self._custom_args['working_dir'] = '-D {}'.format(
             config['diags']['aprime']['aprime_code_path'])
         
         # fix the input paths
@@ -105,7 +98,7 @@ class Aprime(Diag):
         
         cmd = ['bash', template_out]
         self._has_been_executed = True
-        return self._submit_cmd_to_slurm(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
         

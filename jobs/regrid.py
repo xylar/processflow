@@ -5,7 +5,6 @@ import logging
 
 from jobs.job import Job
 from lib.jobstatus import JobStatus
-from lib.slurm import Slurm
 from lib.util import print_line, get_data_output_files
 from lib.filemanager import FileStatus
 
@@ -22,9 +21,9 @@ class Regrid(Job):
         super(Regrid, self).__init__(*args, **kwargs)
         self._job_type = 'regrid'
         self._data_required = [self._run_type]
-        custom_args = kwargs['config']['post-processing']['regrid'].get('slurm_args')
+        custom_args = kwargs['config']['post-processing']['regrid'].get('custom_args')
         if custom_args:
-            self.set_slurm_args(custom_args)
+            self.set_custom_args(custom_args)
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -32,22 +31,16 @@ class Regrid(Job):
         """
         return True
     # -----------------------------------------------
-    def execute(self, config, slurm_args=None, dryrun=False):
+    def execute(self, config, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
         
         Parameters
         ----------
             config (dict): the globus processflow config object
-            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
 
-        # add/swap any slurm args into the jobs default slurm_args
-        if slurm_args:
-            for arg, val in slurm_args.items():
-                self._slurm_args[arg] = val
-        
         # setup output paths
         self._output_path = os.path.join(
             config['global']['project_path'], 'output', 'pp',
@@ -90,7 +83,9 @@ class Regrid(Job):
         for item in os.listdir(input_path):
             if not item[-3:] == '.nc':
                 os.remove(os.path.join(input_path, item))
-        self._slurm_args['working_dir'] = '-D {}'.format(input_path)
+
+        # the -D flag works with both slurm and pbs
+        self._custom_args['working_dir'] = '-D {}'.format(input_path)
         cmd.extend([
             '-O', self._output_path,
         ])
@@ -107,7 +102,7 @@ class Regrid(Job):
             self._dryrun = True
 
         self._has_been_executed = True
-        return self._submit_cmd_to_slurm(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs): 
         self._output_path = os.path.join(

@@ -1,14 +1,12 @@
 import os
-import json
 import logging
-import subprocess
 
 from bs4 import BeautifulSoup
-from shutil import copytree, rmtree
 
 from jobs.diag import Diag
 from lib.util import render, print_line
 from lib.jobstatus import JobStatus
+
 
 class E3SMDiags(Diag):
     def __init__(self, *args, **kwargs):
@@ -19,9 +17,9 @@ class E3SMDiags(Diag):
         self._host_path = ''
         self._host_url = ''
         self._short_comp_name = ''
-        custom_args = kwargs['config']['diags']['e3sm_diags'].get('slurm_args')
+        custom_args = kwargs['config']['diags']['e3sm_diags'].get('custom_args')
         if custom_args:
-            self.set_slurm_args(custom_args)
+            self.set_custom_args(custom_args)
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
@@ -67,14 +65,8 @@ class E3SMDiags(Diag):
         Parameters
         ----------
             config (dict): the globus processflow config object
-            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
-
-        # add/swap any slurm args into the jobs default slurm_args
-        if slurm_args:
-            for arg, val in slurm_args.items():
-                self._slurm_args[arg] = val
 
         # setup the jobs output path, creating it if it doesnt already exist
         self._output_path = os.path.join(

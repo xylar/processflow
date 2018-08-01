@@ -1,14 +1,11 @@
 import json
 import os
-import logging
 
-from uuid import uuid4
 from shutil import copytree, rmtree
 from subprocess import call
 
-from lib.slurm import Slurm
 from lib.jobstatus import JobStatus
-from lib.util import create_symlink_dir, print_line
+from lib.util import print_line
 from jobs.job import Job
 
 

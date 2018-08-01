@@ -1,9 +1,7 @@
-import json
 import os
 import logging
 from jobs.job import Job
 from lib.jobstatus import JobStatus
-from lib.slurm import Slurm
 from lib.util import get_ts_output_files, print_line
 from lib.filemanager import FileStatus
 
@@ -13,9 +11,9 @@ class Timeseries(Job):
         self._job_type = 'timeseries'
         self._data_required = [self._run_type]
         self._regrid = False
-        custom_args = kwargs['config']['post-processing']['timeseries'].get('slurm_args')
+        custom_args = kwargs['config']['post-processing']['timeseries'].get('custom_args')
         if custom_args:
-            self.set_slurm_args(custom_args)
+            self.set_custom_args(custom_args)
     # -----------------------------------------------    
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -69,21 +67,15 @@ class Timeseries(Job):
         # if nothing was missing then we must be done
         return True
     # -----------------------------------------------
-    def execute(self, config, slurm_args=None, dryrun=False):
+    def execute(self, config, dryrun=False):
         """
         Generates and submits a run script for e3sm_diags
         
         Parameters
         ----------
             config (dict): the globus processflow config object
-            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
-
-        # add/swap any slurm args into the jobs default slurm_args
-        if slurm_args:
-            for arg, val in slurm_args.items():
-                self._slurm_args[arg] = val
 
         # setup the ts output path
         ts_path = os.path.join(
@@ -127,7 +119,6 @@ class Timeseries(Job):
                 '--map={}'.format(regrid_map_path),
             ])
         cmd.append(list_string)
-        slurm_command = ' '.join(cmd)
 
         # exit early if in dryrun mode
         if not dryrun:
@@ -140,7 +131,7 @@ class Timeseries(Job):
         else:
             self._dryrun = True
 
-        return self._submit_cmd_to_slurm(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
         

@@ -1,6 +1,5 @@
 import os
 import re
-import json
 import logging
 
 from subprocess import call
@@ -19,9 +18,9 @@ class AMWG(Diag):
         self._host_path = ''
         self._host_url = ''
         self._short_comp_name = ''
-        custom_args = kwargs['config']['diags']['amwg'].get('slurm_args')
+        custom_args = kwargs['config']['diags']['amwg'].get('custom_args')
         if custom_args:
-            self.set_slurm_args(custom_args)
+            self.set_custom_args(custom_args)
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
@@ -60,21 +59,15 @@ class AMWG(Diag):
                 raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
-    def execute(self, config, slurm_args=None, dryrun=False):
+    def execute(self, config, custom_args=None, dryrun=False):
         """
         Generates and submits a run script for amwg diagnostics
         
         Parameters
         ----------
             config (dict): the globus processflow config object
-            slurm_args (dict): a dictionary of slurm arguments to prepend to the run script
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
-
-        # add/swap any slurm args into the jobs default slurm_args
-        if slurm_args:
-            for arg, val in slurm_args.items():
-                self._slurm_args[arg] = val
         
         # setup the output directory, creating it if it doesnt already exist
         self._output_path = os.path.join(
