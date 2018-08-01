@@ -145,7 +145,9 @@ class AMWG(Diag):
 
         # create the run command and submit it
         self._has_been_executed = True
-        cmd = ['csh', csh_template_out]
+        cmd = [
+            'conda activate {}'.format(os.environ['CONDA_PREFIX']),
+            'csh', csh_template_out]
         return self._submit_cmd_to_slurm(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
