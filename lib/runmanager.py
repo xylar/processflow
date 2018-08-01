@@ -414,6 +414,7 @@ class RunManager(object):
         """
         for_removal = list()
         for item in self.running_jobs:
+            # each item is a mapping of job UUIDs to the id given by the resource manager
             job = self.get_job_by_id(item['job_id'])
             if item['manager_id'] == 0:
                 self._job_complete += 1
