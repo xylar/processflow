@@ -3,6 +3,7 @@ import logging
 from time import sleep
 from subprocess import Popen, PIPE
 
+from jobinfo import JobInfo
 
 class Slurm(object):
     """
@@ -124,14 +125,37 @@ class Slurm(object):
 
         if 'Invalid job id specified' in err:
             raise Exception('SLURM ERROR: ' + err)
-        jobinfo = {}
+        jobinfo = JobInfo()
         for item in out.split('\n'):
             for j in item.split(' '):
                 index = j.find('=')
                 if index <= 0:
                     continue
-                jobinfo[j[:index]] = j[index + 1:]
+                attribute = self.slurm_to_jobinfo(j[:index])
+                if attribute is None:
+                    continue
+                jobinfo.set_attr(
+                    attr=attribute,
+                    val=j[index + 1:])
         return jobinfo
+
+    def slurm_to_jobinfo(self, attr):
+        if attr == 'Partition':
+            return 'PARTITION'
+        elif attr == 'Command':
+            return 'COMMAND'
+        elif attr == 'UserId':
+            return 'USER'
+        elif attr == 'JobName':
+            return 'NAME'
+        elif attr == 'JobState':
+            return 'STATE'
+        elif attr == 'JobId':
+            return 'JOBID'
+        elif attr == 'RunTime':
+            return 'RUNTIME'
+        else:
+            return None
 
     def shownode(self, nodeid):
         """
