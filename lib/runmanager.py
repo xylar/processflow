@@ -77,25 +77,6 @@ class RunManager(object):
             logging.error(msg)
             self.max_running_jobs = self.manager.get_node_number() * 3
 
-    def check_max_running_jobs(self):
-        """
-        Checks if the maximum number of jobs are running
-
-        Returns True if the max or more are running, false otherwise
-        """
-        try:
-            job_info = self.manager.queue()
-        except:
-            return True
-        else:
-            running_jobs = 0
-            for job in job_info:
-                if job['STATE'] in ['R', 'PD']:
-                    running_jobs += 1
-                if running_jobs >= self.max_running_jobs:
-                    return True
-            return False
-
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
         """
         Add post processing jobs to the case.jobs list
