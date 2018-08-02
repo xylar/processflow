@@ -51,18 +51,20 @@ class Climo(Job):
             start_year=self.start_year,
             end_year=self.end_year)
         if len(file_list) < 17: # number of months plus seasons and annual
-            msg = '{prefix}: Failed to produce all regridded climos'.format(
-                prefix=self.msg_prefix())
-            logging.error(msg)
+            if self._has_been_executed:
+                msg = '{prefix}: Failed to produce all regridded climos'.format(
+                    prefix=self.msg_prefix())
+                logging.error(msg)
             return False
         file_list = get_climo_output_files(
             input_path=climo_path,
             start_year=self.start_year,
             end_year=self.end_year)
         if len(file_list) < 17: # number of months plus seasons and annual
-            msg = '{prefix}: Failed to produce all native grid climos'.format(
-                prefix=self.msg_prefix())
-            logging.error(msg)
+            if self._has_been_executed:
+                msg = '{prefix}: Failed to produce all native grid climos'.format(
+                    prefix=self.msg_prefix())
+                logging.error(msg)
             return False
 
         # nothing's gone wrong, so we must be done
