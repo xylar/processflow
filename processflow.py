@@ -20,7 +20,7 @@ from lib.util import print_line
 from lib.util import print_message
 from lib.util import print_debug
 
-__version__ = '2.0.4'
+__version__ = '2.0.5'
 __branch__ = 'experimental'
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
