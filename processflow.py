@@ -7,9 +7,7 @@ import os
 import json
 import threading
 import logging
-
 from time import sleep
-from globus_cli.services.transfer import get_client
 
 from lib.events import EventList
 from lib.initialize import initialize
@@ -20,8 +18,8 @@ from lib.util import print_line
 from lib.util import print_message
 from lib.util import print_debug
 
-__version__ = '2.0.3'
-__branch__ = 'nightly'
+__version__ = '2.0.5'
+__branch__ = 'experimental'
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
 os.environ['NCO_PATH_OVERRIDE'] = 'True'
@@ -50,9 +48,6 @@ def main(test=False, **kwargs):
     # A flag to tell if we have all the data locally
     all_data = False
     all_data_remote = False
-
-    # get a globus client
-    client = get_client()
 
     # Read in parameters from config
     if test:

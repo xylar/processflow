@@ -59,7 +59,7 @@ class AMWG(Diag):
                 raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
-    def execute(self, config, custom_args=None, dryrun=False):
+    def execute(self, config, event_list, custom_args=None, dryrun=False):
         """
         Generates and submits a run script for amwg diagnostics
         
@@ -134,7 +134,7 @@ class AMWG(Diag):
             self._dryrun = False
             if not self.prevalidate():
                 return False
-            if self.postvalidate(config):
+            if self.postvalidate(config, event_list=event_list):
                 self.status = JobStatus.COMPLETED
                 return True
         else:
@@ -145,8 +145,10 @@ class AMWG(Diag):
 
         # create the run command and submit it
         self._has_been_executed = True
-        cmd = ['csh', csh_template_out]
-        return self._submit_cmd_to_slurm(config, cmd)
+        cmd = [
+            'conda activate {}\n'.format(os.environ['CONDA_PREFIX']),
+            'csh', csh_template_out]
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
         
@@ -159,14 +161,15 @@ class AMWG(Diag):
                     end=self.end_year,
                     comp=self._short_comp_name))
         if not self._host_path:
-            self._host_path = os.path.join(
-                config['img_hosting']['host_directory'],
-                self.case,
-                'amwg',
-                '{start:04d}_{end:04d}_vs_{comp}'.format(
-                    start=self.start_year,
-                    end=self.end_year,
-                    comp=self._short_comp_name))
+            if config['global']['host']:
+                self._host_path = os.path.join(
+                    config['img_hosting']['host_directory'],
+                    self.case,
+                    'amwg',
+                    '{start:04d}_{end:04d}_vs_{comp}'.format(
+                        start=self.start_year,
+                        end=self.end_year,
+                        comp=self._short_comp_name))
         
         if self.comparison == 'obs':
             expected_files = {
@@ -264,11 +267,13 @@ class AMWG(Diag):
                         '{}-vs-{}'.format(self.short_name, self._short_comp_name),
                         setname)
                     if not os.path.exists(directory):
-                        msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
-                            prefix=self.msg_prefix(),
-                            dir=directory)
-                        logging.error(msg)
                         passed = False
+                        if self._has_been_executed:
+                            msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
+                                prefix=self.msg_prefix(),
+                                dir=directory)
+                            logging.error(msg)
+                            print_line(msg, kwargs['event_list'])
                     else:
                         count = len(os.listdir(directory))
                         if count < expected_files[setname]:
@@ -278,6 +283,7 @@ class AMWG(Diag):
                                 numProduced=count,
                                 numExpected=expected_files[setname])
                             logging.error(msg)
+                            print_line(msg, kwargs['event_list'])
                             passed = False
         
         if passed:

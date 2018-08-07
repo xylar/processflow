@@ -1,5 +1,5 @@
 import json
-
+from jobstatus import JobStatus
 
 class JobInfo(object):
     """
@@ -15,10 +15,15 @@ class JobInfo(object):
         self.jobid = jobid
         self.jobname = jobname
         self.partition = partition
-        self.state = state
         self.time = time
         self.user = user
         self.command = command
+        if state is not None:
+            if not isinstance(state, JobStatus):
+                raise Exception("{} is not of type JobStatus".format(type(state)))
+            self._state = state
+        else:
+            self._state = None
 
     def __str__(self):
         return json.dumps({
@@ -51,3 +56,18 @@ class JobInfo(object):
         else:
             msg = '{} is not an allowed attribute'.format(attr)
             raise Exception(msg)
+    
+    @property
+    def state(self):
+        return self._state
+    @state.setter
+    def state(self, state):
+        if state in ['Q', 'W', 'PD']:
+            self._state = 'PENDING'
+        elif state == 'R':
+            self._state = 'RUNNING'
+        elif state in ['E', 'CD', 'CG']:
+            self._state = 'COMPLETED'
+        else:
+            self._state = 'OTHER'
+            

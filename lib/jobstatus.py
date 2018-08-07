@@ -12,6 +12,7 @@ class JobStatus(IntEnum):
     WAITING_ON_INPUT = 7
     CANCELLED = 8
     TIMEOUT = 9
+    OTHER = 10
 
 StatusMap = {
     'VALID': JobStatus.VALID,
@@ -24,7 +25,8 @@ StatusMap = {
     'WAITING_ON_INPUT': JobStatus.WAITING_ON_INPUT,
     'CANCELLED': JobStatus.CANCELLED,
     'COMPLETING': JobStatus.COMPLETED,
-    'TIMEOUT': JobStatus.TIMEOUT
+    'TIMEOUT': JobStatus.TIMEOUT,
+    'OTHER': JobStatus.OTHER
 }
 
 ReverseMap = {
@@ -37,5 +39,6 @@ ReverseMap = {
     JobStatus.SUBMITTED: "Submitted",
     JobStatus.PENDING: "Pending",
     JobStatus.WAITING_ON_INPUT: "Waiting on additional files",
-    JobStatus.CANCELLED: "Canceled"
+    JobStatus.CANCELLED: "Canceled",
+    JobStatus.OTHER: "Other"
 }

@@ -49,6 +49,11 @@ class Timeseries(Job):
                 var=var, start=self.start_year, end=self.end_year)
             file_path = os.path.join(ts_path, file_name)
             if not os.path.exists(file_path):
+                if self._has_been_executed:
+                    msg = "{prefix}: Unable to find {file} after execution".format(
+                        prefix=self.msg_prefix(),
+                        file=file_path)
+                    logging.error(msg)
                 return False
 
         # next, if regridding is turned on check that all regrid ts files were created
@@ -62,6 +67,11 @@ class Timeseries(Job):
                 var=var, start=self.start_year, end=self.end_year)
                 file_path = os.path.join(regrid_path, file_name)
                 if not os.path.exists(file_path):
+                    if self._has_been_executed:
+                        msg = "{prefix}: Unable to find {file} after execution".format(
+                            prefix=self.msg_prefix(),
+                            file=file_path)
+                        logging.error(msg)
                     return False
 
         # if nothing was missing then we must be done

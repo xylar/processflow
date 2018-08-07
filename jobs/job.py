@@ -15,7 +15,7 @@ class Job(object):
     """
     A base job class for all post-processing and diagnostic jobs
     """
-    def __init__(self, start, end, case, short_name, data_required=None, **kwargs):
+    def __init__(self, start, end, case, short_name, data_required=None, dryrun=False, **kwargs):
         self._start_year = start
         self._end_year = end
         self._data_required = data_required
@@ -32,11 +32,10 @@ class Job(object):
         self._input_file_paths = list()
         self._console_output_path = None
         self._output_path = ''
-        self._dryrun = True if kwargs.get('dryrun') == True else False
+        self._dryrun = dryrun
         self._manager_args = {
-            'num_cores': '-n 16',  # 16 cores
-            'run_time': '-t 0-10:00',  # 10 hours run time
-            'num_machines': '-N 1',  # run on one machine
+            'slurm': ['-n 16', '-t 0-10:00', '-N 1'],
+            'pbs': ['-j eo', '-l nodes=1:ppn=1', '-q acme']
         }
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
@@ -259,22 +258,27 @@ class Job(object):
         try:
             manager = Slurm()
             manager_prefix = '#SBATCH'
+            self._manager_args['slurm'].append('-o {}'.format(self._console_output_path))
         except:
             try:
                 manager = PBS()
                 manager_prefix = '#PBS'
+                self._manager_args['pbs'].append('-o {}'.format(self._console_output_path))
             except:
                 raise Exception("No resource manager found")
 
         # generate the run script using the manager arguments and command
         command = ' '.join(cmd)
-        self._manager_args['output_file'] = '-o {output_file}'.format(
-            output_file=self._console_output_path)
         script_prefix = ''
-        for key, val in self._manager_args.items():
+        
+        if isinstance(manager, Slurm):
+            margs = self._manager_args['slurm']
+        else:
+            margs = self._manager_args['pbs']
+        for item in margs:
             script_prefix += '{prefix} {value}\n'.format(
                 prefix=manager_prefix,
-                value=val)
+                value=item)
 
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
@@ -283,6 +287,8 @@ class Job(object):
 
         # if this is a dry run, set the status and exit
         if self._dryrun:
+            msg = '{}: dryrun is set, completing without running'.format(self.msg_prefix())
+            logging.info(msg)
             self.status = JobStatus.COMPLETED
             return 0
 
