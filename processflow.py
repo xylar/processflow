@@ -7,9 +7,7 @@ import os
 import json
 import threading
 import logging
-
 from time import sleep
-from globus_cli.services.transfer import get_client
 
 from lib.events import EventList
 from lib.initialize import initialize
@@ -50,9 +48,6 @@ def main(test=False, **kwargs):
     # A flag to tell if we have all the data locally
     all_data = False
     all_data_remote = False
-
-    # get a globus client
-    client = get_client()
 
     # Read in parameters from config
     if test:
