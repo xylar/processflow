@@ -2,6 +2,6 @@
 *.swp
 tmp
 config\.json
-\.vscode/
-\.remote-sync\.json
+\.vscode/*
+\.vscode/sftp\.json
 .coverage*

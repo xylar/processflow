@@ -113,24 +113,6 @@ class E3SMDiags(Diag):
             input_path=template_input_path,
             output_path=param_template_out)
 
-        # create the run command and submit it
-        variables = {'parameter_file_path': param_template_out}
-        env_loader_path = os.path.join(
-            config['global']['resource_path'],
-            'e3sm_diags_env_loader_template')
-        e3sm_runner_path = os.path.join(
-            config['global']['run_scripts_path'],
-            'e3sm_diags_{start:04d}_{end:04d}_{case}_vs_{comp}.bash'.format(
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name,
-                comp=self._short_comp_name))
-        render(
-            variables=variables,
-            input_path=env_loader_path,
-            output_path=e3sm_runner_path)
-        cmd = ['bash', e3sm_runner_path]
-
         # exit early if in dryrun mode
         if not dryrun:
             self._dryrun = False
@@ -142,6 +124,8 @@ class E3SMDiags(Diag):
         else:
             self._dryrun = True
             return
+        
+        cmd = ['acme_diags_driver.py', '-p', param_template_out]
         self._has_been_executed = True
         return self._submit_cmd_to_slurm(config, cmd)
     # -----------------------------------------------
