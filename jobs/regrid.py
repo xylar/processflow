@@ -31,7 +31,7 @@ class Regrid(Job):
         """
         return True
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
         
@@ -85,7 +85,9 @@ class Regrid(Job):
                 os.remove(os.path.join(input_path, item))
 
         # the -D flag works with both slurm and pbs
-        self._custom_args['working_dir'] = '-D {}'.format(input_path)
+        self._manager_args['slurm'].append('-D {}'.format(input_path))
+        self._manager_args['pbs'].append('-D {}'.format(input_path))
+
         cmd.extend([
             '-O', self._output_path,
         ])

@@ -62,12 +62,14 @@ class JobInfo(object):
         return self._state
     @state.setter
     def state(self, state):
-        if state in ['Q', 'W', 'PD']:
+        if state in ['Q', 'W', 'PD', 'PENDING']:
             self._state = 'PENDING'
-        elif state == 'R':
+        elif state in ['R', 'RUNNING']:
             self._state = 'RUNNING'
-        elif state in ['E', 'CD', 'CG']:
+        elif state in ['E', 'CD', 'CG', 'COMPLETED', 'COMPLETING']:
             self._state = 'COMPLETED'
+        elif state in ['FAILED']:
+            self._state = 'FAILED'
         else:
+            import ipdb; ipdb.set_trace()
             self._state = 'OTHER'
-            

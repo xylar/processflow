@@ -58,7 +58,7 @@ class E3SMDiags(Diag):
                 raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
-    def execute(self, config, slurm_args=None, dryrun=False):
+    def execute(self, config, event_list, slurm_args=None, dryrun=False):
         """
         Generates and submits a run script for e3sm_diags
         
@@ -127,7 +127,7 @@ class E3SMDiags(Diag):
         
         cmd = ['acme_diags_driver.py', '-p', param_template_out]
         self._has_been_executed = True
-        return self._submit_cmd_to_slurm(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
         return self._check_links(config)

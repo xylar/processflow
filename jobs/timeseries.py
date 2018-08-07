@@ -77,7 +77,7 @@ class Timeseries(Job):
         # if nothing was missing then we must be done
         return True
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for e3sm_diags
         

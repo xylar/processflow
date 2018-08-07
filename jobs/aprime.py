@@ -36,7 +36,7 @@ class Aprime(Diag):
         """
         return
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
         
@@ -57,9 +57,10 @@ class Aprime(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
-        # the -D command works with both slurm and pbs
-        self._custom_args['working_dir'] = '-D {}'.format(
-            config['diags']['aprime']['aprime_code_path'])
+        # the -D flag works with both slurm and pbs
+        aprime_code_path = config['diags']['aprime']['aprime_code_path']
+        self._manager_args['slurm'].append('-D {}'.format(aprime_code_path))
+        self._manager_args['pbs'].append('-D {}'.format(aprime_code_path))
         
         # fix the input paths
         self._fix_input_paths()

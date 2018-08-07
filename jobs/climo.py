@@ -70,7 +70,7 @@ class Climo(Job):
         # nothing's gone wrong, so we must be done
         return True
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
         
