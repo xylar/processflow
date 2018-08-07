@@ -68,8 +68,7 @@ class JobInfo(object):
             self._state = 'RUNNING'
         elif state in ['E', 'CD', 'CG', 'COMPLETED', 'COMPLETING']:
             self._state = 'COMPLETED'
-        elif state in ['FAILED']:
+        elif state in ['FAILED', 'F']:
             self._state = 'FAILED'
         else:
-            import ipdb; ipdb.set_trace()
-            self._state = 'OTHER'
+            self._state = state
