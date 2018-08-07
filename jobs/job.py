@@ -258,17 +258,17 @@ class Job(object):
         try:
             manager = Slurm()
             manager_prefix = '#SBATCH'
+            self._manager_args['slurm'].append('-o {}'.format(self._console_output_path))
         except:
             try:
                 manager = PBS()
                 manager_prefix = '#PBS'
+                self._manager_args['pbs'].append('-o {}'.format(self._console_output_path))
             except:
                 raise Exception("No resource manager found")
 
         # generate the run script using the manager arguments and command
         command = ' '.join(cmd)
-        self._manager_args['output_file'] = '-o {output_file}'.format(
-            output_file=self._console_output_path)
         script_prefix = ''
         
         if isinstance(manager, Slurm):
