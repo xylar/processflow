@@ -97,7 +97,7 @@ class PBS(object):
             (int): the number of nodes available to the resource manager
         """
         cmd = ['pbsnodes -a | grep "properties = {}" | wc -l'.format(queue)]
-        proc = Popen(cmd, shell=False, stderr=PIPE, stdout=PIPE)
+        proc = Popen(cmd, shell=True, stderr=PIPE, stdout=PIPE)
         out, err = proc.communicate()
         if err:
             logging.error(err)

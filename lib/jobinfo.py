@@ -48,7 +48,7 @@ class JobInfo(object):
         elif attr == 'JOBID':
             self.jobid = val
         elif attr == 'STATE':
-            self._state = val
+            self.state = val
         elif attr == 'RUNTIME':
             self.time = val
         elif attr == 'USER':
@@ -62,15 +62,12 @@ class JobInfo(object):
         return self._state
     @state.setter
     def state(self, state):
-        if isinstance(state, JobStatus):
-            self._state = state
+        if state in ['Q', 'W', 'PD']:
+            self._state = 'PENDING'
+        elif state == 'R':
+            self._state = 'RUNNING'
+        elif state in ['E', 'CD', 'CG']:
+            self._state = 'COMPLETED'
         else:
-            if state in ['Q', 'W', 'PD']:
-                self._state = JobStatus.PENDING
-            elif state == 'R':
-                self._state = JobStatus.RUNNING
-            elif state in ['E', 'CD', 'CG']:
-                self._state = JobStatus.COMPLETED
-            else:
-                self._state = JobStatus.OTHER
+            self._state = 'OTHER'
             

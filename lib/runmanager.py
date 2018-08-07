@@ -310,7 +310,8 @@ class RunManager(object):
                                 case=job.comparison)
                     run_id = job.execute(
                         config=self.config,
-                        dryrun=self.dryrun)
+                        dryrun=self.dryrun,
+                        event_list=self.event_list)
 
                     if run_id is False:
                         msg = '{}: Prevalidation FAILED'.format(job.msg_prefix())
