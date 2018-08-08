@@ -1,14 +1,11 @@
 import json
 import os
-import logging
 
-from uuid import uuid4
 from shutil import copytree, rmtree
 from subprocess import call
 
-from lib.slurm import Slurm
 from lib.jobstatus import JobStatus
-from lib.util import create_symlink_dir, print_line
+from lib.util import print_line
 from jobs.job import Job
 
 
@@ -56,10 +53,10 @@ class Diag(Job):
         msg = '{prefix}: Fixing permissions'.format(
             prefix=self.msg_prefix())
         print_line(msg, event_list)
-        call(['chmod', '-R', 'a+rx', host_path])
+        call(['chmod', '-R', 'go+rx', host_path])
         tail, _ = os.path.split(host_path)
         for _ in range(2):
-            call(['chmod', 'a+rx', tail])
+            call(['chmod', 'go+rx', tail])
             tail, _ = os.path.split(tail)
     # -----------------------------------------------
     def get_report_string(self):
@@ -74,3 +71,4 @@ class Diag(Job):
                 status=self.status.name,
                 console_path=self._console_output_path)
         return msg
+    # -----------------------------------------------

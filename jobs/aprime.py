@@ -1,8 +1,6 @@
 import os
 import re
-import json
 import logging
-import subprocess
 
 from bs4 import BeautifulSoup
 from shutil import move
@@ -19,22 +17,18 @@ class Aprime(Diag):
         self._host_path = ''
         self._host_url = ''
         self._input_base_path = ''
-        self._slurm_args = {
-            'num_cores': '-n 24',  # 24 cores
-            'run_time': '-t 0-10:00',  # 10 hours run time
-            'num_machines': '-N 1',  # run on one machine
-            'working_dir': ''
-        }
         self._data_required = ['atm', 'cice', 'ocn', 
                                'ocn_restart', 'cice_restart', 
                                'ocn_streams', 'cice_streams', 
                                'ocn_in', 'cice_in', 
                                'meridionalHeatTransport']
+        custom_args = kwargs['config']['diags']['aprime'].get('custom_args')
+        if custom_args:
+            self.set_custom_args(custom_args)
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
             self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
-        
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -42,7 +36,17 @@ class Aprime(Diag):
         """
         return
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, dryrun=False):
+        """
+        Generates and submits a run script for ncremap to regrid model output
+        
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # sets up the output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
             'output', 'diags', self.short_name, 'aprime',
@@ -53,8 +57,10 @@ class Aprime(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
-        self._slurm_args['working_dir'] = '-D {}'.format(
-            config['diags']['aprime']['aprime_code_path'])
+        # the -D flag works with both slurm and pbs
+        aprime_code_path = config['diags']['aprime']['aprime_code_path']
+        self._manager_args['slurm'].append('-D {}'.format(aprime_code_path))
+        self._manager_args['pbs'].append('-D {}'.format(aprime_code_path))
         
         # fix the input paths
         self._fix_input_paths()
@@ -92,7 +98,8 @@ class Aprime(Diag):
             output_path=template_out)
         
         cmd = ['bash', template_out]
-        return self._submit_cmd_to_slurm(config, cmd)
+        self._has_been_executed = True
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
         
@@ -240,3 +247,4 @@ class Aprime(Diag):
                 continue
             move(item, fixed_input_path)
             self._input_file_paths[idx] = new_path
+    # -----------------------------------------------

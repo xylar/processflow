@@ -332,7 +332,7 @@ set cntl_name = {{ cntl_short_name }}         # control case name
 set web_pages = 0    # (0=ON,1=OFF)  make images and html files
 set delete_ps = 0    # (0=ON,1=OFF)  delete postscript files 
 set img_type  = 0    # (0=PNG,1=GIF,2=JPG) select image type
-set density   = 85   # pixels/inch, use larger number for higher 
+set density   = 150   # pixels/inch, use larger number for higher 
                      # resolution images (default is 85)
 
 #----------------------------------------------------------------

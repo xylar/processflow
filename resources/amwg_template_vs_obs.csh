@@ -271,7 +271,7 @@ endif
 #-----------------------------------------------------------------
 # Select the output file type and style for plots.
 
-set p_type = ps      # postscript
+:qset p_type = ps      # postscript
 #set p_type = png     # portable document format (ncl ver 4.2.0.a028)
 #set p_type = eps    # encapsulated postscript
 #set p_type = epsi   # encapsulated postscript with bitmap 
@@ -334,7 +334,7 @@ set cntl_name = cam3_5_cntl               # control case name
 set web_pages = 0    # (0=ON,1=OFF)  make images and html files
 set delete_ps = 0    # (0=ON,1=OFF)  delete postscript files 
 set img_type  = 0    # (0=PNG,1=GIF,2=JPG) select image type
-set density   = 85   # pixels/inch, use larger number for higher 
+set density   = 150   # pixels/inch, use larger number for higher 
                      # resolution images (default is 85)
 
 #----------------------------------------------------------------

@@ -20,21 +20,21 @@ requirements:
     - setuptools
   
   run:
-    - peewee
-    - nco
     - pip
     - python
     - setuptools
+    - nco
+    - ncl
+    - acme_diags
     - sqlite
+    - peewee
     - configobj
     - beautifulsoup4
     - lxml
     - paramiko
-    - ncl
     - jinja2
     - globus-sdk ==1.1.1
     - globus-cli ==1.1.2
-    # things that globus needs that dont get installed by it
     - click
     - jmespath
     - requests

@@ -1,6 +1,5 @@
 import os
 import re
-import json
 import logging
 
 from subprocess import call
@@ -19,11 +18,9 @@ class AMWG(Diag):
         self._host_path = ''
         self._host_url = ''
         self._short_comp_name = ''
-        self._slurm_args = {
-            'num_cores': '-n 24',  # 16 cores
-            'run_time': '-t 0-10:00',  # 5 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
+        custom_args = kwargs['config']['diags']['amwg'].get('custom_args')
+        if custom_args:
+            self.set_custom_args(custom_args)
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
@@ -62,7 +59,17 @@ class AMWG(Diag):
                 raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, custom_args=None, dryrun=False):
+        """
+        Generates and submits a run script for amwg diagnostics
+        
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+        
+        # setup the output directory, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
             'output', 'diags', self.short_name, 'amwg',
@@ -127,7 +134,7 @@ class AMWG(Diag):
             self._dryrun = False
             if not self.prevalidate():
                 return False
-            if self.postvalidate(config):
+            if self.postvalidate(config, event_list=event_list):
                 self.status = JobStatus.COMPLETED
                 return True
         else:
@@ -135,10 +142,13 @@ class AMWG(Diag):
             return
 
         self._change_input_file_names()
+
         # create the run command and submit it
         self._has_been_executed = True
-        cmd = ['csh', csh_template_out]
-        return self._submit_cmd_to_slurm(config, cmd)
+        cmd = [
+            'source activate {}\n'.format(os.environ['CONDA_PREFIX']),
+            'csh', csh_template_out]
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
         
@@ -151,14 +161,15 @@ class AMWG(Diag):
                     end=self.end_year,
                     comp=self._short_comp_name))
         if not self._host_path:
-            self._host_path = os.path.join(
-                config['img_hosting']['host_directory'],
-                self.case,
-                'amwg',
-                '{start:04d}_{end:04d}_vs_{comp}'.format(
-                    start=self.start_year,
-                    end=self.end_year,
-                    comp=self._short_comp_name))
+            if config['global']['host']:
+                self._host_path = os.path.join(
+                    config['img_hosting']['host_directory'],
+                    self.case,
+                    'amwg',
+                    '{start:04d}_{end:04d}_vs_{comp}'.format(
+                        start=self.start_year,
+                        end=self.end_year,
+                        comp=self._short_comp_name))
         
         if self.comparison == 'obs':
             expected_files = {
@@ -256,11 +267,13 @@ class AMWG(Diag):
                         '{}-vs-{}'.format(self.short_name, self._short_comp_name),
                         setname)
                     if not os.path.exists(directory):
-                        msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
-                            prefix=self.msg_prefix(),
-                            dir=directory)
-                        logging.error(msg)
                         passed = False
+                        if self._has_been_executed:
+                            msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
+                                prefix=self.msg_prefix(),
+                                dir=directory)
+                            logging.error(msg)
+                            print_line(msg, kwargs['event_list'])
                     else:
                         count = len(os.listdir(directory))
                         if count < expected_files[setname]:
@@ -270,6 +283,7 @@ class AMWG(Diag):
                                 numProduced=count,
                                 numExpected=expected_files[setname])
                             logging.error(msg)
+                            print_line(msg, kwargs['event_list'])
                             passed = False
         
         if passed:

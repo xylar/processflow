@@ -7,6 +7,7 @@ from subprocess import Popen
 from time import sleep
 
 from lib.slurm import Slurm
+from lib.pbs import PBS
 from lib.util import get_climo_output_files
 from lib.util import create_symlink_dir
 from lib.util import print_line
@@ -22,6 +23,7 @@ from jobs.amwg import AMWG
 from jobs.e3smdiags import E3SMDiags
 from jobs.aprime import Aprime
 from lib.jobstatus import JobStatus, StatusMap, ReverseMap
+from lib.jobinfo import JobInfo
 
 job_map = {
     'climo': Climo,
@@ -58,34 +60,22 @@ class RunManager(object):
         self._job_total = 0
         self._job_complete = 0
 
-        self.slurm = Slurm()
+        try:
+            self.manager = Slurm()
+        except:
+            try:
+                self.manager = PBS()
+            except:
+                raise Exception("Couldnt find either a slurm or PBS resource manager")
+
         max_jobs = config['global']['max_jobs']
-        self.max_running_jobs = max_jobs if max_jobs else self.slurm.get_node_number() * 3
+        self.max_running_jobs = max_jobs if max_jobs else self.manager.get_node_number() * 3
         while self.max_running_jobs == 0:
             sleep(1)
             msg = 'Unable to communication with scontrol, checking again'
             print_line(msg, event_list)
             logging.error(msg)
-            self.max_running_jobs = self.slurm.get_node_number() * 3
-
-    def check_max_running_jobs(self):
-        """
-        Checks if the maximum number of jobs are running
-
-        Returns True if the max or more are running, false otherwise
-        """
-        try:
-            job_info = self.slurm.queue()
-        except:
-            return True
-        else:
-            running_jobs = 0
-            for job in job_info:
-                if job['STATE'] in ['R', 'PD']:
-                    running_jobs += 1
-                if running_jobs >= self.max_running_jobs:
-                    return True
-            return False
+            self.max_running_jobs = self.manager.get_node_number() * 3
 
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
         """
@@ -112,7 +102,8 @@ class RunManager(object):
                         case=case['case'],
                         start=year,
                         end=year + freq - 1,
-                        run_type=run_type)
+                        run_type=run_type,
+                        config=self.config)
                     case['jobs'].append(new_job)
     
     def add_diag_type_to_cases(self, freqs, job_type, start, end, case):
@@ -317,17 +308,18 @@ class RunManager(object):
                                 config=self.config,
                                 filemanager=self.filemanager,
                                 case=job.comparison)
-                    slurmid = job.execute(
+                    run_id = job.execute(
                         config=self.config,
-                        dryrun=self.dryrun)
+                        dryrun=self.dryrun,
+                        event_list=self.event_list)
 
-                    if slurmid is False:
+                    if run_id is False:
                         msg = '{}: Prevalidation FAILED'.format(job.msg_prefix())
                         print_line(msg, self.event_list)
                         job.status = JobStatus.FAILED
                     else:
                         self.running_jobs.append({
-                            'slurm_id': slurmid,
+                            'manager_id': run_id,
                             'job_id': job.id
                         })
     
@@ -356,7 +348,8 @@ class RunManager(object):
                         out_str += '\n\tdependent_on: ' + str(
                             ['{}'.format(x.msg_prefix()) for x in deps_jobs])
                     out_str += '\n\tdata_ready: ' + str(job.data_ready)
-                    out_str += '\n\tid: ' + job.id 
+                    out_str += '\n\tprocessflow_id: ' + job.id
+                    out_str += '\n\tmanager_id: ' + str(job.job_id)
                     if case['jobs'].index(job) != len(case['jobs']) - 1:
                         out_str += '\n------------------------------------'
                     else:
@@ -394,11 +387,18 @@ class RunManager(object):
         print_line(msg, self.event_list)
 
     def monitor_running_jobs(self):
-        slurm = Slurm()
+        """
+        Lookup job status for all current jobs, 
+        start jobs that are ready, 
+        run post-completion handlers for any jobs that have failed or completed.
+
+        Any new jobs that are started are added to the self.running_jobs list
+        """
         for_removal = list()
         for item in self.running_jobs:
+            # each item is a mapping of job UUIDs to the id given by the resource manager
             job = self.get_job_by_id(item['job_id'])
-            if item['slurm_id'] == 0:
+            if item['manager_id'] == 0:
                 self._job_complete += 1
                 for_removal.append(item)
                 job.handle_completion(
@@ -408,8 +408,8 @@ class RunManager(object):
                 self.report_completed_job()
                 continue
             try:
-                job_info = slurm.showjob(item['slurm_id'])
-                if not job_info or job_info.get('JobState') is None:
+                job_info = self.manager.showjob(item['manager_id'])
+                if job_info.state is None:
                     continue
             except Exception as e:
                 # if the job is old enough it wont be in the slurm list anymore
@@ -426,14 +426,15 @@ class RunManager(object):
                         self.config)
                     self.report_completed_job()
                 else:
-                    line = "slurm lookup error for {job}: {id}".format(
-                        job=job.job_type,
-                        id=item['job_id'])
+                    job.status = JobStatus.FAILED
+                    line = "{job}: resource manager lookup error for jobid {id}. The job may have failed, check the error output".format(
+                        job=job.msg_prefix(),
+                        id=item['manager_id'])
                     print_line(
                         line=line,
                         event_list=self.event_list)
                 continue
-            status = StatusMap[job_info.get('JobState')]
+            status = StatusMap[job_info.state]
             if status != job.status:
                 msg = '{prefix}: Job changed from {s1} to {s2}'.format(
                         prefix=job.msg_prefix(),
@@ -456,9 +457,7 @@ class RunManager(object):
                     if status in [JobStatus.FAILED, JobStatus.CANCELLED]:
                         for depjob in self.get_jobs_that_depend(job.id):
                             depjob.status = JobStatus.FAILED
-        if not for_removal:
-            return
-        else:
+        if for_removal:
             self.running_jobs = [x for x in self.running_jobs if x not in for_removal]
         return
 

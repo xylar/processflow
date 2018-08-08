@@ -1,9 +1,7 @@
-import json
 import os
 import logging
 from jobs.job import Job
 from lib.jobstatus import JobStatus
-from lib.slurm import Slurm
 from lib.util import get_ts_output_files, print_line
 from lib.filemanager import FileStatus
 
@@ -13,12 +11,10 @@ class Timeseries(Job):
         self._job_type = 'timeseries'
         self._data_required = [self._run_type]
         self._regrid = False
-        self._slurm_args = {
-            'num_cores': '-n 16',  # 16 cores
-            'run_time': '-t 0-10:00',  # 5 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
-
+        custom_args = kwargs['config']['post-processing']['timeseries'].get('custom_args')
+        if custom_args:
+            self.set_custom_args(custom_args)
+    # -----------------------------------------------    
     def setup_dependencies(self, *args, **kwargs):
         """
         Timeseries doesnt require any other jobs
@@ -53,6 +49,11 @@ class Timeseries(Job):
                 var=var, start=self.start_year, end=self.end_year)
             file_path = os.path.join(ts_path, file_name)
             if not os.path.exists(file_path):
+                if self._has_been_executed:
+                    msg = "{prefix}: Unable to find {file} after execution".format(
+                        prefix=self.msg_prefix(),
+                        file=file_path)
+                    logging.error(msg)
                 return False
 
         # next, if regridding is turned on check that all regrid ts files were created
@@ -66,13 +67,26 @@ class Timeseries(Job):
                 var=var, start=self.start_year, end=self.end_year)
                 file_path = os.path.join(regrid_path, file_name)
                 if not os.path.exists(file_path):
+                    if self._has_been_executed:
+                        msg = "{prefix}: Unable to find {file} after execution".format(
+                            prefix=self.msg_prefix(),
+                            file=file_path)
+                        logging.error(msg)
                     return False
 
         # if nothing was missing then we must be done
         return True
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, dryrun=False):
+        """
+        Generates and submits a run script for e3sm_diags
         
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
         # setup the ts output path
         ts_path = os.path.join(
             config['global']['project_path'], 'output', 'pp',
@@ -100,6 +114,7 @@ class Timeseries(Job):
         # create the ncclimo command string
         var_list = config['post-processing']['timeseries'][self._run_type]
         cmd = [
+            'source activate {}\n'.format(os.environ['CONDA_PREFIX']),
             'ncclimo',
             '-a', 'sdd',
             '-c', self.case,
@@ -115,10 +130,19 @@ class Timeseries(Job):
                 '--map={}'.format(regrid_map_path),
             ])
         cmd.append(list_string)
-        slurm_command = ' '.join(cmd)
 
-        return self._submit_cmd_to_slurm(config, cmd)
-            
+        # exit early if in dryrun mode
+        if not dryrun:
+            self._dryrun = False
+            if not self.prevalidate():
+                return False
+            if self.postvalidate(config):
+                self.status = JobStatus.COMPLETED
+                return True
+        else:
+            self._dryrun = True
+
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
         
@@ -186,4 +210,3 @@ class Timeseries(Job):
         print_line(msg, event_list)
         logging.info(msg)
     # -----------------------------------------------
-

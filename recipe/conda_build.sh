@@ -1,4 +1,4 @@
-export VERSION="2.0.2"
+export VERSION="2.0.4"
 export BUILD_NAME="0"
 export CONDA_BLD_PATH=~/conda-bld
 USER="e3sm"
@@ -14,12 +14,11 @@ mkdir $CONDA_BLD_PATH
 conda config --set anaconda_upload no
 if [ ! -z "$1" ]; then
     export TAG="$1"
-    echo "Cloning from branch $1" 
 else
-    echo "Cloning from master"
-    export TAG="master"
+    export TAG="main"
 fi
-echo "Building version "$VERSION"-"$BUILD_NAME" for channel" $TAG
+echo "Building" $VERSION"-"$BUILD_NAME "for label:" $TAG
+
 conda build -c $USER -c conda-forge -c cdat .
 
 if [ $? -eq 1 ]; then

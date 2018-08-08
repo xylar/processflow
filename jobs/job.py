@@ -6,6 +6,7 @@ import os
 import logging
 from uuid import uuid4
 from lib.slurm import Slurm
+from lib.pbs import PBS
 from lib.jobstatus import JobStatus
 from lib.util import create_symlink_dir, print_line
 
@@ -14,7 +15,7 @@ class Job(object):
     """
     A base job class for all post-processing and diagnostic jobs
     """
-    def __init__(self, start, end, case, short_name, data_required=None, **kwargs):
+    def __init__(self, start, end, case, short_name, data_required=None, dryrun=False, **kwargs):
         self._start_year = start
         self._end_year = end
         self._data_required = data_required
@@ -31,8 +32,11 @@ class Job(object):
         self._input_file_paths = list()
         self._console_output_path = None
         self._output_path = ''
-        self._dryrun = True if kwargs.get('dryrun') == True else False
-        self._slurm_args = dict()
+        self._dryrun = dryrun
+        self._manager_args = {
+            'slurm': ['-n 16', '-t 0-10:00', '-N 1'],
+            'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
+        }
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         msg = '{} has not implemented the setup_dependencies method'.format(self.job_type)
@@ -55,6 +59,28 @@ class Job(object):
             return self._output_path
         else:
             return self._console_output_path
+    # -----------------------------------------------
+    def set_custom_args(self, custom_args):
+        """
+        Adds the arguments in custom_args to the jobs resource manager arguments
+        If any keys are already present in the jobs manager_args they are over written with the new args
+        
+        Parameters
+        ----------
+            custom_args (dict): a mapping of args to the arg values
+        """
+        import ipdb; ipdb.set_trace()
+        for arg, val in custom_args.items():
+            new_arg = '{} {}'.format(arg, val)
+            for manager, manager_args in self._manager_args.items():
+                found = False
+                for marg in manager_args:
+                    if arg in marg:
+                        marg = new_arg
+                        found = True
+                        break
+                if not found:
+                    manager_args.append(new_arg)
     # -----------------------------------------------
     def get_report_string(self):
         return '{prefix} :: {status} :: {output}'.format(
@@ -188,16 +214,16 @@ class Job(object):
                 end=self.end_year,
                 case=self.short_name)
     # -----------------------------------------------
-    def _submit_cmd_to_slurm(self, config, cmd):
+    def _submit_cmd_to_manager(self, config, cmd):
         """
         Takes the jobs main cmd, generates a batch script and submits the script
-        to the slurm controller
+        to the resource manager controller
         
         Parameters:
             cmd (str): the command to submit
             config (dict): the global configuration object
         Retuns:
-            job_id (int): the slurm job_id
+            job_id (int): the job_id from the resource manager
         """    
         # setup for the run script
         scripts_path = os.path.join(
@@ -229,27 +255,46 @@ class Job(object):
         if os.path.exists(run_script):
             os.remove(run_script)
 
-        # generate the run script using the slurm arguments and command
-        slurm_command = ' '.join(cmd)
-        self._slurm_args['output_file'] = '-o {output_file}'.format(
-            output_file=self._console_output_path)
-        slurm_prefix = ''
-        for key, val in self._slurm_args.items():
-            slurm_prefix += '#SBATCH {}\n'.format(val)
+        try:
+            manager = Slurm()
+            manager_prefix = '#SBATCH'
+            self._manager_args['slurm'].append('-o {}'.format(self._console_output_path))
+        except:
+            try:
+                manager = PBS()
+                manager_prefix = '#PBS'
+                self._manager_args['pbs'].append('-o {}'.format(self._console_output_path))
+                self._manager_args['pbs'].append('-e {}'.format(self._console_output_path.replace('.out', '.err')))
+            except:
+                raise Exception("No resource manager found")
+
+        # generate the run script using the manager arguments and command
+        command = ' '.join(cmd)
+        script_prefix = ''
+        
+        if isinstance(manager, Slurm):
+            margs = self._manager_args['slurm']
+        else:
+            margs = self._manager_args['pbs']
+        for item in margs:
+            script_prefix += '{prefix} {value}\n'.format(
+                prefix=manager_prefix,
+                value=item)
 
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
-            batchfile.write(slurm_prefix)
-            batchfile.write(slurm_command)
+            batchfile.write(script_prefix)
+            batchfile.write(command)
 
         # if this is a dry run, set the status and exit
         if self._dryrun:
+            msg = '{}: dryrun is set, completing without running'.format(self.msg_prefix())
+            logging.info(msg)
             self.status = JobStatus.COMPLETED
             return 0
 
-        # submit the run script to the slurm controller
-        slurm = Slurm()
-        self._job_id = slurm.batch(run_script)
+        # submit the run script to the resource controller
+        self._job_id = manager.batch(run_script)
         self._has_been_executed = True
         return self._job_id
     # -----------------------------------------------
@@ -323,6 +368,16 @@ class Job(object):
     def status(self, nstatus):
         self._status = nstatus
     # -----------------------------------------------
+    @property
+    def job_id(self):
+        return self._job_id
+    @job_id.setter
+    def job_id(self, new_id):
+        if not isinstance(new_id, str):
+            msg = '{} is not a valid job_id type'.format(type(new_id))
+            raise Exception(msg)
+        self._job_id = new_id
+    # -----------------------------------------------
     def __str__(self):    
         return json.dumps({
             'type': self._job_type,
@@ -332,6 +387,7 @@ class Job(object):
             'data_ready': self._data_ready,
             'depends_on': self._depends_on,
             'id': self._id,
+            'job_id': self._job_id,
             'status': self._status.name,
             'case': self._case,
             'short_name': self._short_name

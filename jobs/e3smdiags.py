@@ -1,14 +1,12 @@
 import os
-import json
 import logging
-import subprocess
 
 from bs4 import BeautifulSoup
-from shutil import copytree, rmtree
 
 from jobs.diag import Diag
 from lib.util import render, print_line
 from lib.jobstatus import JobStatus
+
 
 class E3SMDiags(Diag):
     def __init__(self, *args, **kwargs):
@@ -19,11 +17,9 @@ class E3SMDiags(Diag):
         self._host_path = ''
         self._host_url = ''
         self._short_comp_name = ''
-        self._slurm_args = {
-            'num_cores': '-n 24',  # 24 cores
-            'run_time': '-t 0-10:00',  # 10 hours run time
-            'num_machines': '-N 1',  # run on one machine
-        }
+        custom_args = kwargs['config']['diags']['e3sm_diags'].get('custom_args')
+        if custom_args:
+            self.set_custom_args(custom_args)
         if self.comparison == 'obs':
             self._short_comp_name = 'obs'
         else:
@@ -62,8 +58,17 @@ class E3SMDiags(Diag):
                 raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
-    def execute(self, config, dryrun=False):
+    def execute(self, config, event_list, slurm_args=None, dryrun=False):
+        """
+        Generates and submits a run script for e3sm_diags
         
+        Parameters
+        ----------
+            config (dict): the globus processflow config object
+            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+        """
+
+        # setup the jobs output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
             'output', 'diags', self.short_name, 'e3sm_diags',
@@ -103,12 +108,12 @@ class E3SMDiags(Diag):
             variables['reference_data_path'] = input_path
             variables['ref_name'] = self.comparison
             variables['reference_name'] = config['simulations'][self.comparison]['short_name']
-        
         render(
             variables=variables,
             input_path=template_input_path,
             output_path=param_template_out)
-        
+
+        # exit early if in dryrun mode
         if not dryrun:
             self._dryrun = False
             if not self.prevalidate():
@@ -119,25 +124,11 @@ class E3SMDiags(Diag):
         else:
             self._dryrun = True
             return
-
-        # create the run command and submit it
-        variables = {'parameter_file_path': param_template_out}
-        env_loader_path = os.path.join(
-            config['global']['resource_path'],
-            'e3sm_diags_env_loader_template')
-        e3sm_runner_path = os.path.join(
-            config['global']['run_scripts_path'],
-            'e3sm_diags_{start:04d}_{end:04d}_{case}_vs_{comp}.bash'.format(
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name,
-                comp=self._short_comp_name))
-        render(
-            variables=variables,
-            input_path=env_loader_path,
-            output_path=e3sm_runner_path)
-        cmd = ['bash', e3sm_runner_path]
-        return self._submit_cmd_to_slurm(config, cmd)
+        
+        cmd = ['source activate {}\n'.format(os.environ['CONDA_PREFIX']),
+               'acme_diags_driver.py', '-p', param_template_out]
+        self._has_been_executed = True
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
         return self._check_links(config)

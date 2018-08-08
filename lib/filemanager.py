@@ -16,14 +16,6 @@ from lib.util import print_debug
 from lib.util import print_line
 from lib.util import print_message
 
-from lib.globus_interface import transfer as globus_transfer
-from lib.globus_interface import get_ls as globus_ls
-from globus_cli.services.transfer import get_client
-
-from lib.ssh_interface import transfer as ssh_transfer
-from lib.ssh_interface import get_ls as ssh_ls
-from lib.ssh_interface import get_ssh_client
-
 
 class FileStatus(IntEnum):
     PRESENT = 0
@@ -57,6 +49,18 @@ class FileManager(object):
 
         self.thread_list = list()
         self.kill_event = threading.Event()
+
+        for sim in config['simulations']:
+            if sim in ['start_year', 'end_year', 'comparisons']:
+                continue
+            if config['simulations'][sim]['transfer_type'] == 'sftp':
+                from lib.ssh_interface import transfer as ssh_transfer
+                from lib.ssh_interface import get_ls as ssh_ls
+                from lib.ssh_interface import get_ssh_client
+            if config['simulations'][sim]['transfer_type'] == 'globus':
+                from lib.globus_interface import transfer as globus_transfer
+                from lib.globus_interface import get_ls as globus_ls
+                from globus_cli.services.transfer import get_client
 
     def __str__(self):
         # TODO: make this better
@@ -341,7 +345,6 @@ class FileManager(object):
             remote_names = [x['name'] for x in remote_contents]
             for df in files:
                 if df.name not in remote_names:
-                    import ipdb; ipdb.set_trace()
                     msg = 'Unable to find file {name} at {remote_path}'.format(
                         name=df.name,
                         remote_path=remote_path)
