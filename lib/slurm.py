@@ -53,6 +53,8 @@ class Slurm(object):
                     if job.get('COMMAND') == cmd[1]:
                         return 'Submitted batch job {}'.format(job['JOBID']), None
                 print 'Unable to submit job, trying again'
+            elif 'Batch job submission failed' in out:
+                raise Exception(out)
             else:
                 break
         if tries >= 10:

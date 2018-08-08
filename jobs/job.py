@@ -35,7 +35,7 @@ class Job(object):
         self._dryrun = dryrun
         self._manager_args = {
             'slurm': ['-n 16', '-t 0-10:00', '-N 1'],
-            'pbs': ['-j eo', '-l nodes=1:ppn=1', '-q acme']
+            'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
         }
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
@@ -59,7 +59,7 @@ class Job(object):
             return self._output_path
         else:
             return self._console_output_path
-    
+    # -----------------------------------------------
     def set_custom_args(self, custom_args):
         """
         Adds the arguments in custom_args to the jobs resource manager arguments
@@ -69,18 +69,18 @@ class Job(object):
         ----------
             custom_args (dict): a mapping of args to the arg values
         """
-        custom_count = 0
+        import ipdb; ipdb.set_trace()
         for arg, val in custom_args.items():
-            new_arg = ' '.join([arg, val])
-            found = False
-            for sarg, sval in self._manager_args.items():
-                if arg in sval:
-                    self._manager_args[sarg] = new_arg
-                    found = True
-                    break
-            if not found:
-                self._manager_args[str(custom_count)] = new_arg
-                custom_count += 1
+            new_arg = '{} {}'.format(arg, val)
+            for manager, manager_args in self._manager_args.items():
+                found = False
+                for marg in manager_args:
+                    if arg in marg:
+                        marg = new_arg
+                        found = True
+                        break
+                if not found:
+                    manager_args.append(new_arg)
     # -----------------------------------------------
     def get_report_string(self):
         return '{prefix} :: {status} :: {output}'.format(
@@ -264,6 +264,7 @@ class Job(object):
                 manager = PBS()
                 manager_prefix = '#PBS'
                 self._manager_args['pbs'].append('-o {}'.format(self._console_output_path))
+                self._manager_args['pbs'].append('-e {}'.format(self._console_output_path.replace('.out', '.err')))
             except:
                 raise Exception("No resource manager found")
 

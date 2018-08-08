@@ -68,6 +68,8 @@ class PBS(object):
             job_info.set_attr(
                 attr=attr.strip(),
                 val=item[index + 1:].strip())
+        if job_info.state is None:
+            raise Exception("No job found with id {}".format(jobid))
         return job_info
     
     def pbs_to_jobinfo(self, attr):

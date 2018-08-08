@@ -426,8 +426,9 @@ class RunManager(object):
                         self.config)
                     self.report_completed_job()
                 else:
-                    line = "resource manager lookup error for {job}: {id}".format(
-                        job=job.job_type,
+                    job.status = JobStatus.FAILED
+                    line = "{job}: resource manager lookup error for jobid {id}. The job may have failed, check the error output".format(
+                        job=job.msg_prefix(),
                         id=item['manager_id'])
                     print_line(
                         line=line,
@@ -456,9 +457,7 @@ class RunManager(object):
                     if status in [JobStatus.FAILED, JobStatus.CANCELLED]:
                         for depjob in self.get_jobs_that_depend(job.id):
                             depjob.status = JobStatus.FAILED
-        if not for_removal:
-            return
-        else:
+        if for_removal:
             self.running_jobs = [x for x in self.running_jobs if x not in for_removal]
         return
 

@@ -50,7 +50,7 @@ class Regrid(Job):
             os.makedirs(self._output_path)
 
         # setups the ncremap run command
-        cmd = ['export PATH=/export/zender1/bin:$PATH\n', 
+        cmd = ['source activate {}\n'.format(os.environ['CONDA_PREFIX']),
                'ncks --version\n',
                'ncremap --version\n',
                'ls |', 'ncremap']
