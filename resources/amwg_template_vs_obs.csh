@@ -271,7 +271,7 @@ endif
 #-----------------------------------------------------------------
 # Select the output file type and style for plots.
 
-:qset p_type = ps      # postscript
+set p_type = ps      # postscript
 #set p_type = png     # portable document format (ncl ver 4.2.0.a028)
 #set p_type = eps    # encapsulated postscript
 #set p_type = epsi   # encapsulated postscript with bitmap 
