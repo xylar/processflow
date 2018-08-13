@@ -3,6 +3,7 @@ import logging
 import time
 
 from shutil import rmtree
+from lib.jobstatus import JobStatus
 from lib.mailer import Mailer
 from lib.util import print_message, print_line, print_debug
 
@@ -15,9 +16,18 @@ def finalize(config, event_list, status, runmanager):
         message = 'Leaving native grid files in place'
     print_message(message, 'ok')
 
-    message = 'All processing complete' if status == 1 else "One or more job failed"
-    code = 'ok' if status == 1 else 'error'
-    print_message(message, code)
+
+    if status == 1:
+        msg = 'All processing complete'
+        code = 'ok'
+    else:
+        msg = 'The following jobs encountered an error and were marked as failed:'
+        code = 'error'
+        for case in runmanager.cases:
+            for job in case['jobs']:
+                if job.status != JobStatus.COMPLETED:
+                    msg += '\n        {}'.format(job.msg_prefix())
+    print_message(msg, code)
     emailaddr = config['global'].get('email')
     if emailaddr:
         message='Sending notification email to {}'.format(emailaddr)
