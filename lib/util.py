@@ -167,7 +167,7 @@ def render(variables, input_path, output_path):
     template = env.get_template(head)
     outstr = template.render(variables)
 
-    with open(output_path, 'w') as outfile:
+    with open(output_path, 'a') as outfile:
         outfile.write(outstr)
 
 def create_symlink_dir(src_dir, src_list, dst):
