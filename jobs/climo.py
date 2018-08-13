@@ -99,7 +99,6 @@ class Climo(Job):
               
         input_path, _ = os.path.split(self._input_file_paths[0])
         cmd = [
-            'source activate {}\n'.format(os.environ['CONDA_PREFIX']),
             'ncclimo',
             '-c', self.case,
             '-a', 'sdd',

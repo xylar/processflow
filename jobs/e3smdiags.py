@@ -125,8 +125,7 @@ class E3SMDiags(Diag):
             self._dryrun = True
             return
         
-        cmd = ['source activate {}\n'.format(os.environ['CONDA_PREFIX']),
-               'acme_diags_driver.py', '-p', param_template_out]
+        cmd = ['acme_diags_driver.py', '-p', param_template_out]
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------

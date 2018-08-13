@@ -50,8 +50,7 @@ class Regrid(Job):
             os.makedirs(self._output_path)
 
         # setups the ncremap run command
-        cmd = ['source activate {}\n'.format(os.environ['CONDA_PREFIX']),
-               'ncks --version\n',
+        cmd = ['ncks --version\n',
                'ncremap --version\n',
                'ls |', 'ncremap']
 

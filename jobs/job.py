@@ -5,6 +5,8 @@ import json
 import os
 import logging
 from uuid import uuid4
+
+from lib.util import render
 from lib.slurm import Slurm
 from lib.pbs import PBS
 from lib.jobstatus import JobStatus
@@ -69,7 +71,6 @@ class Job(object):
         ----------
             custom_args (dict): a mapping of args to the arg values
         """
-        import ipdb; ipdb.set_trace()
         for arg, val in custom_args.items():
             new_arg = '{} {}'.format(arg, val)
             for manager, manager_args in self._manager_args.items():
@@ -284,7 +285,20 @@ class Job(object):
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
             batchfile.write(script_prefix)
-            batchfile.write(command)
+
+        template_input_path = os.path.join(
+            config['global']['resource_path'],
+            'env_loader.bash')
+        variables = {
+            'user_env_path': os.environ['CONDA_PREFIX'],
+            'cmd': command
+        }
+        render(
+            variables=variables,
+            input_path=template_input_path,
+            output_path=run_script)
+        # with open(run_script, 'w+') as batchfile:
+        #     batchfile.write(command)
 
         # if this is a dry run, set the status and exit
         if self._dryrun:

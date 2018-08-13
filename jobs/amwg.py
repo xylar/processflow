@@ -145,9 +145,7 @@ class AMWG(Diag):
 
         # create the run command and submit it
         self._has_been_executed = True
-        cmd = [
-            'source activate {}\n'.format(os.environ['CONDA_PREFIX']),
-            'csh', csh_template_out]
+        cmd = ['csh', csh_template_out]
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
@@ -231,11 +229,7 @@ class AMWG(Diag):
                 setname)
             if not os.path.exists(directory):
                 if not self._has_been_executed:
-                    passed = False
-                    if not os.path.exists(img_source_tar):
-                        return False
-                    else:
-                        break
+                    return False
                 msg = '{prefix}: could not find output directory {dir}'.format(
                     prefix=self.msg_prefix(),
                     dir=directory)

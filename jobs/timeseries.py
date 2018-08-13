@@ -114,7 +114,6 @@ class Timeseries(Job):
         # create the ncclimo command string
         var_list = config['post-processing']['timeseries'][self._run_type]
         cmd = [
-            'source activate {}\n'.format(os.environ['CONDA_PREFIX']),
             'ncclimo',
             '-a', 'sdd',
             '-c', self.case,
