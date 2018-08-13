@@ -15,7 +15,7 @@ conda config --set anaconda_upload no
 if [ ! -z "$1" ]; then
     export TAG="$1"
 else
-    export TAG="main"
+    export TAG="master"
 fi
 echo "Building" $VERSION"-"$BUILD_NAME "for label:" $TAG
 
