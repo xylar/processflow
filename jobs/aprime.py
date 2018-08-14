@@ -57,10 +57,6 @@ class Aprime(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
-        # the -D flag works with both slurm and pbs
-        aprime_code_path = config['diags']['aprime']['aprime_code_path']
-        self._manager_args['slurm'].append('-D {}'.format(aprime_code_path))
-        self._manager_args['pbs'].append('-D {}'.format(aprime_code_path))
         
         # fix the input paths
         self._fix_input_paths()
@@ -96,8 +92,11 @@ class Aprime(Diag):
             variables=variables,
             input_path=template_input_path,
             output_path=template_out)
-        
-        cmd = ['bash', template_out]
+
+        aprime_code_path = config['diags']['aprime']['aprime_code_path']
+        cmd = [
+            'cd {}\n'.format(aprime_code_path),
+            'bash', template_out]
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------

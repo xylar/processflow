@@ -49,10 +49,11 @@ class Regrid(Job):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
+        input_path, _ = os.path.split(self._input_file_paths[0])
         # setups the ncremap run command
         cmd = ['ncks --version\n',
                'ncremap --version\n',
-               'ls |', 'ncremap']
+               'ncremap -I {}'.format(input_path)]
 
         if self.run_type == 'lnd':
             cmd.extend([
@@ -76,16 +77,12 @@ class Regrid(Job):
             self.status = FAILED
             return 0
 
-        input_path, _ = os.path.split(self._input_file_paths[0])
+        # input_path, _ = os.path.split(self._input_file_paths[0])
 
         # clean up the input directory to make sure there's only nc files
         for item in os.listdir(input_path):
             if not item[-3:] == '.nc':
                 os.remove(os.path.join(input_path, item))
-
-        # the -D flag works with both slurm and pbs
-        self._manager_args['slurm'].append('-D {}'.format(input_path))
-        self._manager_args['pbs'].append('-D {}'.format(input_path))
 
         cmd.extend([
             '-O', self._output_path,
