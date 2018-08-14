@@ -6,7 +6,7 @@ data_files = [(sys.prefix + '/share/processflow/resources',
                 'resources/e3sm_diags_template_vs_obs.py',
                 'resources/amwg_template_vs_model.csh',
                 'resources/amwg_template_vs_obs.csh',
-                'resource/env_loader_template.bash',
+                'resource/env_loader.bash',
                 'resources/aprime_template_vs_obs.bash'])]
 
 setup(
