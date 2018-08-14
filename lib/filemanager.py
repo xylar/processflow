@@ -50,18 +50,6 @@ class FileManager(object):
         self.thread_list = list()
         self.kill_event = threading.Event()
 
-        for sim in config['simulations']:
-            if sim in ['start_year', 'end_year', 'comparisons']:
-                continue
-            if config['simulations'][sim]['transfer_type'] == 'sftp':
-                from lib.ssh_interface import transfer as ssh_transfer
-                from lib.ssh_interface import get_ls as ssh_ls
-                from lib.ssh_interface import get_ssh_client
-            if config['simulations'][sim]['transfer_type'] == 'globus':
-                from lib.globus_interface import transfer as globus_transfer
-                from lib.globus_interface import get_ls as globus_ls
-                from globus_cli.services.transfer import get_client
-
     def __str__(self):
         # TODO: make this better
         return str({
@@ -334,11 +322,13 @@ class FileManager(object):
             msg = 'Checking {} files in {}'.format(datatype, remote_path)
             print_line(msg, self._event_list)
             if files[0].transfer_type == 'globus':
+                from lib.globus_interface import get_ls as globus_ls
                 remote_contents = globus_ls(
                     client=client,
                     path=remote_path,
                     endpoint=self._config['simulations'][case]['remote_uuid'])
             elif files[0].transfer_type == 'sftp':
+                from lib.ssh_interface import get_ls as ssh_ls
                 remote_contents = ssh_ls(
                     client=client,
                     remote_path=remote_path)
@@ -474,7 +464,7 @@ class FileManager(object):
         logging.debug('All data is local')
         return True
 
-    def transfer_needed(self, event_list, event):
+    def transfer_needed(self, event_list, event, config):
         """
         Start a transfer job for any files that arent local, but do exist remotely
 
@@ -524,13 +514,15 @@ class FileManager(object):
                     })
 
                 if required_files[0].transfer_type == 'globus':
+                    from lib.globus_interface import transfer as globus_transfer
+                    from globus_cli.services.transfer import get_client as get_globus_client
+
                     msg = 'Starting globus file transfer of {} files'.format(
                         len(required_files))
                     print_line(msg, self._event_list)
                     msg = 'See https://www.globus.org/app/activity for transfer details'
                     print_line(msg, self._event_list)
-
-                    client = get_client()
+                    client = get_globus_client()
                     if not self.verify_remote_files(client=client, case=case):
                         return False
                     remote_uuid = required_files[0].remote_uuid
@@ -546,6 +538,7 @@ class FileManager(object):
                     self.thread_list.append(thread)
                     thread.start()
                 elif required_files[0].transfer_type == 'sftp':
+                    from lib.ssh_interface import get_ssh_client
                     msg = 'Starting sftp file transfer of {} files'.format(
                         len(required_files))
                     print_line(msg, self._event_list)
@@ -566,6 +559,8 @@ class FileManager(object):
             return False
 
     def _ssh_transfer(self, target_files, client, event):
+        from lib.ssh_interface import transfer as ssh_transfer
+
         sftp_client = client.open_sftp()
         for file in target_files:
             if event.is_set():

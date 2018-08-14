@@ -82,7 +82,8 @@ def main(test=False, **kwargs):
     if not all_data_local:
         filemanager.transfer_needed(
             event_list=event_list,
-            event=thread_kill_event)
+            event=thread_kill_event,
+            config=config)
 
     # Main loop
     printed = False
@@ -109,7 +110,8 @@ def main(test=False, **kwargs):
                 if debug: print_line(' -- Additional data needed --', event_list)
                 filemanager.transfer_needed(
                     event_list,
-                    thread_kill_event)
+                    thread_kill_event,
+                    config=config)
 
             if debug: print_line(' -- checking data -- ', event_list)
             runmanager.check_data_ready()
@@ -139,7 +141,8 @@ def main(test=False, **kwargs):
                     if not filemanager.all_data_local():
                         filemanager.transfer_needed(
                             event_list=event_list,
-                            event=thread_kill_event)
+                            event=thread_kill_event,
+                            config=config)
                     sleep(10)
                 filemanager.write_database()
                 finalize(
