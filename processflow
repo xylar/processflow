@@ -15,7 +15,7 @@ from lib.util import print_line
 from lib.util import print_message
 from lib.util import print_debug
 
-__version__ = '2.0.3'
+__version__ = '2.0.4'
 __branch__ = 'master'
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
@@ -79,11 +79,14 @@ def main(test=False, **kwargs):
         event_list=event_list)
     filemanager.update_local_status()
     all_data_local = filemanager.all_data_local()
+    
     if not all_data_local:
-        filemanager.transfer_needed(
+        transfer_status = filemanager.transfer_needed(
             event_list=event_list,
             event=thread_kill_event,
             config=config)
+        if transfer_status == False:
+            sys.exit(1)
 
     # Main loop
     printed = False
@@ -108,10 +111,12 @@ def main(test=False, **kwargs):
                 all_data_local = filemanager.all_data_local()
             if not all_data_local:
                 if debug: print_line(' -- Additional data needed --', event_list)
-                filemanager.transfer_needed(
-                    event_list,
-                    thread_kill_event,
+                transfer_status = filemanager.transfer_needed(
+                    event_list=event_list,
+                    event=thread_kill_event,
                     config=config)
+                if transfer_status == False:
+                    sys.exit(1)
 
             if debug: print_line(' -- checking data -- ', event_list)
             runmanager.check_data_ready()
@@ -139,10 +144,12 @@ def main(test=False, **kwargs):
                         print_line(msg, event_list)
                     filemanager.update_local_status()
                     if not filemanager.all_data_local():
-                        filemanager.transfer_needed(
+                        transfer_status = filemanager.transfer_needed(
                             event_list=event_list,
                             event=thread_kill_event,
                             config=config)
+                        if transfer_status == False:
+                            sys.exit(1)
                     sleep(10)
                 filemanager.write_database()
                 finalize(
