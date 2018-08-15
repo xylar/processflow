@@ -163,7 +163,6 @@ class FileManager(object):
         # setup the replacement dict
         start_year = int(self._config['simulations']['start_year'])
         end_year = int(self._config['simulations']['end_year'])
-
         replace = {
             'PROJECT_PATH': self._config['global']['project_path'],
             'REMOTE_PATH': self._config['simulations'][case].get('remote_path', ''),
@@ -311,6 +310,8 @@ class FileManager(object):
         for datafile in  q.execute():
             if datafile.datatype not in data_types_to_verify:
                 data_types_to_verify.append(datafile.datatype)
+        
+        found_all = True
         for datatype in data_types_to_verify:
             q = (DataFile
                     .select()
@@ -339,10 +340,13 @@ class FileManager(object):
                         name=df.name,
                         remote_path=remote_path)
                     print_message(msg, 'error')
-                    return False
-        msg = 'found all remote files for {}'.format(case)
-        print_message(msg, 'ok')
-        return True
+                    found_all = False
+        if not found_all:
+            return False
+        else:
+            msg = 'found all remote files for {}'.format(case)
+            print_message(msg, 'ok')
+            return True
 
     def terminate_transfers(self):
         self.kill_event.set()
@@ -499,13 +503,16 @@ class FileManager(object):
                         required_files.remove(file)
                 if not required_files:
                     msg = 'ERROR: all missing files are marked as local'
-                    print_line(msg, self._event_list)
+                    print_line(msg, event_list)
                     return
                 # mark files as in-transit so we dont double-copy
-                q = (DataFile
-                     .update({DataFile.local_status: FileStatus.IN_TRANSIT})
-                     .where(DataFile.name << [x.name for x in required_files]))
-                q.execute()
+                # cant do a bulk update since there may be to many records for the db to handle
+                step = 50
+                for idx in range(0, len(required_files), step):
+                    q = (DataFile
+                            .update({DataFile.local_status: FileStatus.IN_TRANSIT})
+                            .where(DataFile.name << [x.name for x in required_files[idx: step + idx]]))
+                    q.execute()
 
                 for file in required_files:
                     target_files.append({
@@ -519,9 +526,9 @@ class FileManager(object):
 
                     msg = 'Starting globus file transfer of {} files'.format(
                         len(required_files))
-                    print_line(msg, self._event_list)
+                    print_line(msg, event_list)
                     msg = 'See https://www.globus.org/app/activity for transfer details'
-                    print_line(msg, self._event_list)
+                    print_line(msg, event_list)
                     client = get_globus_client()
                     if not self.verify_remote_files(client=client, case=case):
                         return False
@@ -541,7 +548,7 @@ class FileManager(object):
                     from lib.ssh_interface import get_ssh_client
                     msg = 'Starting sftp file transfer of {} files'.format(
                         len(required_files))
-                    print_line(msg, self._event_list)
+                    print_line(msg, event_list)
 
                     client = get_ssh_client(required_files[0].remote_hostname)
                     if not self.verify_remote_files(client=client, case=case):
