@@ -222,6 +222,8 @@ class AMWG(Diag):
         img_source_tar = img_source + '.tar'
         # check that there have been enough plots created to call this a successful run
         for item in sets:
+            if item == 'all':
+                continue
             setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
             directory = os.path.join(
                 self._output_path,
@@ -255,6 +257,8 @@ class AMWG(Diag):
                 call(['tar', '-xf', img_source_tar, '--directory', self._output_path])
                 passed = True
                 for item in config['diags']['amwg']['sets']:
+                    if item == 'all':
+                        continue
                     setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
                     directory = os.path.join(
                         self._output_path,

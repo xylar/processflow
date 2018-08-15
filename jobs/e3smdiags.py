@@ -35,11 +35,15 @@ class E3SMDiags(Diag):
         if job.end_year != self.end_year: return False
         return True
     # -----------------------------------------------
-    def setup_dependencies(self, *args, **kwargs):
+    def setup_dependencies(self, jobs, *args, **kwargs):
         """
-        AMWG requires climos
+        Adds climo jobs from this or the comparison case to the list of dependent jobs
+
+        Parameters
+        ----------
+            jobs (list): a list of the rest of the run managers jobs
+            optional: comparison_jobs (list): if this job is being compared to another case, the climos for that other case have to be done already too
         """
-        jobs = kwargs['jobs']
         if self.comparison != 'obs':
             other_jobs = kwargs['comparison_jobs']
             try:

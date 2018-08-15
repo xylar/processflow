@@ -1,6 +1,7 @@
 """
 A module to varify that the user config is valid
 """
+import os
 
 def verify_config(config):
     messages = list()
@@ -38,7 +39,16 @@ def verify_config(config):
                 if other_sim not in config['simulations']:
                     msg = '{} not found in config.simulations'.format(other_sim)
                     messages.append(msg)
-
+    if not config['simulations'].get('start_year'):
+        msg = 'no start_year set for simulations'
+        messages.append(msg)
+    else:
+        config['simulations']['start_year'] = int(config['simulations']['start_year'])
+    if not config['simulations'].get('end_year'):
+        msg = 'no end_year set for simulations'
+        messages.append(msg)
+    else:
+        config['simulations']['end_year'] = int(config['simulations']['end_year'])
     for sim in config.get('simulations'):
         if sim in ['comparisons', 'start_year', 'end_year']:
             continue
@@ -61,16 +71,11 @@ def verify_config(config):
             if config['simulations'][sim]['transfer_type'] == 'local' and not config['simulations'][sim].get('local_path'):
                 msg = 'case {} is set for local data, but no local_path is set'.format(sim)
                 messages.append(msg)
-        if not config['simulations'].get('start_year'):
-            msg = 'no start_year set for simulations'
-            messages.append(msg)
-        else:
-            config['simulations']['start_year'] = int(config['simulations']['start_year'])
-        if not config['simulations'].get('end_year'):
-            msg = 'no end_year set for simulations'
-            messages.append(msg)
-        else:
-            config['simulations']['end_year'] = int(config['simulations']['end_year'])
+        if not config['simulations'][sim].get('local_path'):
+            config['simulations'][sim]['local_path'] = os.path.join(
+                config['global']['project_path'],
+                'input',
+                sim)
         if int(config['simulations'].get('end_year', 0)) < int(config['simulations'].get('start_year', 0)):
             msg = 'simulation end_year is less then start_year, is time going backwards!?'
             messages.append(msg)

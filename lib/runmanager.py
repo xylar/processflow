@@ -77,6 +77,32 @@ class RunManager(object):
             logging.error(msg)
             self.max_running_jobs = self.manager.get_node_number() * 3
 
+    def _duplicate_check(self, job):
+        """
+        iterate over all the jobs and check if the input job is already in the list
+        
+        Parameters
+        ----------
+            job (Job): The job to check for duplicates
+        Returns
+        -------
+            True if there is a duplicate
+            False if there is NO duplicate
+        """
+        for case in self.cases:
+            if case['case'] != job.case:
+                continue
+            for j in case['jobs']:
+                if j.job_type == job.job_type \
+                and j.start_year == job.start_year \
+                and j.end_year == job.end_year:
+                    if isinstance(job, Diag):
+                        if j.comparison != job.comparison:
+                            continue
+                    else:
+                        return True
+        return False
+
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
         """
         Add post processing jobs to the case.jobs list
@@ -97,14 +123,18 @@ class RunManager(object):
             for freq in freqs:
                 freq = int(freq)
                 if (year - start) % freq == 0:
+                    job_end = year + freq - 1
+                    if job_end > end:
+                        job_end = end
                     new_job = job_map[job_type](
                         short_name=case['short_name'],
                         case=case['case'],
                         start=year,
-                        end=year + freq - 1,
+                        end=job_end,
                         run_type=run_type,
                         config=self.config)
-                    case['jobs'].append(new_job)
+                    if not self._duplicate_check(new_job):
+                        case['jobs'].append(new_job)
     
     def add_diag_type_to_cases(self, freqs, job_type, start, end, case):
         """
@@ -126,38 +156,42 @@ class RunManager(object):
                     comparisons = self.config['simulations']['comparisons'][case['case']]
                     if job_type == 'aprime':
                         comparisons = ['obs']
+                    job_end = year + freq - 1
+                    if job_end > end:
+                        job_end = end
                     # for each comparison, add a job to this case
                     for item in comparisons:
                         if item == 'all':
                             for other_case in self.config['simulations']:
                                 if other_case in ['start_year', 'end_year', 'comparisons', case['case']]: continue
-
                                 new_diag = job_map[job_type](
                                     short_name=case['short_name'],
                                     case=case['case'],
                                     start=year,
-                                    end=year + freq - 1,
+                                    end=job_end,
                                     comparison=other_case,
                                     config=self.config)
-                                case['jobs'].append(new_diag)
-
+                                if not self._duplicate_check(new_diag):
+                                    case['jobs'].append(new_diag)
                             new_diag = job_map[job_type](
                                 short_name=case['short_name'],
                                 case=case['case'],
                                 start=year,
-                                end=year + freq - 1,
+                                end=job_end,
                                 comparison='obs',
                                 config=self.config)
-                            case['jobs'].append(new_diag)
+                            if not self._duplicate_check(new_diag):
+                                case['jobs'].append(new_diag)
                         else:
                             new_diag = job_map[job_type](
                                 short_name=case['short_name'],
                                 case=case['case'],
                                 start=year,
-                                end=year + freq - 1,
+                                end=job_end,
                                 comparison=item,
                                 config=self.config)
-                            case['jobs'].append(new_diag)
+                            if not self._duplicate_check(new_diag):
+                                case['jobs'].append(new_diag)    
 
     def setup_cases(self):
         """
