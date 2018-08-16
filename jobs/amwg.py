@@ -99,13 +99,13 @@ class AMWG(Diag):
 
         if 'all' in config['diags']['amwg']['sets']:
             variables['all_sets'] = '0'
-            set_names = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
+            set_names = ['set_' + str(x) for x in range(1, 16)] + ['set_4a']
             for diag in set_names:
                 variables[diag] = '0'
         else:
             variables['all_sets'] = '1'
             set_numbers = [str(x) for x in range(1, 17)] + ['4a']
-            set_names = ['set_' + str(x) for x in range(1, 17)] + ['set_4a']
+            set_names = ['set_' + str(x) for x in range(1, 16)] + ['set_4a']
             for idx, diag in enumerate(set_names):
                 variables[diag] = '0' if set_numbers[idx] in config['diags']['amwg']['sets'] else '1'
             
@@ -210,7 +210,7 @@ class AMWG(Diag):
 
         passed = True
         if 'all' in config['diags']['amwg']['sets']:
-            sets = [str(x) for x in range(1, 17)] + ['4a']
+            sets = [str(x) for x in range(1, 16)] + ['4a']
         else:
             sets = config['diags']['amwg']['sets']
         

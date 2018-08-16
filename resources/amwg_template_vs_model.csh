@@ -218,7 +218,7 @@ set set_12 = {{ set_12 }}      # (0=selected stations: 1=NONE, 2=ALL stations
 set set_13 = {{ set_13 }}      # (0=ON,1=OFF)  COSP cloud simulator plots
 set set_14 = {{ set_14 }}      # (0=ON,1=OFF)  Taylor diagram plots 
 set set_15 = {{ set_15 }}      # (0=ON,1=OFF)  Annual Cycle Plots for Select stations
-set set_16 = {{ set_16 }}      # (0=ON,1=OFF)  Budget Terms for Select stations
+set set_16 = 1                 # (0=ON,1=OFF)  Budget Terms for Select stations
 
 set all_waccm_sets = 1 # (0=ON,1=OFF)  Do all the WACCM sets
 set all_chem_sets = 1 # (0=ON,1=OFF)   Do all the CHEM sets
