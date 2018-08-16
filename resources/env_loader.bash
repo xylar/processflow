@@ -1,6 +1,6 @@
 
 source $MODULESHOME/init/bash
-if [ ${HOSTNAME:0:6} == "edison" ]; then
+if [ ${HOSTNAME:0:3} == "nid" ]; then
   module unload python
   module unload python_base
   source /global/project/projectdirs/acme/software/anaconda_envs/edison/base/etc/profile.d/conda.sh
