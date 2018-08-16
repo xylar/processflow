@@ -3,6 +3,7 @@ A module for the base Job class that all jobs decend from
 """
 import json
 import os
+import sys
 import logging
 from uuid import uuid4
 
