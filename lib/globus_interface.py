@@ -1,5 +1,4 @@
 import logging
-import sys
 from time import sleep
 from lib.util import print_debug, format_debug, print_line, print_message
 
@@ -147,9 +146,10 @@ def setup_globus(endpoints, event_list):
 
     # First go through the globus login process
     if not check_logged_in():
+        import sys
         message = 'Globus login required. Please run {cmd}\n\n'.format(
             cmd='"globus login"')
-        print_line(message, event_list)
+        print_message(message)
         print '================================================'
         sys.exit(1)
 
