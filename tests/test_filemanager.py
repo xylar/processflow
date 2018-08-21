@@ -1,8 +1,9 @@
 import os, sys
-import threading
 import unittest
 import shutil
 import inspect
+
+from configobj import ConfigObj
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
@@ -10,6 +11,7 @@ if sys.path[0] != '.':
 from lib.filemanager import FileManager
 from lib.models import DataFile
 from lib.events import EventList
+from lib.util import print_message
 from globus_cli.services.transfer import get_client
 
 
@@ -17,254 +19,123 @@ class TestFileManager(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestFileManager, self).__init__(*args, **kwargs)
-        self.mutex = threading.Lock()
-        self.local_path = os.path.abspath(
-            os.path.join('..', '..', 'testproject'))
+        self.file_types = ['atm', 'ice', 'ocn', 'rest', 'streams.ocean', 'streams.cice', 'mpas-o_in', 'mpas-cice_in', 'meridionalHeatTransport', 'lnd']
+        self.local_path = '/p/user_pub/e3sm/baldwin32/E3SM_test_data/DECKv1b_1pctCO2_complete'
         self.remote_endpoint = '9d6d994a-6d04-11e5-ba46-22000b92c6ec'
-        self.remote_path = '/global/homes/r/renata/ACME_simulations/20171011.beta2_FCT2-icedeep_branch.A_WCYCL1850S.ne30_oECv3_ICG.edison/'
+        self.remote_path = '/global/cscratch1/sd/golaz/ACME_simulations/20180215.DECKv1b_1pctCO2.ne30_oEC.edison'
         self.local_endpoint = 'a871c6de-2acd-11e7-bc7c-22000b9a448b'
+        self.experiment = '20180215.DECKv1b_1pctCO2.ne30_oEC.edison'
 
-    def test_filemanager_setup_no_sta(self):
-        print '---- Starting Test: {} ----'.format(inspect.stack()[0][3])
+    def test_filemanager_setup_valid_from_scratch(self):
+        """
+        run filemansger setup with no sta
+        """
 
+        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         sta = False
-        types = ['atm', 'ice', 'ocn', 'rest', 'streams.cice', 'streams.ocean']
-        database = 'test.db'
-        remote_endpoint = '9d6d994a-6d04-11e5-ba46-22000b92c6ec'
-        remote_path = '/global/homes/r/renata/ACME_simulations/20171011.beta2_FCT2-icedeep_branch.A_WCYCL1850S.ne30_oECv3_ICG.edison/'
-        local_endpoint = 'a871c6de-2acd-11e7-bc7c-22000b9a448b'
+        db = '{}.db'.format(inspect.stack()[0][3])
+        config_path = 'tests/test_configs/valid_config_from_scratch.cfg'
+        config = ConfigObj(config_path)
+        experiment = '20170926.FCT2.A_WCYCL1850S.ne30_oECv3.anvil'
+
         filemanager = FileManager(
-            mutex=self.mutex,
+            database=db,
             event_list=EventList(),
-            sta=sta,
-            types=types,
-            database=database,
-            remote_endpoint=self.remote_endpoint,
-            remote_path=self.remote_path,
-            local_endpoint=self.local_endpoint,
-            local_path=self.local_path)
+            config=config)
 
-        self.assertTrue(os.path.exists(database))
-        head, tail = os.path.split(filemanager.remote_path)
-        self.assertEqual(tail, 'run')
-        os.remove(database)
+        self.assertTrue(isinstance(filemanager, FileManager))
+        self.assertTrue(os.path.exists(db))
+        os.remove(db)
 
-    def test_filemanager_setup_with_sta(self):
-        print '---- Starting Test: {} ----'.format(inspect.stack()[0][3])
 
-        sta = True
-        types = ['atm', 'ice', 'ocn', 'rest', 'streams.cice', 'streams.ocean']
-        database = 'test.db'
+    def test_filemanager_setup_valid_with_inplace_data(self):
+        """
+        run the filemanager setup with sta turned on
+        """
+        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        config_path = 'tests/test_configs/e3sm_diags_complete.cfg'
+        config = ConfigObj(config_path)
+        db = '{}.db'.format(inspect.stack()[0][3])
+
         filemanager = FileManager(
-            mutex=self.mutex,
+            database=db,
             event_list=EventList(),
-            sta=sta,
-            types=types,
-            database=database,
-            remote_endpoint=self.remote_endpoint,
-            remote_path=self.remote_path,
-            local_endpoint=self.local_endpoint,
-            local_path=self.local_path)
-
-        self.assertTrue(os.path.exists(database))
-        head, tail = os.path.split(filemanager.remote_path)
-        self.assertNotEqual(tail, 'run')
-        os.remove(database)
-
-    def test_filemanager_populate(self):
-        print '---- Starting Test: {} ----'.format(inspect.stack()[0][3])
-
-        sta = False
-        types = ['atm', 'ice', 'ocn', 'rest', 'streams.cice', 'streams.ocean']
-        database = 'test.db'
-        simstart = 51
-        simend = 60
-        experiment = '20171011.beta2_FCT2-icedeep_branch.A_WCYCL1850S.ne30_oECv3_ICG.edison'
-        filemanager = FileManager(
-            event_list=EventList(),
-            mutex=self.mutex,
-            sta=sta,
-            types=types,
-            database=database,
-            remote_endpoint=self.remote_endpoint,
-            remote_path=self.remote_path,
-            local_endpoint=self.local_endpoint,
-            local_path=self.local_path)
-        filemanager.populate_file_list(
-            simstart=simstart,
-            simend=simend,
-            experiment=experiment)
-
-        simlength = simend - simstart + 1
-        atm_file_names = [x.name for x in DataFile.select().where(
-            DataFile.datatype == 'atm')]
-        self.assertTrue(len(atm_file_names) == (simlength * 12))
-
-        for year in range(simstart, simend + 1):
-            for month in range(1, 13):
-                name = '{exp}.cam.h0.{year:04d}-{month:02d}.nc'.format(
-                    exp=experiment,
-                    year=year,
-                    month=month)
-                self.assertTrue(name in atm_file_names)
-
-    def test_filemanager_update_local(self):
-        print '---- Starting Test: {} ----'.format(inspect.stack()[0][3])
-
-        sta = False
-        types = ['atm', 'ice', 'ocn', 'rest', 'streams.cice', 'streams.ocean']
-        database = 'test.db'
-        simstart = 51
-        simend = 60
-        experiment = '20171011.beta2_FCT2-icedeep_branch.A_WCYCL1850S.ne30_oECv3_ICG.edison'
-        filemanager = FileManager(
-            event_list=EventList(),
-            mutex=self.mutex,
-            sta=sta,
-            types=types,
-            database=database,
-            remote_endpoint=self.remote_endpoint,
-            remote_path=self.remote_path,
-            local_endpoint=self.local_endpoint,
-            local_path=self.local_path)
-        filemanager.populate_file_list(
-            simstart=simstart,
-            simend=simend,
-            experiment=experiment)
-        self.mutex.acquire()
-        df = DataFile.select().limit(1)
-        name = df[0].name
-        head, tail = os.path.split(df[0].local_path)
-        if not os.path.exists(head):
-            os.makedirs(head)
-        with open(df[0].local_path, 'w') as fp:
-            fp.write('this is a test file')
-        if self.mutex.locked():
-            self.mutex.release()
+            config=config)
+        filemanager.populate_file_list()
         filemanager.update_local_status()
-        self.mutex.acquire()
-        df = DataFile.select().where(DataFile.name == name)[0]
-        self.assertEqual(df.local_status, 0)
-        self.assertTrue(df.local_size > 0)
 
-    def test_filemanager_update_remote_no_sta(self):
-        print '---- Starting Test: {} ----'.format(inspect.stack()[0][3])
-
-        sta = False
-        types = ['atm', 'ice', 'ocn', 'rest', 'streams.cice', 'streams.ocean', 'mpascice.rst']
-        database = 'test.db'
-        simstart = 51
-        simend = 60
-        experiment = '20171011.beta2_FCT2-icedeep_branch.A_WCYCL1850S.ne30_oECv3_ICG.edison'
-        filemanager = FileManager(
-            event_list=EventList(),
-            mutex=self.mutex,
-            sta=sta,
-            types=types,
-            database=database,
-            remote_endpoint=self.remote_endpoint,
-            remote_path=self.remote_path,
-            local_endpoint=self.local_endpoint,
-            local_path=self.local_path)
-        filemanager.populate_file_list(
-            simstart=simstart,
-            simend=simend,
-            experiment=experiment)
-        client = get_client()
-        filemanager.update_remote_status(client)
-        self.mutex.acquire()
-        for datafile in DataFile.select():
-            if datafile.remote_status != 0:
-                print datafile.name, datafile.remote_path, datafile.remote_status, datafile.datatype
-            self.assertEqual(datafile.remote_status, 0)
-        if self.mutex.locked():
-            self.mutex.release()
-        self.assertTrue(filemanager.all_data_remote())
-
-    def test_filemanager_update_remote_yes_sta(self):
-        print '---- Starting Test: {} ----'.format(inspect.stack()[0][3])
-
-        sta = True
-        types = ['atm', 'ice', 'ocn', 'streams.cice', 'streams.ocean']
-        database = 'test.db'
-        simstart = 51
-        source_path = '/global/cscratch1/sd/golaz/ACME_simulations/20170915.beta2.A_WCYCL1850S.ne30_oECv3_ICG.edison'
-        simend = 60
-        experiment = '20170915.beta2.A_WCYCL1850S.ne30_oECv3_ICG.edison'
-        filemanager = FileManager(
-            event_list=EventList(),
-            mutex=self.mutex,
-            sta=sta,
-            types=types,
-            database=database,
-            remote_endpoint=self.remote_endpoint,
-            remote_path=source_path,
-            local_endpoint=self.local_endpoint,
-            local_path=self.local_path)
-        filemanager.populate_file_list(
-            simstart=simstart,
-            simend=simend,
-            experiment=experiment)
-        client = get_client()
-        filemanager.update_remote_status(client)
-        self.mutex.acquire()
-        for datafile in DataFile.select():
-            if datafile.remote_status != 0:
-                print datafile.name, datafile.remote_path
-            self.assertEqual(datafile.remote_status, 0)
-        if self.mutex.locked():
-            self.mutex.release()
-        self.assertTrue(filemanager.all_data_remote())
-
-    def test_filemanager_all_data_local(self):
-        print '---- Starting Test: {} ----'.format(inspect.stack()[0][3])
-
-        sta = True
-        types = ['atm', 'ice', 'ocn', 'rest', 'streams.cice', 'streams.ocean']
-        database = 'test.db'
-        simstart = 51
-        simend = 60
-        event_list = EventList()
-        experiment = '20171011.beta2_FCT2-icedeep_branch.A_WCYCL1850S.ne30_oECv3_ICG.edison'
-        if os.path.exists(self.local_path):
-            shutil.rmtree(self.local_path)
-        filemanager = FileManager(
-            event_list=EventList(),
-            mutex=self.mutex,
-            sta=sta,
-            types=types,
-            database=database,
-            remote_endpoint=self.remote_endpoint,
-            remote_path=self.remote_path,
-            local_endpoint=self.local_endpoint,
-            local_path=self.local_path)
-        filemanager.populate_file_list(
-            simstart=simstart,
-            simend=simend,
-            experiment=experiment)
-        filemanager.update_local_status()
-        self.assertFalse(filemanager.all_data_local())
-
-        self.mutex.acquire()
-        for df in DataFile.select():
-            name = df.name
-            head, tail = os.path.split(df.local_path)
-            if not os.path.exists(head):
-                os.makedirs(head)
-            with open(df.local_path, 'w') as fp:
-                fp.write('this is a test file')
-            size = os.path.getsize(df.local_path)
-            df.remote_size = size
-            df.local_size = size
-            df.save()
-        if self.mutex.locked():
-            self.mutex.release()
-        filemanager.update_local_status()
+        self.assertTrue(isinstance(filemanager, FileManager))
+        self.assertTrue(os.path.exists(db))
         self.assertTrue(filemanager.all_data_local())
+        os.remove(db)
+    
+    def test_filemanager_get_file_paths(self):
+        """
+        run the filemanager setup with sta turned on
+        """
+        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        config_path = 'tests/test_configs/filemanager_partial_data.cfg'
+        config = ConfigObj(config_path)
+        db = '{}.db'.format(inspect.stack()[0][3])
 
+        filemanager = FileManager(
+            database=db,
+            event_list=EventList(),
+            config=config)
+        filemanager.populate_file_list()
+        self.assertTrue(isinstance(filemanager, FileManager))
+        self.assertTrue(os.path.exists(db))
+
+        filemanager.update_local_status()
+        filemanager.write_database()
+        self.assertFalse(filemanager.all_data_local())
+        
+        # test that the filemanager returns correct paths
+        paths = filemanager.get_file_paths_by_year(
+            datatype='atm',
+            case='20180129.DECKv1b_piControl.ne30_oEC.edison',
+            start_year=1,
+            end_year=2)
+        for path in paths:
+            self.assertTrue(os.path.exists(path))
+
+        # test that the filemanager returns correct paths with no year
+        paths = filemanager.get_file_paths_by_year(
+            datatype='ocn_streams',
+            case='20180129.DECKv1b_piControl.ne30_oEC.edison')
+        for path in paths:
+            self.assertTrue(os.path.exists(path))
+
+        # test nothing is returned for incorrect yeras
+        paths = filemanager.get_file_paths_by_year(
+            datatype='ocn_streams',
+            case='20180129.DECKv1b_piControl.ne30_oEC.edison',
+            start_year=1,
+            end_year=100)
+        self.assertTrue(paths is None)
+
+        # test the filemanager knows when data is ready
+        ready = filemanager.check_data_ready(
+            data_required=['atm'], 
+            case='20180129.DECKv1b_piControl.ne30_oEC.edison',
+            start_year=1,
+            end_year=2)
+        self.assertTrue(ready)
+
+        # test the filemanager knows when data is NOT ready
+        ready = filemanager.check_data_ready(
+            data_required=['atm'], 
+            case='20180129.DECKv1b_piControl.ne30_oEC.edison',
+            start_year=1,
+            end_year=3)
+        self.assertFalse(ready)
+
+        ready = filemanager.check_data_ready(
+            data_required=['ocn_streams'], 
+            case='20180129.DECKv1b_piControl.ne30_oEC.edison')
+        self.assertTrue(ready)
+
+        os.remove(db)
 
 if __name__ == '__main__':
     unittest.main()
-    local_path = os.path.abspath(os.path.join('..', '..', 'testproject'))
-    if os.path.exists(local_path):
-        shutil.rmtree(local_path)
