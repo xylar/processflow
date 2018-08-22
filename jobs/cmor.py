@@ -5,6 +5,8 @@ import logging
 from jobs.job import Job
 from lib.util import render, print_line
 from lib.jobstatus import JobStatus
+from lib.filemanager import FileStatus
+
 
 class Cmor(Job):
     """
@@ -53,7 +55,14 @@ class Cmor(Job):
             True if the job completed successfully
             False otherwise
         """
-        return False
+        found = list()
+        for root, dirs, files in os.walk(self._output_path):
+            if files is not None:
+                found.extend(files)
+        if len(found) == len(config['post-processing']['cmor']['variable_list']):
+            return True
+        else:
+            return False
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
@@ -87,5 +96,24 @@ class Cmor(Job):
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def handle_completion(self, filemanager, event_list, config):
-        pass
+        new_files = list()
+        for root, dirs, files in os.walk(self._output_path):
+            if files is not None:
+                for file in files:
+                    new_files.append({
+                        'name': file,
+                        'local_path': os.path.abspath(file),
+                        'case': self.case,
+                        'year': self.start_year,
+                        'month': self.end_year, # use the month to hold the end year field
+                        'local_status': FileStatus.PRESENT.value
+                    })
+        filemanager.add_files(
+            data_type='cmorized',
+            file_list=new_files)
+        filemanager.write_database()
+        msg = '{prefix}: Job completion handler done'.format(
+            prefix=self.msg_prefix())
+        print_line(msg, event_list)
+        logging.info(msg)
     # -----------------------------------------------
