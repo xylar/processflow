@@ -11,7 +11,7 @@ build:
   string: {{ environ['BUILD_NAME'] }}
 
 about:
-    home: https://github.com/ACME-Climate/acme_workflow
+    home: https://github.com/E3SM-Project/processflow
     summary: Automated post processing for E3SM model data
 
 requirements:
@@ -25,7 +25,8 @@ requirements:
     - setuptools
     - nco
     - ncl
-    - acme_diags
+    - e3sm_diags
+    - e3sm_to_cmip
     - sqlite
     - peewee
     - configobj
