@@ -86,6 +86,7 @@ class Timeseries(Job):
             config (dict): the globus processflow config object
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
+        self._dryrun = dryrun
 
         # setup the ts output path
         ts_path = os.path.join(
@@ -129,17 +130,6 @@ class Timeseries(Job):
                 '--map={}'.format(regrid_map_path),
             ])
         cmd.append(list_string)
-
-        # exit early if in dryrun mode
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
 
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------

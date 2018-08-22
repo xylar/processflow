@@ -45,6 +45,7 @@ class Aprime(Diag):
             config (dict): the globus processflow config object
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
+        self._dryrun = dryrun
 
         # sets up the output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
@@ -57,7 +58,6 @@ class Aprime(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
-        
         # fix the input paths
         self._fix_input_paths()
         

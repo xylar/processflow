@@ -306,8 +306,14 @@ class Job(object):
             msg = '{}: dryrun is set, completing without running'.format(self.msg_prefix())
             logging.info(msg)
             self.status = JobStatus.COMPLETED
-            return 0
-
+            return False
+        else:
+            if not self.prevalidate():
+                return False
+            if self.postvalidate(config):
+                self.status = JobStatus.COMPLETED
+                return True
+        
         # submit the run script to the resource controller
         self._job_id = manager.batch(run_script)
         self._has_been_executed = True

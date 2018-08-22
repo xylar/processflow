@@ -79,6 +79,7 @@ class Climo(Job):
             config (dict): the globus processflow config object
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
+        self._dryrun = dryrun
 
         # setup output directories for both native and regridded output
         regrid_path = os.path.join(
@@ -110,17 +111,6 @@ class Climo(Job):
             '-O', regrid_path,
             '--no_amwg_links',
         ]
-
-        # exit early if in dry run mode
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
 
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)

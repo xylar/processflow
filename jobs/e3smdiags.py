@@ -71,6 +71,7 @@ class E3SMDiags(Diag):
             config (dict): the globus processflow config object
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
+        self._dryrun = dryrun
 
         # setup the jobs output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
@@ -117,18 +118,6 @@ class E3SMDiags(Diag):
             input_path=template_input_path,
             output_path=param_template_out)
 
-        # exit early if in dryrun mode
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
-            return
-        
         cmd = ['acme_diags_driver.py', '-p', param_template_out]
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)

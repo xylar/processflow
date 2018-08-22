@@ -68,7 +68,8 @@ class AMWG(Diag):
             config (dict): the globus processflow config object
             dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
         """
-        
+        self._dryrun = dryrun
+
         # setup the output directory, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
@@ -130,17 +131,7 @@ class AMWG(Diag):
             input_path=template_input_path,
             output_path=csh_template_out)
 
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config, event_list=event_list):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
-            return
-
+        # change input file names to match what amwg expects
         self._change_input_file_names()
 
         # create the run command and submit it
