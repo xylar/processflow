@@ -209,6 +209,38 @@ def verify_config(config):
                         if item not in config['simulations'][sim].get('data_types') and ('timeseries' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'timeseries-{} is set to run for simulation {}, but this simulation does not have {} in its data_types'.format(item, sim, item)
                             messages.append(msg)
+        # ------------------------------------------------------------------------
+        # check cmor
+        # ------------------------------------------------------------------------
+        if config['post-processing'].get('cmor'):
+            if not config['post-processing']['cmor'].get('run_frequency'):
+                msg = 'no run_frequency given for cmor, make sure this matches the frequency for timeseries'
+                messages.append(msg)
+            else:
+                if not isinstance(config['post-processing']['cmor'].get('run_frequency'), list):
+                    config['post-processing']['cmor']['run_frequency'] = [config['post-processing']['cmor']['run_frequency']]
+            if not config['post-processing']['cmor'].get('variable_list'):
+                msg = 'no variable list given for cmor, please provide a list of E3SM variables to convert to CMIP6 format'
+                messages.append(msg)
+            else:
+                for variable in config['post-processing']['cmor']['variable_list']:
+                    if variable not in config['post-processing']['timeseries'].get('atm', list()) and variable not in config['post-processing']['timeseries'].get('lnd', list()) and variable not in config['post-processing']['timeseries'].get('ocn', list()):
+                        msg = 'variable {} is in the cmor variable_list but not present in the timeseries list, all cmor input variables must first be extracted as timeseries varibles'.format(variable)
+                        messages.append(msg)
+            for sim in config['post-processing']['cmor']:
+                if sim not in config['simulations']:
+                    continue
+                if not config['post-processing']['cmor'][sim].get('user_input_json_path'):
+                    msg = 'simulation case {} is set to be cmorized, but no user_input json file path provided'.format(sim)
+                    messages.append(msg)
+            if not config['post-processing']['cmor'].get('cmor_tables_path'):
+                msg = 'please provide a path to where to find the master cmor tables. A copy of the tables can be found here: https://github.com/PCMDI/cmor'
+                messages.append(msg)
+            else:
+                if not os.path.exists(config['post-processing']['cmor'].get('cmor_tables_path')):
+                    msg = 'provided cmor_tables_path points to a directory that doesnt exist'
+                    messages.append(msg)
+
     if config.get('diags'):
         # ------------------------------------------------------------------------
         # check e3sm_diags
