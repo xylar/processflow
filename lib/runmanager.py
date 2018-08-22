@@ -22,6 +22,7 @@ from jobs.timeseries import Timeseries
 from jobs.amwg import AMWG
 from jobs.e3smdiags import E3SMDiags
 from jobs.aprime import Aprime
+from jobs.cmor import Cmor
 from lib.jobstatus import JobStatus, StatusMap, ReverseMap
 from lib.jobinfo import JobInfo
 
@@ -31,7 +32,8 @@ job_map = {
     'regrid': Regrid,
     'e3sm_diags': E3SMDiags,
     'amwg': AMWG,
-    'aprime': Aprime
+    'aprime': Aprime,
+    'cmor': Cmor
 }
 
 
