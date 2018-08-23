@@ -62,8 +62,11 @@ class Cmor(Job):
         found = list()
         for root, dirs, files in os.walk(self._output_path):
             if files is not None:
-                found.extend(files)
-        if len(found) == len(config['post-processing']['cmor']['variable_list']):
+                for file in files:
+                    if file.endswith('log') or file.endswith('json'):
+                        continue
+                    found.append(file)
+        if len(found) >= len(config['post-processing']['cmor']['variable_list']):
             return True
         else:
             return False
