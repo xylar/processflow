@@ -108,7 +108,7 @@ class RunManager(object):
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
         """
         Add post processing jobs to the case.jobs list
-        
+
         Parameters:
             freqs (list, int, None): the year length frequency to add this job
             job_type (str): what type of job to add
@@ -120,7 +120,7 @@ class RunManager(object):
         if not freqs:
             freqs = end - start + 1
         if not isinstance(freqs, list): freqs = [freqs]
-        
+
         for year in range(start, end + 1):
             for freq in freqs:
                 freq = int(freq)
@@ -137,11 +137,11 @@ class RunManager(object):
                         config=self.config)
                     if not self._duplicate_check(new_job):
                         case['jobs'].append(new_job)
-    
+
     def add_diag_type_to_cases(self, freqs, job_type, start, end, case):
         """
         Add diagnostic jobs to the case.jobs list
-        
+
         Parameters:
             freqs (list): a list of year lengths to add this job for
             job_type (str): the name of the job type to add
