@@ -3,6 +3,7 @@ A module to varify that the user config is valid
 """
 import os
 
+
 def verify_config(config):
     messages = list()
     # ------------------------------------------------------------------------
@@ -33,43 +34,54 @@ def verify_config(config):
     else:
         for comp in config['simulations']['comparisons']:
             if not isinstance(config['simulations']['comparisons'][comp], list):
-                config['simulations']['comparisons'][comp] = [config['simulations']['comparisons'][comp]]
+                config['simulations']['comparisons'][comp] = [
+                    config['simulations']['comparisons'][comp]]
             for other_sim in config['simulations']['comparisons'][comp]:
-                if other_sim in ['obs', 'all']: continue
+                if other_sim in ['obs', 'all']:
+                    continue
                 if other_sim not in config['simulations']:
-                    msg = '{} not found in config.simulations'.format(other_sim)
+                    msg = '{} not found in config.simulations'.format(
+                        other_sim)
                     messages.append(msg)
     if not config['simulations'].get('start_year'):
         msg = 'no start_year set for simulations'
         messages.append(msg)
     else:
-        config['simulations']['start_year'] = int(config['simulations']['start_year'])
+        config['simulations']['start_year'] = int(
+            config['simulations']['start_year'])
     if not config['simulations'].get('end_year'):
         msg = 'no end_year set for simulations'
         messages.append(msg)
     else:
-        config['simulations']['end_year'] = int(config['simulations']['end_year'])
+        config['simulations']['end_year'] = int(
+            config['simulations']['end_year'])
     for sim in config.get('simulations'):
         if sim in ['comparisons', 'start_year', 'end_year']:
             continue
         if not config['simulations'][sim].get('transfer_type'):
-            msg = '{} is missing trasfer_type, if the data is local, set transfer_type to \'local\''.format(sim)
+            msg = '{} is missing trasfer_type, if the data is local, set transfer_type to \'local\''.format(
+                sim)
             messages.append(msg)
         else:
             if config['simulations'][sim]['transfer_type'] == 'globus' and not config['simulations'][sim].get('remote_uuid'):
-                msg = 'case {} has transfer_type of globus, but is missing remote_uuid'.format(sim)
+                msg = 'case {} has transfer_type of globus, but is missing remote_uuid'.format(
+                    sim)
                 messages.append(msg)
             elif config['simulations'][sim]['transfer_type'] == 'sftp' and not config['simulations'][sim].get('remote_hostname'):
-                msg = 'case {} has transfer_type of sftp, but is missing remote_hostname'.format(sim)
+                msg = 'case {} has transfer_type of sftp, but is missing remote_hostname'.format(
+                    sim)
                 messages.append(msg)
             if config['simulations'][sim]['transfer_type'] == 'globus' and not config['global'].get('local_globus_uuid'):
-                msg = 'case {} is set to use globus, but no local_globus_uuid was set in the global options'.format(sim)
+                msg = 'case {} is set to use globus, but no local_globus_uuid was set in the global options'.format(
+                    sim)
                 messages.append(msg)
             if config['simulations'][sim]['transfer_type'] != 'local' and not config['simulations'][sim].get('remote_path'):
-                msg = 'case {} has non-local data, but no remote_path given'.format(sim)
+                msg = 'case {} has non-local data, but no remote_path given'.format(
+                    sim)
                 messages.append(msg)
             if config['simulations'][sim]['transfer_type'] == 'local' and not config['simulations'][sim].get('local_path'):
-                msg = 'case {} is set for local data, but no local_path is set'.format(sim)
+                msg = 'case {} is set for local data, but no local_path is set'.format(
+                    sim)
                 messages.append(msg)
         if not config['simulations'][sim].get('local_path'):
             config['simulations'][sim]['local_path'] = os.path.join(
@@ -80,27 +92,32 @@ def verify_config(config):
             msg = 'simulation end_year is less then start_year, is time going backwards!?'
             messages.append(msg)
         if not config['simulations'][sim].get('data_types'):
-            msg = 'no data_types found for {}, set to \'all\' to select all types, or list only data_types desired'.format(sim)
+            msg = 'no data_types found for {}, set to \'all\' to select all types, or list only data_types desired'.format(
+                sim)
             messages.append(msg)
             continue
         if not isinstance(config['simulations'][sim]['data_types'], list):
-            config['simulations'][sim]['data_types'] = [config['simulations'][sim]['data_types']]
+            config['simulations'][sim]['data_types'] = [
+                config['simulations'][sim]['data_types']]
         for data_type in config['simulations'][sim]['data_types']:
             if data_type == 'all':
                 continue
             if data_type not in config['data_types']:
-                msg = '{} is set to use data_type {}, but this data type is not in the data_types config option'.format(sim, data_type)
+                msg = '{} is set to use data_type {}, but this data type is not in the data_types config option'.format(
+                    sim, data_type)
                 messages.append(msg)
         if config['simulations'][sim].get('job_types'):
             if not isinstance(config['simulations'][sim]['job_types'], list):
-                config['simulations'][sim]['job_types'] = [config['simulations'][sim]['job_types']]
+                config['simulations'][sim]['job_types'] = [
+                    config['simulations'][sim]['job_types']]
             for job_type in config['simulations'][sim]['job_types']:
                 if job_type == 'all':
                     continue
                 if job_type not in config.get('post-processing', []) and job_type not in config.get('diags', []):
-                    msg = '{} is set to run job {}, but this run type is not in either the post-processing or diags config sections'.format(sim, job_type)
+                    msg = '{} is set to run job {}, but this run type is not in either the post-processing or diags config sections'.format(
+                        sim, job_type)
                     messages.append(msg)
-        
+
     # ------------------------------------------------------------------------
     # check data_types
     # ------------------------------------------------------------------------
@@ -135,30 +152,36 @@ def verify_config(config):
         # ------------------------------------------------------------------------
         if config['post-processing'].get('regrid'):
             for item in config['post-processing']['regrid']:
-                if item in ['destination_grid_name']: continue
+                if item in ['destination_grid_name']:
+                    continue
                 if item == 'lnd':
                     if not config['post-processing']['regrid'][item].get('source_grid_path'):
-                        msg = 'no source_grid_path given for {} regrid'.format(item)
+                        msg = 'no source_grid_path given for {} regrid'.format(
+                            item)
                         messages.append(msg)
                     if not config['post-processing']['regrid'][item].get('destination_grid_path'):
-                        msg = 'no destination_grid_path given for {} regrid'.format(item)
+                        msg = 'no destination_grid_path given for {} regrid'.format(
+                            item)
                         messages.append(msg)
                     if not config['post-processing']['regrid'][item].get('destination_grid_name'):
-                        msg = 'no destination_grid_name given for {} regrid'.format(item)
+                        msg = 'no destination_grid_name given for {} regrid'.format(
+                            item)
                         messages.append(msg)
                 else:
                     if not config['post-processing']['regrid'][item].get('regrid_map_path'):
-                        msg = 'no regrid_map_path given for {} regrid'.format(item)
+                        msg = 'no regrid_map_path given for {} regrid'.format(
+                            item)
                         messages.append(msg)
                 for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year', 'comparisons']: 
+                    if sim in ['start_year', 'end_year', 'comparisons']:
                         continue
                     # if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
                     #     if item not in config['simulations'][sim].get('data_types'):
                     #         continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
                         if item not in config['simulations'][sim].get('data_types') and ('regrid' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
-                            msg = 'regrid is set to run on data_type {}, but this type is not set in simulation {}'.format(item, sim)
+                            msg = 'regrid is set to run on data_type {}, but this type is not set in simulation {}'.format(
+                                item, sim)
                             messages.append(msg)
         # ------------------------------------------------------------------------
         # check ncclimo
@@ -175,12 +198,15 @@ def verify_config(config):
                 messages.append(msg)
             else:
                 if not isinstance(config['post-processing']['climo'].get('run_frequency'), list):
-                    config['post-processing']['climo']['run_frequency'] = [config['post-processing']['climo']['run_frequency']]
+                    config['post-processing']['climo']['run_frequency'] = [
+                        config['post-processing']['climo']['run_frequency']]
             for sim in config['simulations']:
-                if sim in ['start_year', 'end_year', 'comparisons']: continue
+                if sim in ['start_year', 'end_year', 'comparisons']:
+                    continue
                 if 'all' not in config['simulations'][sim].get('data_types'):
                     if 'atm' not in config['simulations'][sim].get('data_types'):
-                        msg = 'ncclimo is set to run for simulation {}, but this simulation does not have atm in its data_types'.format(sim)
+                        msg = 'ncclimo is set to run for simulation {}, but this simulation does not have atm in its data_types'.format(
+                            sim)
                         messages.append(msg)
         # ------------------------------------------------------------------------
         # check timeseries
@@ -191,23 +217,28 @@ def verify_config(config):
                 messages.append(msg)
             else:
                 if not isinstance(config['post-processing']['timeseries'].get('run_frequency'), list):
-                    config['post-processing']['timeseries']['run_frequency'] = [config['post-processing']['timeseries']['run_frequency']]
+                    config['post-processing']['timeseries']['run_frequency'] = [
+                        config['post-processing']['timeseries']['run_frequency']]
             for item in config['post-processing']['timeseries']:
                 if item in ['run_frequency', 'regrid_map_path', 'destination_grid_name']:
                     continue
                 if item not in ['atm', 'lnd', 'ocn']:
-                    msg = '{} is an unsupported timeseries data type'.format(item)
-                    message.append(msg)
+                    msg = '{} is an unsupported timeseries data type'.format(
+                        item)
+                    messages.append(msg)
                 if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
                     if item not in config['simulations'][sim].get('job_types'):
                         continue
                 if not isinstance(config['post-processing']['timeseries'][item], list):
-                    config['post-processing']['timeseries'][item] = [config['post-processing']['timeseries'][item]]
+                    config['post-processing']['timeseries'][item] = [
+                        config['post-processing']['timeseries'][item]]
                 for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year', 'comparisons']: continue
+                    if sim in ['start_year', 'end_year', 'comparisons']:
+                        continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
                         if item not in config['simulations'][sim].get('data_types') and ('timeseries' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
-                            msg = 'timeseries-{} is set to run for simulation {}, but this simulation does not have {} in its data_types'.format(item, sim, item)
+                            msg = 'timeseries-{} is set to run for simulation {}, but this simulation does not have {} in its data_types'.format(
+                                item, sim, item)
                             messages.append(msg)
         # ------------------------------------------------------------------------
         # check cmor
@@ -218,27 +249,38 @@ def verify_config(config):
                 messages.append(msg)
             else:
                 if not isinstance(config['post-processing']['cmor'].get('run_frequency'), list):
-                    config['post-processing']['cmor']['run_frequency'] = [config['post-processing']['cmor']['run_frequency']]
+                    config['post-processing']['cmor']['run_frequency'] = [
+                        config['post-processing']['cmor']['run_frequency']]
             if not config['post-processing']['cmor'].get('variable_list'):
                 msg = 'no variable list given for cmor, please provide a list of E3SM variables to convert to CMIP6 format'
                 messages.append(msg)
             else:
+                if not isinstance(config['post-processing']['cmor']['variable_list'], list):
+                    config['post-processing']['cmor']['variable_list'] = [
+                        config['post-processing']['cmor']['variable_list']]
                 for variable in config['post-processing']['cmor']['variable_list']:
                     if variable not in config['post-processing']['timeseries'].get('atm', list()) and variable not in config['post-processing']['timeseries'].get('lnd', list()) and variable not in config['post-processing']['timeseries'].get('ocn', list()):
-                        msg = 'variable {} is in the cmor variable_list but not present in the timeseries list, all cmor input variables must first be extracted as timeseries varibles'.format(variable)
+                        msg = 'variable {} is in the cmor variable_list but not present in the timeseries list, all cmor input variables must first be extracted as timeseries varibles'.format(
+                            variable)
                         messages.append(msg)
             for sim in config['post-processing']['cmor']:
                 if sim not in config['simulations']:
                     continue
                 if not config['post-processing']['cmor'][sim].get('user_input_json_path'):
-                    msg = 'simulation case {} is set to be cmorized, but no user_input json file path provided'.format(sim)
+                    msg = 'simulation case {} is set to be cmorized, but no user_input json file path provided'.format(
+                        sim)
                     messages.append(msg)
+                else:
+                    if not os.path.exists(config['post-processing']['cmor'][sim].get('user_input_json_path')):
+                        msg = 'provided user_input_json_path {} doesnt exist.'
+                        messages.append(msg)
             if not config['post-processing']['cmor'].get('cmor_tables_path'):
                 msg = 'please provide a path to where to find the master cmor tables. A copy of the tables can be found here: https://github.com/PCMDI/cmor'
                 messages.append(msg)
             else:
-                if not os.path.exists(config['post-processing']['cmor'].get('cmor_tables_path')):
-                    msg = 'provided cmor_tables_path points to a directory that doesnt exist'
+                if not os.path.exists(config['post-processing']['cmor']['cmor_tables_path']):
+                    msg = 'provided cmor_tables_path {} points to a directory that doesnt exist. Download a copy from https://github.com/PCMDI/cmor'.format(
+                        config['post-processing']['cmor']['cmor_tables_path'])
                     messages.append(msg)
 
     if config.get('diags'):
@@ -260,10 +302,12 @@ def verify_config(config):
                 messages.append(msg)
             else:
                 if not isinstance(config['diags']['e3sm_diags'].get('run_frequency'), list):
-                    config['diags']['e3sm_diags']['run_frequency'] = [config['diags']['e3sm_diags']['run_frequency']]
+                    config['diags']['e3sm_diags']['run_frequency'] = [
+                        config['diags']['e3sm_diags']['run_frequency']]
                 for freq in config['diags']['e3sm_diags']['run_frequency']:
                     if not config.get('post-processing') or not config['post-processing'].get('climo') or freq not in config['post-processing']['climo']['run_frequency']:
-                        msg = 'e3sm_diags is set to run at frequency {} but no climo job for this frequency is set'.format(freq)
+                        msg = 'e3sm_diags is set to run at frequency {} but no climo job for this frequency is set'.format(
+                            freq)
                         messages.append(msg)
         # ------------------------------------------------------------------------
         # check amwg
@@ -277,10 +321,12 @@ def verify_config(config):
                 messages.append(msg)
             else:
                 if not isinstance(config['diags']['amwg'].get('run_frequency'), list):
-                    config['diags']['amwg']['run_frequency'] = [config['diags']['amwg']['run_frequency']]
+                    config['diags']['amwg']['run_frequency'] = [
+                        config['diags']['amwg']['run_frequency']]
                 for freq in config['diags']['amwg']['run_frequency']:
                     if not config.get('post-processing') or not config['post-processing'].get('climo') or freq not in config['post-processing']['climo']['run_frequency']:
-                        msg = 'amwg is set to run at frequency {} but no climo job for this frequency is set'.format(freq)
+                        msg = 'amwg is set to run at frequency {} but no climo job for this frequency is set'.format(
+                            freq)
                         messages.append(msg)
             if not config['diags']['amwg'].get('sets'):
                 msg = 'no sets given for amwg'
@@ -288,10 +334,12 @@ def verify_config(config):
             else:
                 allowed_sets = [str(x) for x in range(1, 17)] + ['all', '4a']
                 if not isinstance(config['diags']['amwg']['sets'], list):
-                    config['diags']['amwg']['sets'] = [config['diags']['amwg']['sets']]
+                    config['diags']['amwg']['sets'] = [
+                        config['diags']['amwg']['sets']]
                 for s in config['diags']['amwg']['sets']:
                     if s not in allowed_sets:
-                        msg = '{} is not in the allowed sets for amwg, allowed sets are {}'.format(s, allowed_sets)
+                        msg = '{} is not in the allowed sets for amwg, allowed sets are {}'.format(
+                            s, allowed_sets)
                         messages.append(msg)
         # ------------------------------------------------------------------------
         # check aprime
@@ -305,6 +353,8 @@ def verify_config(config):
                 messages.append(msg)
     return messages
 # ------------------------------------------------------------------------
+
+
 def check_config_white_space(filepath):
     line_index = 0
     found = False
