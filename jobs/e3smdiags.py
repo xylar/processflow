@@ -1,3 +1,6 @@
+"""
+A wrapper class around E3SM Diags
+"""
 import os
 import logging
 
@@ -17,7 +20,8 @@ class E3SMDiags(Diag):
         self._host_path = ''
         self._host_url = ''
         self._short_comp_name = ''
-        custom_args = kwargs['config']['diags']['e3sm_diags'].get('custom_args')
+        custom_args = kwargs['config']['diags']['e3sm_diags'].get(
+            'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
         if self.comparison == 'obs':
@@ -25,16 +29,21 @@ class E3SMDiags(Diag):
         else:
             self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
     # -----------------------------------------------
+
     def _dep_filter(self, job):
         """
         find the climo job we're waiting for, assuming there's only
         one climo job in this case with the same start and end years
         """
-        if job.job_type != self._requires: return False
-        if job.start_year != self.start_year: return False
-        if job.end_year != self.end_year: return False
+        if job.job_type != self._requires:
+            return False
+        if job.start_year != self.start_year:
+            return False
+        if job.end_year != self.end_year:
+            return False
         return True
     # -----------------------------------------------
+
     def setup_dependencies(self, jobs, *args, **kwargs):
         """
         Adds climo jobs from this or the comparison case to the list of dependent jobs
@@ -42,34 +51,44 @@ class E3SMDiags(Diag):
         Parameters
         ----------
             jobs (list): a list of the rest of the run managers jobs
-            optional: comparison_jobs (list): if this job is being compared to another case, the climos for that other case have to be done already too
+            optional: comparison_jobs (list): if this job is being compared to
+                another case, the climos for that other case have to be done already too
         """
         if self.comparison != 'obs':
             other_jobs = kwargs['comparison_jobs']
             try:
                 self_climo, = filter(lambda job: self._dep_filter(job), jobs)
             except ValueError:
-                raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
+                msg = 'Unable to find climo for {}, is this case set to generate climos?'.format(
+                    self.msg_prefix())
+                raise Exception(msg)
             try:
-                comparison_climo, = filter(lambda job: self._dep_filter(job), other_jobs)
+                comparison_climo, = filter(
+                    lambda job: self._dep_filter(job), other_jobs)
             except ValueError:
-                raise Exception('Unable to find climo for {}, is that case set to generates climos?'.format(self.comparison))
+                msg = 'Unable to find climo for {}, is that case set to generates climos?'.format(
+                    self.comparison)
+                raise Exception(msg)
             self.depends_on.extend((self_climo.id, comparison_climo.id))
         else:
             try:
                 self_climo, = filter(lambda job: self._dep_filter(job), jobs)
             except ValueError:
-                raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
+                msg = 'Unable to find climo for {}, is this case set to generate climos?'.format(
+                    self.msg_prefix())
+                raise Exception(msg)
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
+
     def execute(self, config, event_list, slurm_args=None, dryrun=False):
         """
         Generates and submits a run script for e3sm_diags
-        
+
         Parameters
         ----------
             config (dict): the globus processflow config object
-            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+            dryrun (bool): a flag to denote that all the data should be set,
+                and the scripts generated, but not actually submitted
         """
         self._dryrun = dryrun
 
@@ -83,7 +102,7 @@ class E3SMDiags(Diag):
                 comp=self._short_comp_name))
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
-        
+
         # render the parameter file from the template
         param_template_out = os.path.join(
             config['global']['run_scripts_path'],
@@ -122,11 +141,31 @@ class E3SMDiags(Diag):
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
+
     def postvalidate(self, config, *args, **kwargs):
+        """
+        Check that all the links created by the diagnostic are correct
+
+        Parameters
+        ----------
+            config (dict): the global config object
+        Returns
+        -------
+            True if all links are found
+            False otherwise
+        """
         return self._check_links(config)
     # -----------------------------------------------
-    def handle_completion(self, filemanager, event_list, config):
+
+    def handle_completion(self, event_list, config, *args):
+        """
+        Perform setup for webhosting
         
+        Parameters
+        ----------
+            event_list (EventList): an event list to push user notifications into
+            config (dict): the global config object
+        """
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed'.format(
                 prefix=self.msg_prefix())
@@ -152,9 +191,10 @@ class E3SMDiags(Diag):
                 start=self.start_year,
                 end=self.end_year,
                 comp=self._short_comp_name))
-        
-        self.setup_hosting(config, self._output_path, self.host_path, event_list)
-        
+
+        self.setup_hosting(config, self._output_path,
+                           self.host_path, event_list)
+
         self._host_url = 'https://{server}/{prefix}/{case}/e3sm_diags/{start:04d}_{end:04d}_vs_{comp}/viewer/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
@@ -163,8 +203,9 @@ class E3SMDiags(Diag):
             end=self.end_year,
             comp=self._short_comp_name)
     # -----------------------------------------------
+
     def _check_links(self, config):
-        
+
         self._output_path = os.path.join(
             config['global']['project_path'],
             'output', 'diags', self.short_name, 'e3sm_diags',
@@ -174,12 +215,14 @@ class E3SMDiags(Diag):
                 comp=self._short_comp_name))
         viewer_path = os.path.join(self._output_path, 'viewer', 'index.html')
         if not os.path.exists(viewer_path):
-            msg = '{}: could not find page index at {}'.format(self.msg_prefix(), viewer_path)
+            msg = '{}: could not find page index at {}'.format(
+                self.msg_prefix(), viewer_path)
             logging.error(msg)
             return False
         viewer_head = os.path.join(self._output_path, 'viewer')
         if not os.path.exists(viewer_head):
-            msg = '{}: could not find output viewer at {}'.format(self.msg_prefix(), viewer_head)
+            msg = '{}: could not find output viewer at {}'.format(
+                self.msg_prefix(), viewer_head)
             logging.error(msg)
             return False
         missing_links = list()
@@ -202,7 +245,8 @@ class E3SMDiags(Diag):
                             except:
                                 continue
                             else:
-                                sublink_path = os.path.join(link_tail, sublink_preview)
+                                sublink_path = os.path.join(
+                                    link_tail, sublink_preview)
                                 if not os.path.exists(sublink_path):
                                     missing_links.append(sublink_path)
         if missing_links:

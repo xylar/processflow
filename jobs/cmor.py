@@ -80,12 +80,29 @@ class Cmor(Job):
         try:
             ts_job, = filter(lambda job: self._dep_filter(job), jobs)
         except ValueError:
-            raise Exception('Unable to find timeseries for {}, is this case set to generate timeseries output?'.format(
-                self.msg_prefix()))
+            msg = 'Unable to find timeseries for {}, does this case generate timeseries?'.format(
+                self.msg_prefix())
+            raise Exception(msg)
         self.depends_on.append(ts_job.id)
     # -----------------------------------------------
 
     def execute(self, config, event_list, dryrun=False):
+        """
+        Execute the CMOR job
+
+        Parameters
+        ----------
+            config (dict): the global config object
+            event_list (EventList): an EventList to push notifications into
+            dryrun (bool): if true this job will generate all scripts,
+                setup data, and exit without submitting the job
+        Returns
+        -------
+            True if the job has already been executed
+            False if the job cannot be executed
+            jobid (str): the resource managers assigned job id
+                if the job was submitted to the resource manager
+        """
         self._dryrun = dryrun
 
         input_path, _ = os.path.split(self._input_file_paths[0])
@@ -109,24 +126,42 @@ class Cmor(Job):
     # -----------------------------------------------
 
     def handle_completion(self, filemanager, event_list, config):
-        new_files = list()
-        for root, dirs, files in os.walk(self._output_path):
-            if files is not None:
-                for file in files:
-                    new_files.append({
-                        'name': file,
-                        'local_path': os.path.abspath(file),
-                        'case': self.case,
-                        'year': self.start_year,
-                        'month': self.end_year,  # use the month to hold the end year field
-                        'local_status': FileStatus.PRESENT.value
-                    })
-        filemanager.add_files(
-            data_type='cmorized',
-            file_list=new_files)
-        filemanager.write_database()
-        msg = '{prefix}: Job completion handler done'.format(
-            prefix=self.msg_prefix())
-        print_line(msg, event_list)
-        logging.info(msg)
+        """
+        Adds the output from cmor into the filemanager database as type 'cmorized'
+
+        Paremeters
+        ----------
+            filemanager (FileManager): the manager to add files to
+            event_list (EventList): an EventList to add notification messages to
+            config (dict): the global config object
+        Returns
+        -------
+            True if files added correctly
+            False if there was any error
+        """
+        try:
+            new_files = list()
+            for root, dirs, files in os.walk(self._output_path):
+                if files is not None:
+                    for file in files:
+                        new_files.append({
+                            'name': file,
+                            'local_path': os.path.abspath(file),
+                            'case': self.case,
+                            'year': self.start_year,
+                            'month': self.end_year,  # use the month to hold the end year field
+                            'local_status': FileStatus.PRESENT.value
+                        })
+            filemanager.add_files(
+                data_type='cmorized',
+                file_list=new_files)
+            filemanager.write_database()
+            msg = '{prefix}: Job completion handler done'.format(
+                prefix=self.msg_prefix())
+            print_line(msg, event_list)
+            logging.info(msg)
+            return True
+        except Exception as e:
+            raise e
+        return False
     # -----------------------------------------------

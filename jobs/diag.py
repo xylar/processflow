@@ -1,3 +1,6 @@
+"""
+A child of Job, the Diag class is the parent for all diagnostic jobs
+"""
 import json
 import os
 
@@ -14,11 +17,13 @@ class Diag(Job):
         super(Diag, self).__init__(*args, **kwargs)
         self._comparison = kwargs.get('comparison', 'obs')
     # -----------------------------------------------
+
     @property
     def comparison(self):
         return self._comparison
     # -----------------------------------------------
-    def __str__(self):    
+
+    def __str__(self):
         return json.dumps({
             'type': self._job_type,
             'start_year': self._start_year,
@@ -31,7 +36,18 @@ class Diag(Job):
             'case': self._case
         }, sort_keys=True, indent=4)
     # -----------------------------------------------
+
     def setup_hosting(self, config, img_source, host_path, event_list):
+        """
+        Performs file copys for images into the web hosting directory
+        
+        Parameters
+        ----------
+            config (dict): the global config object
+            img_source (str): the path to where the images are coming from
+            host_path (str): the path for where the images should be hosted
+            event_list (EventList): an eventlist to push user notifications into
+        """
         if config['global']['always_copy']:
             if os.path.exists(host_path):
                 msg = '{prefix}: Removing previous output from host location'.format(
@@ -59,7 +75,11 @@ class Diag(Job):
             call(['chmod', 'go+rx', tail])
             tail, _ = os.path.split(tail)
     # -----------------------------------------------
+
     def get_report_string(self):
+        """
+        Returns a nice report string of job status information
+        """
         if self.status == JobStatus.COMPLETED:
             msg = '{prefix} :: {status} :: {url}'.format(
                 prefix=self.msg_prefix(),

@@ -40,7 +40,8 @@ class TestCmor(unittest.TestCase):
         print_message('\n---- Starting Test: {} ----'.format(
             inspect.stack()[0][3]), 'ok')
         config = ConfigObj(self.valid_config_path)
-        config['post-processing']['cmor']['variable_list'] = [config['post-processing']['cmor']['variable_list']]
+        config['post-processing']['cmor']['variable_list'] = [
+            config['post-processing']['cmor']['variable_list']]
         case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
         case = config['simulations'][case_name]
         messages = verify_config(config)
@@ -90,6 +91,10 @@ class TestCmor(unittest.TestCase):
             config=config,
             event_list=EventList()))
         self.assertEquals(cmor.status, JobStatus.COMPLETED)
+        self.assertTrue(cmor.handle_completion(
+            filemanager=filemanager,
+            event_list=EventList(),
+            config=config))
 
 if __name__ == '__main__':
     unittest.main()
