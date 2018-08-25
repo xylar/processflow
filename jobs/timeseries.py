@@ -37,6 +37,17 @@ class Timeseries(Job):
             True if all the files exist
             False otherwise
         """
+
+        # First check that all the native grid ts files were created
+        ts_path = os.path.join(
+            config['global']['project_path'],
+            'output',
+            'pp',
+            config['simulations'][self.case]['native_grid_name'],
+            self._short_name,
+            'ts',
+            '{length}yr'.format(length=self.end_year - self.start_year + 1))
+
         regrid_map_path = config['post-processing']['timeseries'].get(
             'regrid_map_path')
         if regrid_map_path:
@@ -56,17 +67,6 @@ class Timeseries(Job):
 
         if self._dryrun:
             return True
-
-        # First check that all the native grid ts files were created
-        ts_path = os.path.join(
-            config['global']['project_path'],
-            'output',
-            'pp',
-            config['simulations'][self.case]['native_grid_name'],
-            self._short_name,
-            'ts',
-            '{length}yr'.format(length=self.end_year - self.start_year + 1))
-        self._output_path = ts_path
 
         for var in config['post-processing']['timeseries'][self._run_type]:
             file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
