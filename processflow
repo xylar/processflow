@@ -79,7 +79,7 @@ def main(test=False, **kwargs):
         event_list=event_list)
     filemanager.update_local_status()
     all_data_local = filemanager.all_data_local()
-    
+
     if not all_data_local:
         transfer_status = filemanager.transfer_needed(
             event_list=event_list,

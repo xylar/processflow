@@ -8,10 +8,12 @@ from lib.jobstatus import JobStatus
 from lib.util import print_line, get_data_output_files
 from lib.filemanager import FileStatus
 
+
 class Regrid(Job):
     """
     Perform regridding with no climatology or timeseries generation on atm, lnd, and orn data
     """
+
     def __init__(self, *args, **kwargs):
         """
         Initialize a regrid job
@@ -21,25 +23,31 @@ class Regrid(Job):
         super(Regrid, self).__init__(*args, **kwargs)
         self._job_type = 'regrid'
         self._data_required = [self._run_type]
-        custom_args = kwargs['config']['post-processing']['regrid'].get('custom_args')
+        custom_args = kwargs['config']['post-processing']['regrid'].get(
+            'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
     # -----------------------------------------------
+
     def setup_dependencies(self, *args, **kwargs):
         """
         Regrid doesnt require any other jobs
         """
         return True
     # -----------------------------------------------
+
     def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
-        
+
         Parameters
         ----------
             config (dict): the globus processflow config object
-            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+            event_list (EventList): an event list to push user notifications into
+            dryrun (bool): a flag to denote that all the data should be set,
+                and the scripts generated, but not actually submitted
         """
+        self._dryrun = dryrun
 
         # setup output paths
         self._output_path = os.path.join(
@@ -88,33 +96,23 @@ class Regrid(Job):
             '-O', self._output_path,
         ])
 
-        # exit early if in dryrun mode
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
-
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
-    def postvalidate(self, config, *args, **kwargs): 
+
+    def postvalidate(self, config, *args, **kwargs):
         self._output_path = os.path.join(
-            config['global']['project_path'], 
-            'output', 
+            config['global']['project_path'],
+            'output',
             'pp',
             config['post-processing']['regrid'][self.run_type]['destination_grid_name'],
-            self._short_name, 
-            self.job_type, 
+            self._short_name,
+            self.job_type,
             self.run_type)
 
         if not self._output_path or not os.path.exists(self._output_path):
             return False
-        
+
         contents = os.listdir(self._output_path)
         contents.sort()
         for year in range(self.start_year, self.end_year + 1):
@@ -135,6 +133,7 @@ class Regrid(Job):
                     return False
         return True
     # -----------------------------------------------
+
     def handle_completion(self, filemanager, event_list, config):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
@@ -147,9 +146,10 @@ class Regrid(Job):
                 prefix=self.msg_prefix())
             print_line(msg, event_list)
             logging.info(msg)
-        
+
         new_files = list()
-        for regrid_file in get_data_output_files(self._output_path, self.case, self.start_year, self.end_year):
+        regrid_files = get_data_output_files(self._output_path, self.case, self.start_year, self.end_year)
+        for regrid_file in regrid_files:
             new_files.append({
                 'name': regrid_file,
                 'local_path': os.path.join(self._output_path, regrid_file),
@@ -158,15 +158,17 @@ class Regrid(Job):
                 'local_status': FileStatus.PRESENT.value
             })
         filemanager.add_files(
-                data_type='regrid',
-                file_list=new_files)
+            data_type='regrid',
+            file_list=new_files)
         if not config['data_types'].get('regrid'):
             config['data_types']['regrid'] = {'monthly': True}
     # -----------------------------------------------
+
     @property
     def run_type(self):
         return self._run_type
     # -----------------------------------------------
+
     @property
     def data_type(self):
         return self._data_type

@@ -1,3 +1,6 @@
+"""
+A python wrapper around the AMWG diagnostics
+"""
 import os
 import re
 import logging
@@ -9,8 +12,16 @@ from jobs.diag import Diag
 from lib.util import render, print_line
 from lib.jobstatus import JobStatus
 
+
 class AMWG(Diag):
     def __init__(self, *args, **kwargs):
+        """
+        Parameters
+        ----------
+            config (dict): the global configuration object
+            custom_args (dict): a dictionary of user supplied arguments
+                to pass to the resource manager
+        """
         super(AMWG, self).__init__(*args, **kwargs)
         self._job_type = 'amwg'
         self._requires = 'climo'
@@ -26,16 +37,21 @@ class AMWG(Diag):
         else:
             self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
     # -----------------------------------------------
+
     def _dep_filter(self, job):
         """
         find the climo job we're waiting for, assuming there's only
         one climo job in this case with the same start and end years
         """
-        if job.job_type != self._requires: return False
-        if job.start_year != self.start_year: return False
-        if job.end_year != self.end_year: return False
+        if job.job_type != self._requires:
+            return False
+        if job.start_year != self.start_year:
+            return False
+        if job.end_year != self.end_year:
+            return False
         return True
     # -----------------------------------------------
+
     def setup_dependencies(self, *args, **kwargs):
         """
         AMWG requires climos
@@ -46,29 +62,46 @@ class AMWG(Diag):
             try:
                 self_climo, = filter(lambda job: self._dep_filter(job), jobs)
             except ValueError:
-                raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
+                msg = 'Unable to find climo for {}, is this case set to generate climos?'.format(
+                    self.msg_prefix())
+                raise Exception(msg)
             try:
-                comparison_climo, = filter(lambda job: self._dep_filter(job), other_jobs)
+                comparison_climo, = filter(
+                    lambda job: self._dep_filter(job), other_jobs)
             except ValueError:
-                raise Exception('Unable to find climo for {}, is that case set to generates climos?'.format(self.comparison))
+                msg = 'Unable to find climo for {}, is that case set to generates climos?'.format(
+                    self.comparison)
+                raise Exception(msg)
             self.depends_on.extend((self_climo.id, comparison_climo.id))
         else:
             try:
                 self_climo, = filter(lambda job: self._dep_filter(job), jobs)
             except ValueError:
-                raise Exception('Unable to find climo for {}, is this case set to generate climos?'.format(self.msg_prefix()))
+                msg = 'Unable to find climo for {}, is this case set to generate climos?'.format(
+                    self.msg_prefix())
+                raise Exception(msg)
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
+
     def execute(self, config, event_list, custom_args=None, dryrun=False):
         """
-        Generates and submits a run script for amwg diagnostics
-        
+        Execute the AMWG job
+
         Parameters
         ----------
-            config (dict): the globus processflow config object
-            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+            config (dict): the global config object
+            event_list (EventList): an EventList to push notifications into
+            dryrun (bool): if true this job will generate all scripts,
+                setup data, and exit without submitting the job
+        Returns
+        -------
+            True if the job has already been executed
+            False if the job cannot be executed
+            jobid (str): the resource managers assigned job id
+                if the job was submitted to the resource manager
         """
-        
+        self._dryrun = dryrun
+
         # setup the output directory, creating it if it doesnt already exist
         self._output_path = os.path.join(
             config['global']['project_path'],
@@ -79,7 +112,7 @@ class AMWG(Diag):
                 comp=self._short_comp_name))
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
-        
+
         # setup template
         csh_template_out = os.path.join(
             config['global']['run_scripts_path'],
@@ -108,7 +141,7 @@ class AMWG(Diag):
             set_names = ['set_' + str(x) for x in range(1, 16)] + ['set_4a']
             for idx, diag in enumerate(set_names):
                 variables[diag] = '0' if set_numbers[idx] in config['diags']['amwg']['sets'] else '1'
-            
+
         if self.comparison == 'obs':
             template_input_path = os.path.join(
                 config['global']['resource_path'],
@@ -121,7 +154,7 @@ class AMWG(Diag):
             variables['cntl_short_name'] = self._short_comp_name
             variables['cntl_path_history'] = input_path + os.sep
             variables['cntl_path_climo'] = input_path + os.sep
-        
+
         # get environment path to use as NCARG_ROOT
         variables['NCARG_ROOT'] = os.environ['CONDA_PREFIX']
 
@@ -130,17 +163,7 @@ class AMWG(Diag):
             input_path=template_input_path,
             output_path=csh_template_out)
 
-        if not dryrun:
-            self._dryrun = False
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config, event_list=event_list):
-                self.status = JobStatus.COMPLETED
-                return True
-        else:
-            self._dryrun = True
-            return
-
+        # change input file names to match what amwg expects
         self._change_input_file_names()
 
         # create the run command and submit it
@@ -148,8 +171,19 @@ class AMWG(Diag):
         cmd = ['csh', csh_template_out]
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
+
     def postvalidate(self, config, *args, **kwargs):
-        
+        """
+        Validates that the job ran correctly
+
+        Parameters
+        ----------
+            config (dict): the global config object
+        Returns
+        -------
+            True if the job ran successfully
+            False if there is missong output
+        """
         if not self._output_path:
             self._output_path = os.path.join(
                 config['global']['project_path'],
@@ -168,7 +202,7 @@ class AMWG(Diag):
                         start=self.start_year,
                         end=self.end_year,
                         comp=self._short_comp_name))
-        
+
         if self.comparison == 'obs':
             expected_files = {
                 "set4": 50,
@@ -213,7 +247,7 @@ class AMWG(Diag):
             sets = [str(x) for x in range(1, 16)] + ['4a']
         else:
             sets = config['diags']['amwg']['sets']
-        
+
         img_source = os.path.join(
             self._output_path,
             '{case}-vs-{comp}'.format(
@@ -254,7 +288,8 @@ class AMWG(Diag):
                 msg = '{prefix}: extracting images from tar archive'.format(
                     prefix=self.msg_prefix())
                 print_line(msg, kwargs['event_list'])
-                call(['tar', '-xf', img_source_tar, '--directory', self._output_path])
+                call(['tar', '-xf', img_source_tar,
+                      '--directory', self._output_path])
                 passed = True
                 for item in config['diags']['amwg']['sets']:
                     if item == 'all':
@@ -262,7 +297,8 @@ class AMWG(Diag):
                     setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
                     directory = os.path.join(
                         self._output_path,
-                        '{}-vs-{}'.format(self.short_name, self._short_comp_name),
+                        '{}-vs-{}'.format(self.short_name,
+                                          self._short_comp_name),
                         setname)
                     if not os.path.exists(directory):
                         passed = False
@@ -283,7 +319,7 @@ class AMWG(Diag):
                             logging.error(msg)
                             print_line(msg, kwargs['event_list'])
                             passed = False
-        
+
         if passed:
             msg = '{prefix}: all expected output images found'.format(
                 prefix=self.msg_prefix())
@@ -294,8 +330,16 @@ class AMWG(Diag):
         else:
             return False
     # -----------------------------------------------
-    def handle_completion(self, filemanager, event_list, config):
-        
+
+    def handle_completion(self, event_list, config, *args):
+        """
+        Sets up variables needed to web hosting
+
+        Parameters
+        ----------
+            event_list (EventList): an EventList to push user notifications into
+            config (dict): the global config object
+        """
         if self.status == JobStatus.COMPLETED:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix())
@@ -308,7 +352,7 @@ class AMWG(Diag):
         # if hosting is turned off, simply return
         if not config['global']['host']:
             return
-        
+
         img_source = os.path.join(
             self._output_path,
             '{case}-vs-{comp}'.format(
@@ -325,10 +369,11 @@ class AMWG(Diag):
                 start=self.start_year,
                 end=self.end_year,
                 comp=self._short_comp_name))
-        
+
         if not os.path.exists(img_source):
             if os.path.exists(img_source + '.tar'):
-                call(['tar', '-xf', img_source + '.tar', '--directory', self._output_path])
+                call(['tar', '-xf', img_source + '.tar',
+                      '--directory', self._output_path])
             else:
                 msg = '{prefix}: Unable to find output directory or tar archive'.format(
                     prefix=self.msg_prefix())
@@ -337,7 +382,7 @@ class AMWG(Diag):
                 logging.info(msg)
                 return
         self.setup_hosting(config, img_source, self._host_path, event_list)
-        
+
         self._host_url = 'https://{server}/{prefix}/{case}/amwg/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
@@ -346,10 +391,11 @@ class AMWG(Diag):
             end=self.end_year,
             comp=self._short_comp_name)
     # -----------------------------------------------
+
     def _check_links(self, config):
         """
         Checks output page for all links, as well as first level subpages
-        
+
         Parameters:
             None
         Returns:
@@ -365,7 +411,8 @@ class AMWG(Diag):
         missing_links = list()
         page_path = os.path.join(
             self._output_path,
-            '{case}-vs-{comp}'.format(case=self.short_name, comp=self._short_comp_name),
+            '{case}-vs-{comp}'.format(case=self.short_name,
+                                      comp=self._short_comp_name),
             'index.html')
         page_tail, page_head = os.path.split(page_path)
         if not os.path.exists(page_path):
@@ -378,7 +425,7 @@ class AMWG(Diag):
         with open(page_path, 'r') as page_pointer:
             output_page = BeautifulSoup(page_pointer, 'lxml')
             output_links = output_page.findAll('a')
-        
+
         # iterate over all the links on the page
         missing_subpage_links = None
         for link in output_links:
@@ -423,9 +470,10 @@ class AMWG(Diag):
             logging.info(msg)
             return True
     # -----------------------------------------------
+
     def _change_input_file_names(self):
         """
-        change case_01_000101_000201_climo.nc to 
+        change case_01_000101_000201_climo.nc to
                case_01_climo.nc
         """
         input_path, _ = os.path.split(self._input_file_paths[0])
@@ -433,5 +481,6 @@ class AMWG(Diag):
         for file in self._input_file_paths:
             _, filename = os.path.split(file)
             index = re.search(pattern, filename).start()
-            os.rename(file, os.path.join(input_path, filename[:index] + 'climo.nc'))
+            os.rename(file, os.path.join(
+                input_path, filename[:index] + 'climo.nc'))
     # -----------------------------------------------

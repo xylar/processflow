@@ -9,18 +9,26 @@ from jobs.diag import Diag
 from lib.util import render, print_line
 from lib.jobstatus import JobStatus
 
+
 class Aprime(Diag):
     def __init__(self, *args, **kwargs):
+        """
+        Parameters
+        ----------
+            config (dict): the global configuration object
+            custom_args (dict): a dictionary of user supplied arguments
+                to pass to the resource manager
+        """
         super(Aprime, self).__init__(*args, **kwargs)
         self._job_type = 'aprime'
         self._requires = ''
         self._host_path = ''
         self._host_url = ''
         self._input_base_path = ''
-        self._data_required = ['atm', 'cice', 'ocn', 
-                               'ocn_restart', 'cice_restart', 
-                               'ocn_streams', 'cice_streams', 
-                               'ocn_in', 'cice_in', 
+        self._data_required = ['atm', 'cice', 'ocn',
+                               'ocn_restart', 'cice_restart',
+                               'ocn_streams', 'cice_streams',
+                               'ocn_in', 'cice_in',
                                'meridionalHeatTransport']
         custom_args = kwargs['config']['diags']['aprime'].get('custom_args')
         if custom_args:
@@ -30,21 +38,26 @@ class Aprime(Diag):
         else:
             self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
     # -----------------------------------------------
+
     def setup_dependencies(self, *args, **kwargs):
         """
         aprime doesnt depend on any other jobs
         """
         return
     # -----------------------------------------------
+
     def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
-        
+
         Parameters
         ----------
             config (dict): the globus processflow config object
-            dryrun (bool): a flag to denote that all the data should be set, and the scripts generated, but not actually submitted
+            event_list (EventList): an EventList to push user notifications into
+            dryrun (bool): a flag to denote that all the data should be set,
+                and the scripts generated, but not actually submitted
         """
+        self._dryrun = dryrun
 
         # sets up the output path, creating it if it doesnt already exist
         self._output_path = os.path.join(
@@ -57,15 +70,14 @@ class Aprime(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
-        
         # fix the input paths
         self._fix_input_paths()
-        
+
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
             self.short_name,
             'aprime')
-        
+
         # setup template
         template_out = os.path.join(
             config['global']['run_scripts_path'],
@@ -87,7 +99,7 @@ class Aprime(Diag):
         template_input_path = os.path.join(
             config['global']['resource_path'],
             'aprime_template_vs_obs.bash')
-        
+
         render(
             variables=variables,
             input_path=template_input_path,
@@ -100,16 +112,27 @@ class Aprime(Diag):
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
+
     def postvalidate(self, config, *args, **kwargs):
-        
+        """
+        Validates that the diagnostic produced its expected output
+
+        Parameters
+        ----------
+            config (dict): the global cofiguration object
+        Returns
+        -------
+            True if all output exists as expected
+            False otherwise
+        """
         if not self._output_path:
             self._output_path = os.path.join(
-            config['global']['project_path'],
-            'output', 'diags', self.short_name, 'aprime',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
+                config['global']['project_path'],
+                'output', 'diags', self.short_name, 'aprime',
+                '{start:04d}_{end:04d}_vs_{comp}'.format(
+                    start=self.start_year,
+                    end=self.end_year,
+                    comp=self._short_comp_name))
             if not os.path.exists(self._output_path):
                 os.makedirs(self._output_path)
 
@@ -129,8 +152,16 @@ class Aprime(Diag):
                 logging.error(msg)
             return False
     # -----------------------------------------------
-    def handle_completion(self, filemanager, event_list, config):
+
+    def handle_completion(self, event_list, config, *args):
+        """
+        Setup for webhosting after a successful run
         
+        Parameters
+        ----------
+            event_list (EventList): an event list to push user notifications into
+            config (dict): the global config object
+        """
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed'.format(
                 prefix=self.msg_prefix(),
@@ -143,7 +174,7 @@ class Aprime(Diag):
                 case=self._short_name)
             print_line(msg, event_list)
             logging.info(msg)
-        
+
         # if hosting is turned off, simply return
         if not config['global']['host']:
             return
@@ -151,7 +182,8 @@ class Aprime(Diag):
         img_source = os.path.join(
             self._output_path,
             'coupled_diagnostics',
-            '{case}_vs_{comp}'.format(case=self.case, comp=self._short_comp_name),
+            '{case}_vs_{comp}'.format(
+                case=self.case, comp=self._short_comp_name),
             '{case}_years{start}-{end}_vs_{comp}'.format(
                 case=self.case,
                 start=self.start_year,
@@ -163,7 +195,7 @@ class Aprime(Diag):
             config['img_hosting']['host_directory'],
             self.short_name,
             'aprime')
-        
+
         self._host_url = 'https://{server}/{prefix}/{short_name}/aprime/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
@@ -173,6 +205,7 @@ class Aprime(Diag):
             end=self.end_year,
             comp=self._short_comp_name)
     # -----------------------------------------------
+
     def _check_links(self, config):
         """
         Check that all the links exist in the output page
@@ -224,6 +257,7 @@ class Aprime(Diag):
             logging.info(msg)
             return 0
     # -----------------------------------------------
+
     def _fix_input_paths(self):
         """
         Aprime has some hardcoded paths setup that have to be fixed or it will crash
