@@ -212,6 +212,7 @@ def verify_config(config):
         # check timeseries
         # ------------------------------------------------------------------------
         if config['post-processing'].get('timeseries'):
+            import ipdb; ipdb.set_trace()
             if not config['post-processing']['timeseries'].get('run_frequency'):
                 msg = 'no run_frequency given for timeseries'
                 messages.append(msg)
@@ -227,7 +228,7 @@ def verify_config(config):
                         item)
                     messages.append(msg)
                 if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
-                    if item not in config['simulations'][sim].get('job_types'):
+                    if 'timeseries' not in config['simulations'][sim].get('job_types'):
                         continue
                 if not isinstance(config['post-processing']['timeseries'][item], list):
                     config['post-processing']['timeseries'][item] = [
