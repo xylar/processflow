@@ -212,7 +212,6 @@ def verify_config(config):
         # check timeseries
         # ------------------------------------------------------------------------
         if config['post-processing'].get('timeseries'):
-            import ipdb; ipdb.set_trace()
             if not config['post-processing']['timeseries'].get('run_frequency'):
                 msg = 'no run_frequency given for timeseries'
                 messages.append(msg)
