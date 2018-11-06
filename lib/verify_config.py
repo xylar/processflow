@@ -227,7 +227,7 @@ def verify_config(config):
                         item)
                     messages.append(msg)
                 if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
-                    if item not in config['simulations'][sim].get('job_types'):
+                    if 'timeseries' not in config['simulations'][sim].get('job_types'):
                         continue
                 if not isinstance(config['post-processing']['timeseries'][item], list):
                     config['post-processing']['timeseries'][item] = [
