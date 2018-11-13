@@ -126,8 +126,17 @@ def verify_config(config):
             msg = '{} has no file_format'.format(ftype)
             messages.append(msg)
         if not config['data_types'][ftype].get('remote_path'):
-            msg = '{} has no remote_path'.format(ftype)
-            messages.append(msg)
+            all_local = True
+            for sim in config['simulations']:
+                if sim in ['start_year', 'end_year', 'comparisons']:
+                    continue
+                if config['simulations'][sim]['transfer_type'] != 'local':
+                    all_local = False
+                    break
+            if not all_local:
+                msg = '{} has no remote_path'.format(ftype)
+                messages.append(msg)
+            config['data_types'][ftype]['remote_path'] = ''
         if not config['data_types'][ftype].get('local_path'):
             msg = '{} has no local_path'.format(ftype)
             messages.append(msg)
