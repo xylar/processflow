@@ -27,22 +27,6 @@ def verify_config(config):
     # ------------------------------------------------------------------------
     # check simulations
     # ------------------------------------------------------------------------
-    if not config['simulations'].get('comparisons'):
-        if config.get('diags'):
-            msg = 'no comparisons specified'
-            messages.append(msg)
-    else:
-        for comp in config['simulations']['comparisons']:
-            if not isinstance(config['simulations']['comparisons'][comp], list):
-                config['simulations']['comparisons'][comp] = [
-                    config['simulations']['comparisons'][comp]]
-            for other_sim in config['simulations']['comparisons'][comp]:
-                if other_sim in ['obs', 'all']:
-                    continue
-                if other_sim not in config['simulations']:
-                    msg = '{} not found in config.simulations'.format(
-                        other_sim)
-                    messages.append(msg)
     if not config['simulations'].get('start_year'):
         msg = 'no start_year set for simulations'
         messages.append(msg)
@@ -56,8 +40,11 @@ def verify_config(config):
         config['simulations']['end_year'] = int(
             config['simulations']['end_year'])
     for sim in config.get('simulations'):
-        if sim in ['comparisons', 'start_year', 'end_year']:
+        if sim in ['start_year', 'end_year']:
             continue
+        if config['simulations'][sim].get('comparisons'):
+            if not isinstance(config['simulations'][sim]['comparisons'], list):
+                config['simulations'][sim]['comparisons'] = [config['simulations'][sim]['comparisons']]
         if not config['simulations'][sim].get('transfer_type'):
             msg = '{} is missing trasfer_type, if the data is local, set transfer_type to \'local\''.format(
                 sim)
@@ -128,7 +115,7 @@ def verify_config(config):
         if not config['data_types'][ftype].get('remote_path'):
             all_local = True
             for sim in config['simulations']:
-                if sim in ['start_year', 'end_year', 'comparisons']:
+                if sim in ['start_year', 'end_year']:
                     continue
                 if config['simulations'][sim]['transfer_type'] != 'local':
                     all_local = False
@@ -182,7 +169,7 @@ def verify_config(config):
                             item)
                         messages.append(msg)
                 for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year', 'comparisons']:
+                    if sim in ['start_year', 'end_year']:
                         continue
                     # if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
                     #     if item not in config['simulations'][sim].get('data_types'):
@@ -210,7 +197,7 @@ def verify_config(config):
                     config['post-processing']['climo']['run_frequency'] = [
                         config['post-processing']['climo']['run_frequency']]
             for sim in config['simulations']:
-                if sim in ['start_year', 'end_year', 'comparisons']:
+                if sim in ['start_year', 'end_year']:
                     continue
                 if 'all' not in config['simulations'][sim].get('data_types'):
                     if 'atm' not in config['simulations'][sim].get('data_types'):
@@ -242,7 +229,7 @@ def verify_config(config):
                     config['post-processing']['timeseries'][item] = [
                         config['post-processing']['timeseries'][item]]
                 for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year', 'comparisons']:
+                    if sim in ['start_year', 'end_year']:
                         continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
                         if item not in config['simulations'][sim].get('data_types') and ('timeseries' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):

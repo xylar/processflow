@@ -330,8 +330,7 @@ class AMWG(Diag):
         else:
             return False
     # -----------------------------------------------
-
-    def handle_completion(self, event_list, config, *args):
+    def handle_completion(self, event_list, config, *args, **kwargs):
         """
         Sets up variables needed to web hosting
 
@@ -360,7 +359,6 @@ class AMWG(Diag):
                 comp=self._short_comp_name))
 
         # setup the web hosting
-        hostname = config['img_hosting']['img_host_server']
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
             self.short_name,

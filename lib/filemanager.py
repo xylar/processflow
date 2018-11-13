@@ -81,7 +81,7 @@ class FileManager(object):
         with open(file_list_path, 'w') as fp:
             try:
                 for case in self._config['simulations']:
-                    if case in ['start_year', 'end_year', 'comparisons']:
+                    if case in ['start_year', 'end_year']:
                         continue
                     fp.write('+++++++++++++++++++++++++++++++++++++++++++++')
                     fp.write('\n\t{case}\t\n'.format(case=case))
@@ -205,7 +205,7 @@ class FileManager(object):
         with DataFile._meta.database.atomic():
             # for each case
             for case in self._config['simulations']:
-                if case in ['start_year', 'end_year', 'comparisons']:
+                if case in ['start_year', 'end_year']:
                     continue
                 # for each data type
                 for _type in self._config['data_types']:

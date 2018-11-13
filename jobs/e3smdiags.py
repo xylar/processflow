@@ -157,7 +157,7 @@ class E3SMDiags(Diag):
         return self._check_links(config)
     # -----------------------------------------------
 
-    def handle_completion(self, event_list, config, *args):
+    def handle_completion(self, event_list, config, *args, **kwargs):
         """
         Perform setup for webhosting
         
@@ -178,11 +178,10 @@ class E3SMDiags(Diag):
             logging.info(msg)
 
         # if hosting is turned off, simply return
-        if not config['global']['host']:
+        if not config['global'].get('host'):
             return
 
         # else setup the web hosting
-        hostname = config['img_hosting']['img_host_server']
         self.host_path = os.path.join(
             config['img_hosting']['host_directory'],
             self.short_name,
@@ -192,8 +191,10 @@ class E3SMDiags(Diag):
                 end=self.end_year,
                 comp=self._short_comp_name))
 
-        self.setup_hosting(config, self._output_path,
-                           self.host_path, event_list)
+        self.setup_hosting(
+            config,
+            self._output_path,
+            self.host_path, event_list)
 
         self._host_url = 'https://{server}/{prefix}/{case}/e3sm_diags/{start:04d}_{end:04d}_vs_{comp}/viewer/index.html'.format(
             server=config['img_hosting']['img_host_server'],

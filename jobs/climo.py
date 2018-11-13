@@ -148,7 +148,7 @@ class Climo(Job):
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config):
+    def handle_completion(self, event_list, config, *args, **kwargs):
         """
         Adds the output files to the filemanager database
             as 'climo_regrid' and 'climo_native' data types
@@ -185,7 +185,7 @@ class Climo(Job):
                 'month': self.end_year,  # use the month to hold the end year field
                 'local_status': FileStatus.PRESENT.value
             })
-        filemanager.add_files(
+        kwargs['filemanager'].add_files(
             data_type='climo_regrid',
             file_list=new_files)
         if not config['data_types'].get('climo_regrid'):
@@ -205,13 +205,13 @@ class Climo(Job):
                 'month': self.end_year,  # use the month to hold the end year field
                 'local_status': FileStatus.PRESENT.value
             })
-        filemanager.add_files(
+        kwargs['filemanager'].add_files(
             data_type='climo_native',
             file_list=new_files)
         if not config['data_types'].get('climo_native'):
             config['data_types']['climo_native'] = {'monthly': True}
 
-        filemanager.write_database()
+        kwargs['filemanager'].write_database()
         msg = '{prefix}: Job completion handler done'.format(
             prefix=self.msg_prefix())
         print_line(msg, event_list)

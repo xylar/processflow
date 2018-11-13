@@ -152,8 +152,7 @@ class Aprime(Diag):
                 logging.error(msg)
             return False
     # -----------------------------------------------
-
-    def handle_completion(self, event_list, config, *args):
+    def handle_completion(self, event_list, config, *args, **kwargs):
         """
         Setup for webhosting after a successful run
         
@@ -178,17 +177,6 @@ class Aprime(Diag):
         # if hosting is turned off, simply return
         if not config['global']['host']:
             return
-
-        img_source = os.path.join(
-            self._output_path,
-            'coupled_diagnostics',
-            '{case}_vs_{comp}'.format(
-                case=self.case, comp=self._short_comp_name),
-            '{case}_years{start}-{end}_vs_{comp}'.format(
-                case=self.case,
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
 
         # setup the web hosting
         self._host_path = os.path.join(
