@@ -156,6 +156,9 @@ class RunManager(object):
                 if (year - start) % freq == 0:
                     # get the comparisons from the config                    
                     comparisons = self.config['simulations'][case['case']].get('comparisons')
+                    # if this case has no comparisons move on
+                    if not comparisons:
+                        return
                     if job_type == 'aprime':
                         comparisons = ['obs']
                     job_end = year + freq - 1
