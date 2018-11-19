@@ -133,8 +133,7 @@ class Regrid(Job):
                     return False
         return True
     # -----------------------------------------------
-
-    def handle_completion(self, filemanager, event_list, config):
+    def handle_completion(self, event_list, config, *args, **kwargs):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())
@@ -157,7 +156,7 @@ class Regrid(Job):
                 'year': self.start_year,
                 'local_status': FileStatus.PRESENT.value
             })
-        filemanager.add_files(
+        kwargs['filemanager'].add_files(
             data_type='regrid',
             file_list=new_files)
         if not config['data_types'].get('regrid'):

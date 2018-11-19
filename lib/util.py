@@ -159,6 +159,8 @@ def render(variables, input_path, output_path):
     Renders the jinja2 template from the input_path into the output_path
     using the variables from variables
     """
+    if os.path.exists(output_path):
+        os.remove(output_path)
     tail, head = os.path.split(input_path)
 
     template_path = os.path.abspath(tail)

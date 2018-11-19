@@ -155,7 +155,10 @@ class RunManager(object):
                 freq = int(freq)
                 if (year - start) % freq == 0:
                     # get the comparisons from the config                    
-                    comparisons = self.config['simulations']['comparisons'][case['case']]
+                    comparisons = self.config['simulations'][case['case']].get('comparisons')
+                    # if this case has no comparisons move on
+                    if not comparisons:
+                        return
                     if job_type == 'aprime':
                         comparisons = ['obs']
                     job_end = year + freq - 1
@@ -165,7 +168,8 @@ class RunManager(object):
                     for item in comparisons:
                         if item == 'all':
                             for other_case in self.config['simulations']:
-                                if other_case in ['start_year', 'end_year', 'comparisons', case['case']]: continue
+                                if other_case in ['start_year', 'end_year', case['case']]:
+                                    continue
                                 new_diag = job_map[job_type](
                                     short_name=case['short_name'],
                                     case=case['case'],
@@ -202,7 +206,8 @@ class RunManager(object):
         start = self.config['simulations']['start_year']
         end = self.config['simulations']['end_year']
         for case in self.config['simulations']:
-            if case in ['start_year', 'end_year', 'comparisons']: continue
+            if case in ['start_year', 'end_year']:
+                continue
             self.cases.append({
                 'case': case,
                 'short_name': self.config['simulations'][case]['short_name'],
@@ -312,9 +317,9 @@ class RunManager(object):
                         job.status = JobStatus.COMPLETED
                         self._job_complete += 1
                         job.handle_completion(
-                            self.filemanager,
-                            self.event_list,
-                            self.config)
+                            filemanager=self.filemanager,
+                            event_list=self.event_list,
+                            config=self.config)
                         self.report_completed_job()
                         msg = '{}: Job previously computed, skipping'.format(job.msg_prefix())
                         print_line(msg, self.event_list)
@@ -438,9 +443,9 @@ class RunManager(object):
                 self._job_complete += 1
                 for_removal.append(item)
                 job.handle_completion(
-                    self.filemanager,
-                    self.event_list,
-                    self.config)
+                    filemanager=self.filemanager,
+                    event_list=self.event_list,
+                    config=self.config)
                 self.report_completed_job()
                 continue
             try:
@@ -457,9 +462,9 @@ class RunManager(object):
                 if valid:
                     job.status = JobStatus.COMPLETED
                     job.handle_completion(
-                        self.filemanager,
-                        self.event_list,
-                        self.config)
+                        filemanager=self.filemanager,
+                        event_list=self.event_list,
+                        config=self.config)
                     self.report_completed_job()
                 else:
                     job.status = JobStatus.FAILED
@@ -485,9 +490,9 @@ class RunManager(object):
                     if not valid:
                         job.status = JobStatus.FAILED
                     job.handle_completion(
-                        self.filemanager,
-                        self.event_list,
-                        self.config)
+                        filemanager=self.filemanager,
+                        event_list=self.event_list,
+                        config=self.config)
                     for_removal.append(item)
                     self.report_completed_job()
                     if status in [JobStatus.FAILED, JobStatus.CANCELLED]:

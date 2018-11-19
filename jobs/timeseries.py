@@ -173,8 +173,7 @@ class Timeseries(Job):
 
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
-
-    def handle_completion(self, filemanager, event_list, config):
+    def handle_completion(self, event_list, config, *args, **kwargs):
         """
         Post run handler, adds produced timeseries variable files into
         the filemanagers database
@@ -219,7 +218,7 @@ class Timeseries(Job):
                 'month': self.end_year,
                 'local_status': FileStatus.PRESENT.value
             })
-        filemanager.add_files(
+        kwargs['filemanager'].add_files(
             data_type='ts_native',
             file_list=new_files)
         if not config['data_types'].get('ts_native'):
@@ -247,7 +246,7 @@ class Timeseries(Job):
                     'month': self.end_year,
                     'local_status': FileStatus.PRESENT.value
                 })
-            filemanager.add_files(
+            kwargs['filemanager'].add_files(
                 data_type='ts_regrid',
                 file_list=new_files)
             if not config['data_types'].get('ts_regrid'):

@@ -305,7 +305,8 @@ def setup_directories(_args, config):
     if not os.path.exists(input_path):
         os.makedirs(input_path)
     for sim in config['simulations']:
-        if sim in ['start_year', 'end_year', 'comparisons']: continue
+        if sim in ['start_year', 'end_year']:
+            continue
         sim_input = os.path.join(input_path, sim)
         if not os.path.exists(sim_input):
             os.makedirs(sim_input)
@@ -322,7 +323,8 @@ def setup_directories(_args, config):
     if not os.path.exists(diags_path):
         os.makedirs(diags_path)
     for sim in config['simulations']:
-        if sim in ['start_year', 'end_year', 'comparisons']: continue
+        if sim in ['start_year', 'end_year']:
+            continue
         sim_diags = os.path.join(diags_path, config['simulations'][sim]['short_name'])
         if not os.path.exists(sim_diags):
             os.makedirs(sim_diags)
