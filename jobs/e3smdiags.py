@@ -24,10 +24,6 @@ class E3SMDiags(Diag):
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
-        if self.comparison == 'obs':
-            self._short_comp_name = 'obs'
-        else:
-            self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
     # -----------------------------------------------
 
     def _dep_filter(self, job):
@@ -156,8 +152,7 @@ class E3SMDiags(Diag):
         """
         return self._check_links(config)
     # -----------------------------------------------
-
-    def handle_completion(self, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         """
         Perform setup for webhosting
         

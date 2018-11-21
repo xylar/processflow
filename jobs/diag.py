@@ -15,14 +15,16 @@ from jobs.job import Job
 class Diag(Job):
     def __init__(self, *args, **kwargs):
         super(Diag, self).__init__(*args, **kwargs)
-        self._comparison = kwargs.get('comparison', 'obs')
+        self._comparison = kwargs['comparison']
+        if self.comparison == 'obs':
+            self._short_comp_name = 'obs'
+        else:
+            self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
     # -----------------------------------------------
-
     @property
     def comparison(self):
         return self._comparison
     # -----------------------------------------------
-
     def __str__(self):
         return json.dumps({
             'type': self._job_type,
@@ -36,7 +38,6 @@ class Diag(Job):
             'case': self._case
         }, sort_keys=True, indent=4)
     # -----------------------------------------------
-
     def setup_hosting(self, config, img_source, host_path, event_list):
         """
         Performs file copys for images into the web hosting directory
@@ -91,4 +92,27 @@ class Diag(Job):
                 status=self.status.name,
                 console_path=self._console_output_path)
         return msg
+    # -----------------------------------------------
+    def setup_temp_path(self, config, *args, **kwards):
+        """
+        creates the default temp path for diagnostics
+        /project/output/temp/case_short_name/job_type/start_end_vs_comparison
+        """
+        if self._comparison == 'obs':
+            comp = 'obs'
+        else:
+            comp = config['simulations'][self.comparison]['short_name']
+        return os.path.join(
+            config['global']['project_path'],
+            'output', 'temp', self._short_name, self._job_type,
+            '{:04d}_{:04d}_vs_{}'.format(self._start_year, self._end_year, comp))
+    # -----------------------------------------------
+    def get_run_name(self):
+        return '{type}_{start:04d}_{end:04d}_{case}_vs_{comp}'.format(
+            type=self.job_type,
+            run_type=self._run_type,
+            start=self.start_year,
+            end=self.end_year,
+            case=self.short_name,
+            comp=self._short_comp_name)
     # -----------------------------------------------

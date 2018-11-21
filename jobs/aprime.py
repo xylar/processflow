@@ -152,7 +152,7 @@ class Aprime(Diag):
                 logging.error(msg)
             return False
     # -----------------------------------------------
-    def handle_completion(self, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         """
         Setup for webhosting after a successful run
         

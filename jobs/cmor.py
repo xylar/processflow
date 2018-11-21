@@ -124,7 +124,7 @@ class Cmor(Job):
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
-    def handle_completion(self, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         """
         Adds the output from cmor into the filemanager database as type 'cmorized'
 
@@ -151,10 +151,10 @@ class Cmor(Job):
                             'month': self.end_year,  # use the month to hold the end year field
                             'local_status': FileStatus.PRESENT.value
                         })
-            kwargs['filemanager'].add_files(
+            filemanager.add_files(
                 data_type='cmorized',
                 file_list=new_files)
-            kwargs['filemanager'].write_database()
+            filemanager.write_database()
             msg = '{prefix}: Job completion handler done'.format(
                 prefix=self.msg_prefix())
             print_line(msg, event_list)
