@@ -344,13 +344,31 @@ def verify_config(config):
             if not config['diags']['aprime'].get('run_frequency'):
                 msg = 'no run_frequency given for aprime'
                 messages.append(msg)
+            else:
+                if not isinstance(config['diags']['aprime']['run_frequency'], list):
+                    config['diags']['aprime']['run_frequency'] = [config['diags']['aprime']['run_frequency']]
             if not config['diags']['aprime'].get('aprime_code_path'):
                 msg = 'no aprime_code_path given for aprime'
                 messages.append(msg)
+        # ------------------------------------------------------------------------
+        # check MPAS-Analysis
+        # ------------------------------------------------------------------------
+        if config['diags'].get('mpas_analysis'):
+            if not config['diags']['mpas_analysis'].get('run_frequency'):
+                msg = 'no run_frequency given for aprime'
+                messages.append(msg)
+            else:
+                if not isinstance(config['diags']['mpas_analysis']['run_frequency'], list):
+                    config['diags']['mpas_analysis']['run_frequency'] = [config['diags']['mpas_analysis']['run_frequency']]
+            required_parameters = ['mapping_directory', 'generate_plots', 'start_year_offset', 'ocn_obs_data_path', 'seaice_obs_data_path', 'region_mask_path', 'run_MOC']
+            for param in required_parameters:
+                if not config['diags']['mpas_analysis'].get(param):
+                    msg = 'Missing parameter {p} is required for MPAS-Analysis'.format(p=param)
+                    messages.append(msg)
+            if not isinstance(config['diags']['mpas_analysis'].get('generate_plots', ''), list):
+                config['diags']['mpas_analysis']['generate_plots'] = [config['diags']['mpas_analysis'].get('generate_plots', '')]
     return messages
 # ------------------------------------------------------------------------
-
-
 def check_config_white_space(filepath):
     line_index = 0
     found = False

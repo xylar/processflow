@@ -7,6 +7,9 @@ from lib.filemanager import FileStatus
 
 
 class Timeseries(Job):
+    """
+    A Job subclass for managing time series variable extraction
+    """
     def __init__(self, *args, **kwargs):
         super(Timeseries, self).__init__(*args, **kwargs)
         self._job_type = 'timeseries'
@@ -17,14 +20,12 @@ class Timeseries(Job):
         if custom_args:
             self.set_custom_args(custom_args)
     # -----------------------------------------------
-
     def setup_dependencies(self, *args, **kwargs):
         """
         Timeseries doesnt require any other jobs
         """
         return True
     # -----------------------------------------------
-
     def postvalidate(self, config, *args, **kwargs):
         """
         validate that all the timeseries variable files were producted as expected
@@ -105,7 +106,6 @@ class Timeseries(Job):
         # if nothing was missing then we must be done
         return True
     # -----------------------------------------------
-
     def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for e3sm_diags
@@ -256,4 +256,23 @@ class Timeseries(Job):
             prefix=self.msg_prefix())
         print_line(msg, event_list)
         logging.info(msg)
+    # -----------------------------------------------
+    def setup_temp_path(self, config, *args, **kwards):
+        """
+        creates the input structure for the regrid job
+        /project/output/temp/case_short_name/job_type_run_type/start_end
+        """
+        return os.path.join(
+            config['global']['project_path'],
+            'output', 'temp', self._short_name,
+            '{}_{}'.format(self._job_type, self._run_type),
+            '{:04d}_{:04d}'.format(self._start_year, self._end_year))
+    # -----------------------------------------------
+    def get_run_name():
+        return '{type}_{run_type}_{start:04d}_{end:04d}_{case}'.format(
+            type=self.job_type,
+            run_type=self._run_type,
+            start=self.start_year,
+            end=self.end_year,
+            case=self.short_name)
     # -----------------------------------------------
