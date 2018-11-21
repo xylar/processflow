@@ -2,7 +2,6 @@ import os
 import re
 import logging
 
-from bs4 import BeautifulSoup
 from shutil import move
 
 from jobs.diag import Diag
@@ -24,13 +23,13 @@ class MPASAnalysis(Diag):
         self._requires = ''
         self._host_path = ''
         self._host_url = ''
-        self._input_base_path = ''
+        self.case_start_year = kwargs['config']['simulations']['start_year']
         self._data_required = ['cice', 'ocn',
                                'ocn_restart', 'cice_restart',
                                'ocn_streams', 'cice_streams',
                                'ocn_in', 'cice_in',
                                'meridionalHeatTransport']
-        custom_args = kwargs['config']['diags']['aprime'].get('custom_args')
+        custom_args = kwargs['config']['diags']['mpas_analysis'].get('custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
         if self.comparison == 'obs':
@@ -40,13 +39,13 @@ class MPASAnalysis(Diag):
     # -----------------------------------------------
     def setup_dependencies(self, *args, **kwargs):
         """
-        aprime doesnt depend on any other jobs
+        mpas_analysis doesnt depend on any other jobs
         """
         return
     # -----------------------------------------------
     def execute(self, config, event_list, dryrun=False):
         """
-        Generates and submits a run script for ncremap to regrid model output
+        Generates and submits a run script for mpas_analysis
 
         Parameters
         ----------
@@ -68,27 +67,62 @@ class MPASAnalysis(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
-        self._host_path = os.path.join(
-            config['img_hosting']['host_directory'],
-            self.short_name,
-            self._job_type)
+        if config.get('img_hosting'):
+            self._host_path = os.path.join(
+                config['img_hosting']['host_directory'],
+                self.short_name,
+                self._job_type)
+        else:
+            self._host_path = ''
 
         # setup template
         template_out = os.path.join(
             config['global']['run_scripts_path'],
-            '{job}_{start:04d}_{end:04d}_{case}_vs_{comp}.bash'.format(
+            '{job}_{start:04d}_{end:04d}_{case}_vs_{comp}.cfg'.format(
                 job=self._job_type,
                 start=self.start_year,
                 end=self.end_year,
                 case=self.short_name,
                 comp=self._short_comp_name))
+        template_input_path = os.path.join(
+            config['global']['resource_path'],
+            'mpas_a_vs_obs.cfg')
+        
+        generate_string = '["' + '", "'.join([x for x in config['diags']['mpas_analysis'].get('generate_plots', '')]) + '"]'
         variables = {
             'case': self.case,
-            'numWorkers': config['diags']['mpas_analysis']['num_workers'],
-            'baseInputPath': self._input_base_path
+            'numWorkers': config['diags']['mpas_analysis'].get('num_workers', 8),
+            'baseInputPath': self._input_base_path,
+            'restartSubPath': self._input_base_path,
+            'ocnHistSubPath': self._input_base_path,
+            'iceHistSubPath': self._input_base_path,
+            'meshName': config['simulations'][self.case].get('native_mpas_grid_name', ''),
+            'mappingDirectory': config['diags']['mpas_analysis'].get('mapping_directory', ''),
+            'ocnNamePath': self._input_base_path,
+            'ocnStreamsPath': self._input_base_path,
+            'iceNamePath': self._input_base_path,
+            'iceStreamsPath': self._input_base_path,
+            'outputBasePath': self._output_path,
+            'generatePlots': generate_string,
+            'startYear': self.start_year,
+            'endYear': self.end_year,
+            'tsYear': config['diags']['mpas_analysis'].get('start_year_offset', self.start_year),
+            'tsEnd': self.end_year,
+            'ninoStart': config['diags']['mpas_analysis'].get('start_year_offset', self.start_year),
+            'ninoEnd': self.end_year,
+            'ocnObsPath': config['diags']['mpas_analysis'].get('ocn_obs_data_path', ''),
+            'iceObs': config['diags']['mpas_analysis'].get('seaice_obs_data_path', ''),
+            'regionMaskPath': config['diags']['mpas_analysis'].get('region_mask_path', ''),
+            'runMOC': config['diags']['mpas_analysis'].get('run_MOC', '')
         }
-        # TODO: finish
-
+        render(
+            variables=variables,
+            input_path=template_input_path,
+            output_path=template_out)
+        
+        cmd = ['mpas_analysis', template_out]
+        self._has_been_executed = True
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
     def postvalidate(self, config, *args, **kwargs):
         """
@@ -102,10 +136,10 @@ class MPASAnalysis(Diag):
             True if all output exists as expected
             False otherwise
         """
-        pass
+        return self.status == JobStatus.COMPLETED
     # -----------------------------------------------
 
-    def handle_completion(self, event_list, config, *args):
+    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         """
         Setup for webhosting after a successful run
         
