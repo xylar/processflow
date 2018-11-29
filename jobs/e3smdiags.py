@@ -18,7 +18,6 @@ class E3SMDiags(Diag):
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
         self._host_path = ''
-        self._host_url = ''
         self._short_comp_name = ''
         custom_args = kwargs['config']['diags']['e3sm_diags'].get(
             'custom_args')
@@ -182,7 +181,7 @@ class E3SMDiags(Diag):
             return
 
         # else setup the web hosting
-        self.host_path = os.path.join(
+        self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
             self.short_name,
             'e3sm_diags',
@@ -192,9 +191,10 @@ class E3SMDiags(Diag):
                 comp=self._short_comp_name))
 
         self.setup_hosting(
-            config,
-            self._output_path,
-            self.host_path, event_list)
+            always_copy=config['global']['always_copy'],
+            img_source=self._output_path,
+            host_path=self._host_path,
+            event_list=event_list)
 
         self._host_url = 'https://{server}/{prefix}/{case}/e3sm_diags/{start:04d}_{end:04d}_vs_{comp}/viewer/index.html'.format(
             server=config['img_hosting']['img_host_server'],

@@ -27,7 +27,6 @@ class AMWG(Diag):
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
         self._host_path = ''
-        self._host_url = ''
         self._short_comp_name = ''
         custom_args = kwargs['config']['diags']['amwg'].get('custom_args')
         if custom_args:
@@ -379,7 +378,7 @@ class AMWG(Diag):
                 self.status = JobStatus.FAILED
                 logging.info(msg)
                 return
-        self.setup_hosting(config, img_source, self._host_path, event_list)
+        self.setup_hosting(config['global']['always_copy'], img_source, self._host_path, event_list)
 
         self._host_url = 'https://{server}/{prefix}/{case}/amwg/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],

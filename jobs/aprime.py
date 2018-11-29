@@ -23,7 +23,6 @@ class Aprime(Diag):
         self._job_type = 'aprime'
         self._requires = ''
         self._host_path = ''
-        self._host_url = ''
         self._input_base_path = ''
         self._data_required = ['atm', 'cice', 'ocn',
                                'ocn_restart', 'cice_restart',
@@ -183,6 +182,12 @@ class Aprime(Diag):
             config['img_hosting']['host_directory'],
             self.short_name,
             'aprime')
+        
+        self.setup_hosting(
+            always_copy=config['global']['always_copy'],
+            img_source=self._output_path,
+            host_path=self._host_path,
+            event_list=event_list)
 
         self._host_url = 'https://{server}/{prefix}/{short_name}/aprime/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
