@@ -1,4 +1,3 @@
-#!/bin/bash
 
 source $MODULESHOME/init/bash
 if [ ${HOSTNAME:0:3} == "nid" ]; then
