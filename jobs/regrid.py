@@ -28,14 +28,12 @@ class Regrid(Job):
         if custom_args:
             self.set_custom_args(custom_args)
     # -----------------------------------------------
-
     def setup_dependencies(self, *args, **kwargs):
         """
         Regrid doesnt require any other jobs
         """
         return True
     # -----------------------------------------------
-
     def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for ncremap to regrid model output
@@ -99,7 +97,6 @@ class Regrid(Job):
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
-
     def postvalidate(self, config, *args, **kwargs):
         self._output_path = os.path.join(
             config['global']['project_path'],
@@ -162,13 +159,30 @@ class Regrid(Job):
         if not config['data_types'].get('regrid'):
             config['data_types']['regrid'] = {'monthly': True}
     # -----------------------------------------------
-
     @property
     def run_type(self):
         return self._run_type
     # -----------------------------------------------
-
     @property
     def data_type(self):
         return self._data_type
+    # -----------------------------------------------
+    def setup_temp_path(self, config, *args, **kwards):
+        """
+        creates the input structure for the regrid job
+        /project/output/temp/case_short_name/job_type_run_type/start_end
+        """
+        return os.path.join(
+            config['global']['project_path'],
+            'output', 'temp', self._short_name,
+            '{}_{}'.format(self._job_type, self._run_type),
+            '{:04d}_{:04d}'.format(self._start_year, self._end_year))
+    # -----------------------------------------------
+    def get_run_name():
+        return '{type}_{run_type}_{start:04d}_{end:04d}_{case}'.format(
+            type=self.job_type,
+            run_type=self._run_type,
+            start=self.start_year,
+            end=self.end_year,
+            case=self.short_name)
     # -----------------------------------------------

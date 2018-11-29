@@ -17,6 +17,10 @@ class Diag(Job):
         super(Diag, self).__init__(*args, **kwargs)
         self._host_url = ''
         self._comparison = kwargs.get('comparison', 'obs')
+        if self.comparison == 'obs':
+            self._short_comp_name = 'obs'
+        else:
+            self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
     # -----------------------------------------------
     @property
     def comparison(self):
@@ -94,4 +98,27 @@ class Diag(Job):
                 status=self.status.name,
                 console_path=self._console_output_path)
         return msg
+    # -----------------------------------------------
+    def setup_temp_path(self, config, *args, **kwards):
+        """
+        creates the default temp path for diagnostics
+        /project/output/temp/case_short_name/job_type/start_end_vs_comparison
+        """
+        if self._comparison == 'obs':
+            comp = 'obs'
+        else:
+            comp = config['simulations'][self.comparison]['short_name']
+        return os.path.join(
+            config['global']['project_path'],
+            'output', 'temp', self._short_name, self._job_type,
+            '{:04d}_{:04d}_vs_{}'.format(self._start_year, self._end_year, comp))
+    # -----------------------------------------------
+    def get_run_name(self):
+        return '{type}_{start:04d}_{end:04d}_{case}_vs_{comp}'.format(
+            type=self.job_type,
+            run_type=self._run_type,
+            start=self.start_year,
+            end=self.end_year,
+            case=self.short_name,
+            comp=self._short_comp_name)
     # -----------------------------------------------

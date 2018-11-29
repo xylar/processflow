@@ -159,8 +159,6 @@ def render(variables, input_path, output_path):
     Renders the jinja2 template from the input_path into the output_path
     using the variables from variables
     """
-    if os.path.exists(output_path):
-        os.remove(output_path)
     tail, head = os.path.split(input_path)
 
     template_path = os.path.abspath(tail)
@@ -169,7 +167,7 @@ def render(variables, input_path, output_path):
     template = env.get_template(head)
     outstr = template.render(variables)
 
-    with open(output_path, 'a') as outfile:
+    with open(output_path, 'a+') as outfile:
         outfile.write(outstr)
 
 def create_symlink_dir(src_dir, src_list, dst):
