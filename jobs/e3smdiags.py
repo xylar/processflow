@@ -186,7 +186,7 @@ class E3SMDiags(Diag):
                 comp=self._short_comp_name))
 
         self.setup_hosting(
-            always_copy=config['global']['always_copy'],
+            always_copy=config['global'].get('always_copy', False),
             img_source=self._output_path,
             host_path=self._host_path,
             event_list=event_list)

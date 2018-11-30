@@ -171,9 +171,6 @@ def verify_config(config):
                 for sim in config['simulations']:
                     if sim in ['start_year', 'end_year']:
                         continue
-                    # if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
-                    #     if item not in config['simulations'][sim].get('data_types'):
-                    #         continue
                     if 'all' not in config['simulations'][sim].get('data_types'):
                         if item not in config['simulations'][sim].get('data_types') and ('regrid' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'regrid is set to run on data_type {}, but this type is not set in simulation {}'.format(
@@ -199,6 +196,9 @@ def verify_config(config):
             for sim in config['simulations']:
                 if sim in ['start_year', 'end_year']:
                     continue
+                if sim == 'comparisons':
+                    msg = 'You may be using an old config format, comparisons are now inside each case'
+                    messages.append(msg)
                 if 'all' not in config['simulations'][sim].get('data_types'):
                     if 'atm' not in config['simulations'][sim].get('data_types'):
                         msg = 'ncclimo is set to run for simulation {}, but this simulation does not have atm in its data_types'.format(
