@@ -73,7 +73,7 @@ class MPASAnalysis(Diag):
                 self.short_name,
                 self._job_type)
         else:
-            self._host_path = ''
+            self._host_path = 'html'
 
         # setup template
         template_out = os.path.join(
@@ -113,7 +113,8 @@ class MPASAnalysis(Diag):
             'ocnObsPath': config['diags']['mpas_analysis'].get('ocn_obs_data_path', ''),
             'iceObs': config['diags']['mpas_analysis'].get('seaice_obs_data_path', ''),
             'regionMaskPath': config['diags']['mpas_analysis'].get('region_mask_path', ''),
-            'runMOC': config['diags']['mpas_analysis'].get('run_MOC', '')
+            'runMOC': config['diags']['mpas_analysis'].get('run_MOC', ''),
+            'htmlSubdirectory': self._host_path
         }
         render(
             variables=variables,
