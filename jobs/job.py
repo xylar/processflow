@@ -38,7 +38,7 @@ class Job(object):
         self._output_path = ''
         self._dryrun = dryrun
         self._manager_args = {
-            'slurm': ['-n 16', '-t 0-10:00', '-N 1'],
+            'slurm': ['-t 0-10:00', '-N 1'],
             'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
         }
     # -----------------------------------------------
