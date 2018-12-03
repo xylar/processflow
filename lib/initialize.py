@@ -83,6 +83,10 @@ def initialize(argv, **kwargs):
     if not pargs.config:
         parse_args(print_help=True)
         return False, False, False
+    if not os.path.isfile(pargs.config):
+        msg = "The referenced config is not a regular file, please select a config file"
+        print_message(msg)
+        return False, False, False
     event_list = kwargs['event_list']
     event = kwargs['kill_event']
     print_line(
