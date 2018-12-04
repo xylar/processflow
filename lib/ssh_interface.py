@@ -1,5 +1,6 @@
 import sys
 import os
+import json
 import logging
 import paramiko
 
@@ -67,31 +68,48 @@ def transfer(sftp_client, file):
         logging.info(msg)
     return True
 
-def get_ssh_client(hostname):    
+def get_ssh_client(hostname, credential_path=False):    
     """
     Get user credentials and use them to log in to the remote host
 
     Parameters:
         hostname (str): the hostname of the remote host
+        credential_path (str): the optional path to a json file containing user credentials
     Returns:
         Paramiko.Transport client if login successful,
         None otherwise
     """
-    username = raw_input('Username for {}: '.format(hostname))
-
     client = paramiko.SSHClient()
     client.load_system_host_keys()
     client.set_missing_host_key_policy(paramiko.WarningPolicy)
     connected = False
-    for _ in range(3):
+
+    if credential_path:
+        with open(credential_path, 'r') as infile:
+            creds = json.load(infile)
+        username = creds.get('username')
+        password = creds.get('password')
+        one_time = creds.get('one_time_code')
+        if one_time:
+            password = '{}{}'.format(password, one_time)
         try:
-            password = getpass(prompt='Password for {}: '.format(hostname))
             client.connect(hostname, port=22, username=username, password=password)
-        except Exception as e:
-            print 'Invalid password'
+        except Exception as error:
+            print_debug(error)
+            connected = False
         else:
             connected = True
-            break
+    else:
+        username = raw_input('Username for {}: '.format(hostname))
+        for _ in range(3):
+            try:
+                password = getpass(prompt='Password for {}: '.format(hostname))
+                client.connect(hostname, port=22, username=username, password=password)
+            except Exception as error:
+                print 'Invalid password'
+            else:
+                connected = True
+                break
     if not connected:
         print 'Unable to open ssh connection for {}'.format(hostname)
         sys.exit(1)

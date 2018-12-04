@@ -100,7 +100,7 @@ class Job(object):
         symlinks all data_types sepecified in the jobs _data_required field,
         and puts a copy of the path for the links into the _input_file_paths field
         """
-
+        
         # loop over the data types, linking them in one at a time
         for datatype in self._data_required:
 

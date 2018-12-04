@@ -128,7 +128,8 @@ class FileManager(object):
     def check_data_ready(self, data_required, case, start_year=None, end_year=None):
         try:
             for datatype in data_required:
-                if start_year and end_year:
+                monthly = self._config['data_types'][datatype].get('monthly')
+                if start_year and end_year and monthly:
                     q = (DataFile
                             .select()
                             .where(
@@ -143,6 +144,11 @@ class FileManager(object):
                                 (DataFile.case == case) &
                                 (DataFile.datatype == datatype)))
                 datafiles = q.execute()
+                if not datafiles:
+                    msg = "ERROR: missing records for datatype {}".format(datatype)
+                    logging.error(msg)
+                    print(msg)
+                    return False
                 for df in datafiles:
                     if not os.path.exists(df.local_path) and df.local_status == FileStatus.PRESENT.value:
                         df.local_status = FileStatus.NOT_PRESENT.value
@@ -550,7 +556,13 @@ class FileManager(object):
                         len(required_files))
                     print_line(msg, event_list)
 
-                    client = get_ssh_client(required_files[0].remote_hostname)
+                    if config['global']['credential_path']:
+                        cred_path = config['global']['credential_path']
+                    else:
+                        cred_path = False
+                    client = get_ssh_client(
+                        required_files[0].remote_hostname,
+                        credential_path=cred_path)
                     if not self.verify_remote_files(client=client, case=case):
                         return False
                     thread_name = '{}_sftp_transfer'.format(required_files[0].case)

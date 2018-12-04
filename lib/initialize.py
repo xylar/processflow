@@ -27,6 +27,9 @@ def parse_args(argv=None, print_help=None):
         '-c', '--config',
         help='Path to configuration file.')
     parser.add_argument(
+        '-d', '--credential',
+        help='Path to ssh credential file')
+    parser.add_argument(
         '-m', '--max-jobs',
         help='Maximum number of jobs to run at any given time',
         type=int)
@@ -144,6 +147,15 @@ Please add a space and run again.'''.format(num=line_index)
             'share',
             'processflow',
             'resources')
+
+    # setup the credential file if the user set the -d flag
+    if pargs.credential:
+        if not os.path.isfile(pargs.credentail):
+            print_message('User supplied credential file is not a regular file')
+            sys.exit(1)
+        config['global']['credential_path'] = pargs.credential
+    else:
+        config['global']['credential_path'] = False
 
     # Setup boolean config flags
     config['global']['host'] = True if config.get('img_hosting') else False
