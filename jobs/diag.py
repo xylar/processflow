@@ -81,23 +81,19 @@ class Diag(Job):
         """
         Returns a nice report string of job status information
         """
-        if self.status == JobStatus.COMPLETED:
-            if self._host_url:
-                msg = '{prefix} :: {status} :: {url}'.format(
-                    prefix=self.msg_prefix(),
-                    status=self.status.name,
-                    url=self._host_url)
-            else:
-                msg = '{prefix} :: {status} :: {console_path}'.format(
-                    prefix=self.msg_prefix(),
-                    status=self.status.name,
-                    console_path=self._console_output_path)
-        else:
-            msg = '{prefix} :: {status} :: {console_path}'.format(
+
+        # if the job failed or img hosting is turned off, report the status and a path to the jobs console output
+        if self.status != JobStatus.COMPLETED or not self._host_url:
+            return '{prefix} :: {status} :: {console_path}'.format(
                 prefix=self.msg_prefix(),
                 status=self.status.name,
                 console_path=self._console_output_path)
-        return msg
+        # otherwise report the status and give a url to view the output
+        else:
+            return '{prefix} :: {status} :: {url}'.format(
+                    prefix=self.msg_prefix(),
+                    status=self.status.name,
+                    url=self._host_url)
     # -----------------------------------------------
     def setup_temp_path(self, config, *args, **kwards):
         """
