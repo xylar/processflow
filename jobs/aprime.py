@@ -29,13 +29,31 @@ class Aprime(Diag):
                                'ocn_streams', 'cice_streams',
                                'ocn_in', 'cice_in',
                                'meridionalHeatTransport']
-        custom_args = kwargs['config']['diags']['aprime'].get('custom_args')
+
+        custom_args = kwargs['config']['diags'][self.job_type].get(
+            'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
-        if self.comparison == 'obs':
-            self._short_comp_name = 'obs'
+        
+        # setup the output directory, creating it if it doesnt already exist
+        custom_output_path = kwargs['config']['diags'][self.job_type].get(
+            'custom_output_path')
+        if custom_output_path:
+            self._replace_dict['COMPARISON'] = self._short_comp_name
+            self._output_path = self.setup_output_directory(custom_output_path)
         else:
-            self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
+            self._output_path = os.path.join(
+                kwargs['config']['global']['project_path'],
+                'output',
+                'diags',
+                self.short_name,
+                self.job_type,
+                '{start:04d}_{end:04d}_vs_{comp}'.format(
+                    start=self.start_year,
+                    end=self.end_year,
+                    comp=self._short_comp_name))
+        if not os.path.exists(self._output_path):
+            os.makedirs(self._output_path)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -57,17 +75,6 @@ class Aprime(Diag):
                 and the scripts generated, but not actually submitted
         """
         self._dryrun = dryrun
-
-        # sets up the output path, creating it if it doesnt already exist
-        self._output_path = os.path.join(
-            config['global']['project_path'],
-            'output', 'diags', self.short_name, 'aprime',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
-        if not os.path.exists(self._output_path):
-            os.makedirs(self._output_path)
 
         # fix the input paths
         self._fix_input_paths()
@@ -109,7 +116,7 @@ class Aprime(Diag):
             'cd {}\n'.format(aprime_code_path),
             'bash', template_out]
         self._has_been_executed = True
-        return self._submit_cmd_to_manager(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -124,16 +131,6 @@ class Aprime(Diag):
             True if all output exists as expected
             False otherwise
         """
-        if not self._output_path:
-            self._output_path = os.path.join(
-                config['global']['project_path'],
-                'output', 'diags', self.short_name, 'aprime',
-                '{start:04d}_{end:04d}_vs_{comp}'.format(
-                    start=self.start_year,
-                    end=self.end_year,
-                    comp=self._short_comp_name))
-            if not os.path.exists(self._output_path):
-                os.makedirs(self._output_path)
 
         self._host_path = os.path.join(
             config['img_hosting']['host_directory'],
@@ -151,10 +148,11 @@ class Aprime(Diag):
                 logging.error(msg)
             return False
     # -----------------------------------------------
+
     def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         """
         Setup for webhosting after a successful run
-        
+
         Parameters
         ----------
             event_list (EventList): an event list to push user notifications into
@@ -182,7 +180,7 @@ class Aprime(Diag):
             config['img_hosting']['host_directory'],
             self.short_name,
             'aprime')
-        
+
         self.setup_hosting(
             always_copy=config['global']['always_copy'],
             img_source=self._output_path,

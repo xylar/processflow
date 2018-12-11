@@ -18,6 +18,7 @@ class Job(object):
     """
     A base job class for all post-processing and diagnostic jobs
     """
+
     def __init__(self, start, end, case, short_name, data_required=None, dryrun=False, **kwargs):
         self._start_year = start
         self._end_year = end
@@ -41,32 +42,57 @@ class Job(object):
             'slurm': ['-t 0-10:00', '-N 1'],
             'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
         }
+        config = kwargs['config']
+        # setup the default replacement dict
+        self._replace_dict = {
+            'PROJECT_PATH': config['global']['project_path'],
+            'REMOTE_PATH': config['simulations'][case].get('remote_path', ''),
+            'CASEID': case,
+            'REST_YR': '{:04d}'.format(self.start_year + 1),
+            'START_YR': '{:04d}'.format(self.start_year),
+            'END_YR': '{:04d}'.format(self.end_year),
+            'LOCAL_PATH': config['simulations'][case].get('local_path', ''),
+        }
     # -----------------------------------------------
+
+    def setup_output_directory(self, custom_output_string):
+        for string, val in list(self._replace_dict.items()):
+            if string in custom_output_string:
+                custom_output_string = custom_output_string.replace(
+                    string, val)
+        return custom_output_string
+    # -----------------------------------------------
+
     def setup_dependencies(self, *args, **kwargs):
         msg = '{} has not implemented the setup_dependencies method'.format(
             self.job_type)
         raise Exception(msg)
     # -----------------------------------------------
+
     def execute(self, *args, **kwargs):
         msg = '{} has not implemented the execute method'.format(self.job_type)
         raise Exception(msg)
     # -----------------------------------------------
+
     def postvalidate(self, *args, **kwargs):
         msg = '{} has not implemented the postvalidate method'.format(
             self.job_type)
         raise Exception(msg)
     # -----------------------------------------------
+
     def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         msg = '{} has not implemented the handle_completion method'.format(
             self.job_type)
         raise Exception(msg)
     # -----------------------------------------------
+
     def get_output_path(self):
         if self.status == JobStatus.COMPLETED:
             return self._output_path
         else:
             return self._console_output_path
     # -----------------------------------------------
+
     def set_custom_args(self, custom_args):
         """
         Adds the arguments in custom_args to the jobs resource manager arguments
@@ -89,18 +115,20 @@ class Job(object):
                 if not found:
                     manager_args.append(new_arg)
     # -----------------------------------------------
+
     def get_report_string(self):
         return '{prefix} :: {status} :: {output}'.format(
             prefix=self.msg_prefix(),
             status=self.status.name,
             output=self.get_output_path())
     # -----------------------------------------------
+
     def setup_data(self, config, filemanager, case):
         """
         symlinks all data_types sepecified in the jobs _data_required field,
         and puts a copy of the path for the links into the _input_file_paths field
         """
-        
+
         # loop over the data types, linking them in one at a time
         for datatype in self._data_required:
 
@@ -108,9 +136,10 @@ class Job(object):
 
             # this should never be hit if the config validator did its job
             if not datainfo:
-                print "ERROR: Unable to find config information for {}".format(datatype)
+                print "ERROR: Unable to find config information for {}".format(
+                    datatype)
                 sys.exit(1)
-            
+
             # are these history files?
             monthly = datainfo.get('monthly')
 
@@ -156,16 +185,18 @@ class Job(object):
 
         return
     # -----------------------------------------------
+
     def setup_temp_path(self, config, *args, **kwards):
         """
         creates the default input path structure
         /project/output/temp/case_short_name/job_type/start_end
         """
         return os.path.join(
-                config['global']['project_path'],
-                'output', 'temp', self._short_name, self._job_type,
-                '{:04d}_{:04d}'.format(self._start_year, self._end_year))
+            config['global']['project_path'],
+            'output', 'temp', self._short_name, self._job_type,
+            '{:04d}_{:04d}'.format(self._start_year, self._end_year))
     # -----------------------------------------------
+
     def check_data_ready(self, filemanager):
         """
         Checks that the data needed for the job is present on the machine, in the input directory
@@ -180,6 +211,7 @@ class Job(object):
                 end_year=self.end_year)
         return
     # -----------------------------------------------
+
     def check_data_in_place(self):
         """
         Checks that the data needed for the job has been symlinked into the jobs temp directory
@@ -200,6 +232,7 @@ class Job(object):
         # nothing was missing
         return True
     # -----------------------------------------------
+
     def msg_prefix(self):
         if self._run_type:
             return '{type}-{run_type}-{start:04d}-{end:04d}-{case}'.format(
@@ -208,13 +241,6 @@ class Job(object):
                 start=self.start_year,
                 end=self.end_year,
                 case=self.short_name)
-        elif isinstance(self, Diag):
-            return '{type}-{start:04d}-{end:04d}-{case}-vs-{comp}'.format(
-                type=self.job_type,
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name,
-                comp=self._short_comp_name)
         else:
             return '{type}-{start:04d}-{end:04d}-{case}'.format(
                 type=self.job_type,
@@ -222,14 +248,16 @@ class Job(object):
                 end=self.end_year,
                 case=self.short_name)
     # -----------------------------------------------
+
     def get_run_name(self):
         return '{type}_{start:04d}_{end:04d}_{case}'.format(
-                type=self.job_type,
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name)
+            type=self.job_type,
+            start=self.start_year,
+            end=self.end_year,
+            case=self.short_name)
     # -----------------------------------------------
-    def _submit_cmd_to_manager(self, config, cmd):
+
+    def _submit_cmd_to_manager(self, config, cmd, event_list):
         """
         Takes the jobs main cmd, generates a batch script and submits the script
         to the resource manager controller
@@ -238,6 +266,8 @@ class Job(object):
             cmd (str): the command to submit
             config (dict): the global configuration object
         Retuns:
+            If the job.prevalidate FAILS, returns -1
+            if the job.postvalidate SUCCEEDS, return 0
             job_id (int): the job_id from the resource manager
         """
         # setup for the run script
@@ -306,16 +336,17 @@ class Job(object):
             return False
         else:
             if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
+                return -1
+            if self.postvalidate(config, event_list):
                 self.status = JobStatus.COMPLETED
-                return True
+                return 0
 
         # submit the run script to the resource controller
         self._job_id = manager.batch(run_script)
         self._has_been_executed = True
         return self._job_id
     # -----------------------------------------------
+
     def prevalidate(self, *args, **kwargs):
         if not self.data_ready:
             msg = '{prefix}: data not ready'.format(prefix=self.msg_prefix())
@@ -328,72 +359,89 @@ class Job(object):
             return False
         return True
     # -----------------------------------------------
+
     @property
     def short_name(self):
         return self._short_name
     # -----------------------------------------------
+
     @property
     def comparison(self):
         return 'obs'
     # -----------------------------------------------
+
     @property
     def case(self):
         return self._case
     # -----------------------------------------------
+
     @property
     def start_year(self):
         return self._start_year
     # -----------------------------------------------
+
     @property
     def end_year(self):
         return self._end_year
     # -----------------------------------------------
+
     @property
     def job_type(self):
         return self._job_type
     # -----------------------------------------------
+
     @property
     def depends_on(self):
         return self._depends_on
     # -----------------------------------------------
+
     @property
     def id(self):
         return self._id
     # -----------------------------------------------
+
     @property
     def data_ready(self):
         return self._data_ready
     # -----------------------------------------------
+
     @data_ready.setter
     def data_ready(self, ready):
         if not isinstance(ready, bool):
             raise Exception('Invalid data type, data_ready only accepts bools')
         self._data_ready = ready
     # -----------------------------------------------
+
     @property
     def run_type(self):
         return self._run_type
     # -----------------------------------------------
+
     @property
     def data_required(self):
         return self._data_required
     # -----------------------------------------------
+
     @data_required.setter
     def data_required(self, types):
         self._data_required = types
     # -----------------------------------------------
+
     @property
     def status(self):
         return self._status
     # -----------------------------------------------
+
     @status.setter
     def status(self, nstatus):
         self._status = nstatus
     # -----------------------------------------------
+
     @property
     def job_id(self):
         return self._job_id
     # -----------------------------------------------
+
     @job_id.setter
     def job_id(self, new_id):
         if not isinstance(new_id, str):
@@ -401,6 +449,7 @@ class Job(object):
             raise Exception(msg)
         self._job_id = new_id
     # -----------------------------------------------
+
     def __str__(self):
         return json.dumps({
             'type': self._job_type,
@@ -415,5 +464,5 @@ class Job(object):
             'case': self._case,
             'short_name': self._short_name
         }, sort_keys=True, indent=4)
+
     # -----------------------------------------------
-from jobs.diag import Diag

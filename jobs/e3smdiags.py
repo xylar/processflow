@@ -18,11 +18,31 @@ class E3SMDiags(Diag):
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
         self._host_path = ''
-        self._short_comp_name = ''
+
         custom_args = kwargs['config']['diags']['e3sm_diags'].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
+        
+        # setup the output directory, creating it if it doesnt already exist
+        custom_output_path = kwargs['config']['diags'][self.job_type].get(
+            'custom_output_path')
+        if custom_output_path:
+            self._replace_dict['COMPARISON'] = self._short_comp_name
+            self._output_path = self.setup_output_directory(custom_output_path)
+        else:
+            self._output_path = os.path.join(
+                kwargs['config']['global']['project_path'],
+                'output',
+                'diags',
+                self.short_name,
+                self.job_type,
+                '{start:04d}_{end:04d}_vs_{comp}'.format(
+                    start=self.start_year,
+                    end=self.end_year,
+                    comp=self._short_comp_name))
+        if not os.path.exists(self._output_path):
+            os.makedirs(self._output_path)
     # -----------------------------------------------
 
     def _dep_filter(self, job):
@@ -87,17 +107,6 @@ class E3SMDiags(Diag):
         """
         self._dryrun = dryrun
 
-        # setup the jobs output path, creating it if it doesnt already exist
-        self._output_path = os.path.join(
-            config['global']['project_path'],
-            'output', 'diags', self.short_name, 'e3sm_diags',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
-        if not os.path.exists(self._output_path):
-            os.makedirs(self._output_path)
-
         # render the parameter file from the template
         param_template_out = os.path.join(
             config['global']['run_scripts_path'],
@@ -134,7 +143,7 @@ class E3SMDiags(Diag):
 
         cmd = ['acme_diags_driver.py', '-p', param_template_out]
         self._has_been_executed = True
-        return self._submit_cmd_to_manager(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -151,10 +160,11 @@ class E3SMDiags(Diag):
         """
         return self._check_links(config)
     # -----------------------------------------------
+
     def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         """
         Perform setup for webhosting
-        
+
         Parameters
         ----------
             event_list (EventList): an event list to push user notifications into
@@ -202,13 +212,6 @@ class E3SMDiags(Diag):
 
     def _check_links(self, config):
 
-        self._output_path = os.path.join(
-            config['global']['project_path'],
-            'output', 'diags', self.short_name, 'e3sm_diags',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
         viewer_path = os.path.join(self._output_path, 'viewer', 'index.html')
         if not os.path.exists(viewer_path):
             msg = '{}: could not find page index at {}'.format(

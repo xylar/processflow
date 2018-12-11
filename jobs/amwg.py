@@ -27,14 +27,39 @@ class AMWG(Diag):
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
         self._host_path = ''
-        self._short_comp_name = ''
-        custom_args = kwargs['config']['diags']['amwg'].get('custom_args')
+
+        custom_args = kwargs['config']['diags'][self.job_type].get(
+            'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
-        if self.comparison == 'obs':
-            self._short_comp_name = 'obs'
+
+        # setup the output directory, creating it if it doesnt already exist
+        custom_output_path = kwargs['config']['diags'][self.job_type].get(
+            'custom_output_path')
+        if custom_output_path:
+            self._replace_dict['COMPARISON'] = self._short_comp_name
+            self._output_path = self.setup_output_directory(custom_output_path)
         else:
-            self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
+            self._output_path = os.path.join(
+                kwargs['config']['global']['project_path'],
+                'output',
+                'diags',
+                self.short_name,
+                self.job_type,
+                '{start:04d}_{end:04d}_vs_{comp}'.format(
+                    start=self.start_year,
+                    end=self.end_year,
+                    comp=self._short_comp_name))
+        if not os.path.exists(self._output_path):
+            os.makedirs(self._output_path)
+    # -----------------------------------------------
+    
+    def setup_data(self, config, filemanager, case):
+        """
+        Change input file names to match what amwg expects
+        """
+        super(AMWG, self).setup_data(config, filemanager, case)
+        self._change_input_file_names()
     # -----------------------------------------------
 
     def _dep_filter(self, job):
@@ -101,17 +126,6 @@ class AMWG(Diag):
         """
         self._dryrun = dryrun
 
-        # setup the output directory, creating it if it doesnt already exist
-        self._output_path = os.path.join(
-            config['global']['project_path'],
-            'output', 'diags', self.short_name, 'amwg',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
-        if not os.path.exists(self._output_path):
-            os.makedirs(self._output_path)
-
         # setup template
         csh_template_out = os.path.join(
             config['global']['run_scripts_path'],
@@ -162,16 +176,13 @@ class AMWG(Diag):
             input_path=template_input_path,
             output_path=csh_template_out)
 
-        # change input file names to match what amwg expects
-        self._change_input_file_names()
-
         # create the run command and submit it
         self._has_been_executed = True
         cmd = ['csh', csh_template_out]
-        return self._submit_cmd_to_manager(config, cmd)
+        return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
-    def postvalidate(self, config, *args, **kwargs):
+    def postvalidate(self, config, event_list, *args, **kwargs):
         """
         Validates that the job ran correctly
 
@@ -181,18 +192,24 @@ class AMWG(Diag):
         Returns
         -------
             True if the job ran successfully
-            False if there is missong output
+            False if there's any missing output
         """
-        if not self._output_path:
-            self._output_path = os.path.join(
-                config['global']['project_path'],
-                'output', 'diags', self.short_name, 'amwg',
-                '{start:04d}_{end:04d}_vs_{comp}'.format(
-                    start=self.start_year,
-                    end=self.end_year,
-                    comp=self._short_comp_name))
+        # the numbet of plot sets with missing plots
+        number_missing = 0
+
+        # where we expect to find output plots
+        img_source = os.path.join(
+            self._output_path,
+            '{case}-vs-{comp}'.format(
+                case=self.short_name,
+                comp=self._short_comp_name))
+        img_source_tar = img_source + '.tar'
+        if not os.path.exists(img_source):
+            return False
+
+        # the host path might not have been set yet
         if not self._host_path:
-            if config['global']['host']:
+            if config['global'].get('host'):
                 self._host_path = os.path.join(
                     config['img_hosting']['host_directory'],
                     self.case,
@@ -202,91 +219,69 @@ class AMWG(Diag):
                         end=self.end_year,
                         comp=self._short_comp_name))
 
-        if self.comparison == 'obs':
-            expected_files = {
-                "set4": 50,
-                "set5_6": 100,
-                "set7": 100,
-                "set1": 10,
-                "set2": 3,
-                "set3": 100,
-                "set8": 20,
-                "set9": 20,
-                "set16": 3,
-                "set14": 10,
-                "set15": 50,
-                "set12": 50,
-                "set13": 100,
-                "set10": 100,
-                "set11": 10,
-                "set4a": 50
-            }
-        else:
-            expected_files = {
-                "set4": 60,
-                "set5_6": 100,
-                "set7": 100,
-                "set1": 10,
-                "set2": 5,
-                "set3": 100,
-                "set8": 20,
-                "set9": 5,
-                "set16": 3,
-                "set14": 10,
-                "set15": 50,
-                "set12": 50,
-                "set13": 300,
-                "set10": 50,
-                "set11": 10,
-                "set4a": 20
-            }
+        # the minimum number of files expected from each plotset
+        expected_files = {
+            "set4": 60,
+            "set5_6": 100,
+            "set7": 100,
+            "set1": 10,
+            "set2": 5,
+            "set3": 100,
+            "set8": 20,
+            "set9": 5,
+            "set16": 3,
+            "set14": 10,
+            "set15": 50,
+            "set12": 50,
+            "set13": 300,
+            "set10": 50,
+            "set11": 10,
+            "set4a": 20
+        }
 
         passed = True
+        sets = []
         if 'all' in config['diags']['amwg']['sets']:
             sets = [str(x) for x in range(1, 16)] + ['4a']
         else:
             sets = config['diags']['amwg']['sets']
 
-        img_source = os.path.join(
-            self._output_path,
-            '{case}-vs-{comp}'.format(
-                case=self.short_name,
-                comp=self._short_comp_name))
-        img_source_tar = img_source + '.tar'
         # check that there have been enough plots created to call this a successful run
         for item in sets:
             if item == 'all':
                 continue
             setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
-            directory = os.path.join(
-                self._output_path,
-                '{}-vs-{}'.format(self.short_name, self._short_comp_name),
+            setpath = os.path.join(
+                img_source,
                 setname)
-            if not os.path.exists(directory):
+            if not os.path.exists(setpath):
+                # the job hasnt been started yet, and the directory is missing
+                # so its probably never been run before
                 if not self._has_been_executed:
                     return False
+                # if the job HAS been run, then its possible that the output might
+                # be in the .tar file, so we cant exit yet
                 msg = '{prefix}: could not find output directory {dir}'.format(
                     prefix=self.msg_prefix(),
-                    dir=directory)
+                    dir=setpath)
                 logging.error(msg)
             else:
-                count = len(os.listdir(directory))
+                count = len(os.listdir(setpath))
                 if count < expected_files[setname]:
-                    if not self._has_been_executed:
-                        return False
                     msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
                         prefix=self.msg_prefix(),
                         set=setname,
                         numProduced=count,
                         numExpected=expected_files[setname])
                     logging.error(msg)
-                    passed = False
+                    number_missing += 1
 
-        if not passed:
+        if number_missing > 0:
+            number_missing = 0
             if os.path.exists(img_source_tar):
                 msg = '{prefix}: extracting images from tar archive'.format(
                     prefix=self.msg_prefix())
-                print_line(msg, kwargs['event_list'])
+                print_line(msg, event_list)
                 call(['tar', '-xf', img_source_tar,
                       '--directory', self._output_path])
                 passed = True
@@ -294,21 +289,19 @@ class AMWG(Diag):
                     if item == 'all':
                         continue
                     setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
-                    directory = os.path.join(
-                        self._output_path,
-                        '{}-vs-{}'.format(self.short_name,
-                                          self._short_comp_name),
+                    setpath = os.path.join(
+                        img_source,
                         setname)
-                    if not os.path.exists(directory):
-                        passed = False
+                    if not os.path.exists(setpath):
+                        number_missing += 1
                         if self._has_been_executed:
                             msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
                                 prefix=self.msg_prefix(),
-                                dir=directory)
+                                dir=setpath)
                             logging.error(msg)
-                            print_line(msg, kwargs['event_list'])
+                            print_line(msg, event_list)
                     else:
-                        count = len(os.listdir(directory))
+                        count = len(os.listdir(setpath))
                         if count < expected_files[setname]:
                             msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
                                 prefix=self.msg_prefix(),
@@ -316,19 +309,26 @@ class AMWG(Diag):
                                 numProduced=count,
                                 numExpected=expected_files[setname])
                             logging.error(msg)
-                            print_line(msg, kwargs['event_list'])
-                            passed = False
+                            print_line(msg, event_list)
+                            number_missing += 1
 
-        if passed:
+        if number_missing == 0:
             msg = '{prefix}: all expected output images found'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, kwargs['event_list'])
+            print_line(msg, event_list)
             logging.info(msg)
-            self._check_links(config)
+            self._check_links(config, img_source)
+            return True
+        elif number_missing > 0 and number_missing <= 2:
+            msg = '{prefix}: this job was found to be missing plots, please check the console output for additional information'.format(
+                prefix=self.msg_prefix())
+            print_line(msg, event_list)
+            self._check_links(config, img_source)
             return True
         else:
             return False
     # -----------------------------------------------
+
     def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         """
         Sets up variables needed to web hosting
@@ -378,7 +378,12 @@ class AMWG(Diag):
                 self.status = JobStatus.FAILED
                 logging.info(msg)
                 return
-        self.setup_hosting(config['global']['always_copy'], img_source, self._host_path, event_list)
+
+        self.setup_hosting(
+            always_copy=config['global']['always_copy'],
+            img_source=img_source,
+            host_path=self._host_path,
+            event_list=event_list)
 
         self._host_url = 'https://{server}/{prefix}/{case}/amwg/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
@@ -389,27 +394,20 @@ class AMWG(Diag):
             comp=self._short_comp_name)
     # -----------------------------------------------
 
-    def _check_links(self, config):
+    def _check_links(self, config, img_source):
         """
         Checks output page for all links, as well as first level subpages
 
         Parameters:
-            None
+            config,
+            img_source
         Returns:
             True if all links are found, False otherwise
         """
-        self._output_path = os.path.join(
-            config['global']['project_path'],
-            'output', 'diags', self.short_name, 'amwg',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
+
         missing_links = list()
         page_path = os.path.join(
-            self._output_path,
-            '{case}-vs-{comp}'.format(case=self.short_name,
-                                      comp=self._short_comp_name),
+            img_source,
             'index.html')
         page_tail, page_head = os.path.split(page_path)
         if not os.path.exists(page_path):
@@ -473,11 +471,20 @@ class AMWG(Diag):
         change case_01_000101_000201_climo.nc to
                case_01_climo.nc
         """
+
+        # get a reference to the input directory
         input_path, _ = os.path.split(self._input_file_paths[0])
         pattern = r'\d{6}_\d{6}_'
-        for file in self._input_file_paths:
-            _, filename = os.path.split(file)
-            index = re.search(pattern, filename).start()
-            os.rename(file, os.path.join(
-                input_path, filename[:index] + 'climo.nc'))
+
+        for input_index, input_file in enumerate(self._input_file_paths):
+            _, filename = os.path.split(input_file)
+            string_index = re.search(pattern, filename).start()
+
+            # chop off the last part of the string which holds the year stamp
+            new_name = os.path.join(
+                input_path, filename[:string_index] + 'climo.nc')
+            # change the internal list
+            self._input_file_paths[input_index] = new_name
+            # change the name of the file
+            os.rename(input_file, new_name)
     # -----------------------------------------------
