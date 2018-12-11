@@ -128,6 +128,8 @@ class FileManager(object):
     def check_data_ready(self, data_required, case, start_year=None, end_year=None):
         try:
             for datatype in data_required:
+                if not self._config['data_types'].get(datatype):
+                    continue
                 monthly = self._config['data_types'][datatype].get('monthly')
                 if start_year and end_year and monthly:
                     q = (DataFile
@@ -253,6 +255,7 @@ class FileManager(object):
                                     'year': year,
                                     'month': month,
                                     'datatype': _type,
+                                    'super_type': 'raw_output',
                                     'local_size': 0,
                                     'transfer_type': self._config['simulations'][case]['transfer_type'],
                                     'remote_uuid': self._config['simulations'][case].get('remote_uuid', ''),
@@ -278,6 +281,7 @@ class FileManager(object):
                             'year': 0,
                             'month': 0,
                             'datatype': _type,
+                            'super_type': 'raw_output',
                             'local_size': 0,
                             'transfer_type': self._config['simulations'][case]['transfer_type'],
                             'remote_uuid': self._config['simulations'][case].get('remote_uuid', ''),
@@ -339,6 +343,10 @@ class FileManager(object):
                 remote_contents = ssh_ls(
                     client=client,
                     remote_path=remote_path)
+            if len(remote_contents) == 1 and remote_contents[0] == '':
+                msg = "No remote files found, please check file permissions and user access"
+                print_message(msg)
+                return False
             remote_names = [x['name'] for x in remote_contents]
             for df in files:
                 if df.name not in remote_names:
@@ -372,7 +380,7 @@ class FileManager(object):
                 'transfer_type': df.transfer_type,
             }
     
-    def add_files(self, data_type, file_list):
+    def add_files(self, data_type, file_list, super_type="raw_output"):
         """
         Add files to the database
         
@@ -397,6 +405,7 @@ class FileManager(object):
                     'local_path': file['local_path'],
                     'local_status': file.get('local_status', FileStatus.NOT_PRESENT.value),
                     'datatype': data_type,
+                    'super_type': super_type,
                     'case': file['case'],
                     'year': file.get('year', 0),
                     'month': file.get('month', 0),
@@ -592,10 +601,16 @@ class FileManager(object):
             msg = 'starting sftp transfer for {}'.format(filename)
             print_line(msg, self._event_list)
 
-            ssh_transfer(sftp_client, file)
-            
-            msg = 'sftp transfer complete for {}'.format(filename)
-            print_line(msg, self._event_list)
+            if ssh_transfer(sftp_client, file):
+                msg = 'sftp transfer complete for {}'.format(filename)
+                print_line(msg, self._event_list)
+            else:
+                msg = 'ERROR: could not find file {} on remote machine'.format(
+                    file['remote_path'])
+                print_line(msg, self._event_list)
+                if os.path.exists(file['local_path']) \
+                    and os.path.getsize(file['local_path']) == 0:
+                        os.remove(file['local_path'])
 
             msg = self.report_files_local()
             print_line(msg, self._event_list)
@@ -606,7 +621,9 @@ class FileManager(object):
         """
         q = (DataFile
              .select(DataFile.local_status)
-             .where(DataFile.local_status == FileStatus.PRESENT.value))
+             .where(
+                (DataFile.local_status == FileStatus.PRESENT.value) & 
+                (DataFile.super_type == 'raw_output')))
         local = len([x.local_status for x in q.execute()])
 
         q = (DataFile.select(DataFile.local_status))

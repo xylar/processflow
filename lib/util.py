@@ -39,6 +39,7 @@ def print_line(line, event_list, ignore_text=False):
         print msg
         sys.stdout.flush()
 
+
 def get_climo_output_files(input_path, start_year, end_year):
     """
     Return a list of ncclimo climatologies from start_year to end_year
@@ -57,6 +58,7 @@ def get_climo_output_files(input_path, start_year, end_year):
         start=start_year,
         end=end_year)
     return [x for x in contents if re.search(pattern=pattern, string=x)]
+
 
 def get_ts_output_files(input_path, var_list, start_year, end_year):
     """
@@ -85,6 +87,7 @@ def get_ts_output_files(input_path, var_list, start_year, end_year):
                 break
     return ts_list
 
+
 def get_data_output_files(input_path, case, start_year, end_year):
     if not os.path.exists(input_path):
         return None
@@ -100,6 +103,7 @@ def get_data_output_files(input_path, case, start_year, end_year):
                     break
     return data_list
 
+
 def print_debug(e):
     """
     Print an exceptions relavent information
@@ -111,6 +115,7 @@ def print_debug(e):
     print '5', traceback.tb_lineno(sys.exc_info()[2])
     _, _, tb = sys.exc_info()
     print '6', traceback.print_tb(tb)
+
 
 def format_debug(e):
     """
@@ -125,12 +130,13 @@ def format_debug(e):
 5: {lineno}
 6: {stack}
 """.format(
-    doc=e.__doc__,
-    exec_info=sys.exc_info(),
-    exec_0=sys.exc_info()[0],
-    exec_1=sys.exc_info()[1],
-    lineno=traceback.tb_lineno(sys.exc_info()[2]),
-    stack=traceback.print_tb(tb))
+        doc=e.__doc__,
+        exec_info=sys.exc_info(),
+        exec_0=sys.exc_info()[0],
+        exec_1=sys.exc_info()[1],
+        lineno=traceback.tb_lineno(sys.exc_info()[2]),
+        stack=traceback.print_tb(tb))
+
 
 class colors:
     HEADER = '\033[95m'
@@ -142,6 +148,7 @@ class colors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
+
 def print_message(message, status='error'):
     """
     Prints a message with either a green + or a red -
@@ -150,9 +157,11 @@ def print_message(message, status='error'):
         message (str): the message to print
         status (str): th"""
     if status == 'error':
-        print colors.FAIL + '[-] ' + colors.ENDC + colors.BOLD + str(message) + colors.ENDC
+        print colors.FAIL + '[-] ' + colors.ENDC + \
+            colors.BOLD + str(message) + colors.ENDC
     elif status == 'ok':
         print colors.OKGREEN + '[+] ' + colors.ENDC + str(message)
+
 
 def render(variables, input_path, output_path):
     """
@@ -169,6 +178,7 @@ def render(variables, input_path, output_path):
 
     with open(output_path, 'a+') as outfile:
         outfile.write(outstr)
+
 
 def create_symlink_dir(src_dir, src_list, dst):
     """

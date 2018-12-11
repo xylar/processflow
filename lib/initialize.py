@@ -27,8 +27,8 @@ def parse_args(argv=None, print_help=None):
         '-c', '--config',
         help='Path to configuration file.')
     parser.add_argument(
-        '-d', '--credential',
-        help='Path to ssh credential file')
+        '-d', '--credentail',
+        help='Path to ssh credential json file. Required keys are "username", "password", and optionally "one_time_code"')
     parser.add_argument(
         '-m', '--max-jobs',
         help='Maximum number of jobs to run at any given time',
@@ -149,11 +149,11 @@ Please add a space and run again.'''.format(num=line_index)
             'resources')
 
     # setup the credential file if the user set the -d flag
-    if pargs.credential:
+    if pargs.credentail:
         if not os.path.isfile(pargs.credentail):
             print_message('User supplied credential file is not a regular file')
             sys.exit(1)
-        config['global']['credential_path'] = pargs.credential
+        config['global']['credential_path'] = pargs.credentail
     else:
         config['global']['credential_path'] = False
 
@@ -217,7 +217,8 @@ Please add a space and run again.'''.format(num=line_index)
     # Copy the config into the input directory for safe keeping
     input_config_path = os.path.join(
         config['global']['project_path'], 
-        'input', 'run.cfg')
+        'input',
+        'run.cfg')
     try:
         copy(pargs.config, input_config_path)
     except:
