@@ -44,7 +44,8 @@ def verify_config(config):
             continue
         if config['simulations'][sim].get('comparisons'):
             if not isinstance(config['simulations'][sim]['comparisons'], list):
-                config['simulations'][sim]['comparisons'] = [config['simulations'][sim]['comparisons']]
+                config['simulations'][sim]['comparisons'] = [
+                    config['simulations'][sim]['comparisons']]
         if not config['simulations'][sim].get('transfer_type'):
             msg = '{} is missing trasfer_type, if the data is local, set transfer_type to \'local\''.format(
                 sim)
@@ -250,12 +251,15 @@ def verify_config(config):
             if not config['post-processing']['cmor'].get('variable_list'):
                 msg = 'no variable list given for cmor, please provide a list of E3SM variables to convert to CMIP6 format'
                 messages.append(msg)
+            elif not config['post-processing'].get('timeseries'):
+                msg = "the cmor job requires timeseries file generation, add a timeseries job to enable cmor"
+                messages.append(msg)
             else:
                 if not isinstance(config['post-processing']['cmor']['variable_list'], list):
                     config['post-processing']['cmor']['variable_list'] = [
                         config['post-processing']['cmor']['variable_list']]
                 for variable in config['post-processing']['cmor']['variable_list']:
-                    if variable not in config['post-processing']['timeseries'].get('atm', list()) and variable not in config['post-processing']['timeseries'].get('lnd', list()) and variable not in config['post-processing']['timeseries'].get('ocn', list()):
+                    if variable not in config['post-processing']['timeseries'].get('atm', list()) and variable not in config['post-processing']['timeseries'].get('lnd', list()) and variable not in config['post-processing']['timeseries'].get('ocn', list()) and variable != 'all':
                         msg = 'variable {} is in the cmor variable_list but not present in the timeseries list, all cmor input variables must first be extracted as timeseries varibles'.format(
                             variable)
                         messages.append(msg)
@@ -290,9 +294,6 @@ def verify_config(config):
             if not config['diags']['e3sm_diags'].get('reference_data_path'):
                 msg = 'no reference_data_path given for e3sm_diags'
                 messages.append(msg)
-            # if not config['diags']['e3sm_diags'].get('sets'):
-            #     msg = 'no sets given for e3sm_diags'
-            #     messages.append(msg)
             if not config['diags']['e3sm_diags'].get('run_frequency'):
                 msg = 'no run_frequency given for e3sm_diags'
                 messages.append(msg)
@@ -300,8 +301,20 @@ def verify_config(config):
                 if not isinstance(config['diags']['e3sm_diags'].get('run_frequency'), list):
                     config['diags']['e3sm_diags']['run_frequency'] = [
                         config['diags']['e3sm_diags']['run_frequency']]
+
                 for freq in config['diags']['e3sm_diags']['run_frequency']:
-                    if not config.get('post-processing') or not config['post-processing'].get('climo') or freq not in config['post-processing']['climo']['run_frequency']:
+                    for sim in config['simulations']:
+                        if sim in ['start_year', 'end_year']:
+                            continue
+                        if 'e3sm_diags' in config['simulations'][sim].get('job_types') \
+                                and 'climo' not in config['simulations'][sim].get('job_types'):
+                            msg = 'e3sm_diags is set to run for case {case} at {freq}yr frequency, but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                                case=sim,
+                                freq=freq)
+                            messages.append(msg)
+                    if not config.get('post-processing') \
+                            or not config['post-processing'].get('climo') \
+                            or not freq in config['post-processing']['climo']['run_frequency']:
                         msg = 'e3sm_diags is set to run at frequency {} but no climo job for this frequency is set'.format(
                             freq)
                         messages.append(msg)
@@ -319,8 +332,16 @@ def verify_config(config):
                 if not isinstance(config['diags']['amwg'].get('run_frequency'), list):
                     config['diags']['amwg']['run_frequency'] = [
                         config['diags']['amwg']['run_frequency']]
+                if 'amwg' in config['simulations'][sim].get('job_types') \
+                        and 'climo' not in config['simulations'][sim].get('job_types'):
+                    msg = 'amwg is set to run for case {case} but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                        case=sim,
+                        freq=freq)
+                    messages.append(msg)
                 for freq in config['diags']['amwg']['run_frequency']:
-                    if not config.get('post-processing') or not config['post-processing'].get('climo') or freq not in config['post-processing']['climo']['run_frequency']:
+                    if not config.get('post-processing') \
+                            or not config['post-processing'].get('climo') \
+                            or not freq in config['post-processing']['climo']['run_frequency']:
                         msg = 'amwg is set to run at frequency {} but no climo job for this frequency is set'.format(
                             freq)
                         messages.append(msg)
@@ -346,7 +367,8 @@ def verify_config(config):
                 messages.append(msg)
             else:
                 if not isinstance(config['diags']['aprime']['run_frequency'], list):
-                    config['diags']['aprime']['run_frequency'] = [config['diags']['aprime']['run_frequency']]
+                    config['diags']['aprime']['run_frequency'] = [
+                        config['diags']['aprime']['run_frequency']]
             if not config['diags']['aprime'].get('aprime_code_path'):
                 msg = 'no aprime_code_path given for aprime'
                 messages.append(msg)
@@ -359,16 +381,22 @@ def verify_config(config):
                 messages.append(msg)
             else:
                 if not isinstance(config['diags']['mpas_analysis']['run_frequency'], list):
-                    config['diags']['mpas_analysis']['run_frequency'] = [config['diags']['mpas_analysis']['run_frequency']]
-            required_parameters = ['mapping_directory', 'generate_plots', 'start_year_offset', 'ocn_obs_data_path', 'seaice_obs_data_path', 'region_mask_path', 'run_MOC']
+                    config['diags']['mpas_analysis']['run_frequency'] = [
+                        config['diags']['mpas_analysis']['run_frequency']]
+            required_parameters = ['mapping_directory', 'generate_plots', 'start_year_offset',
+                                   'ocn_obs_data_path', 'seaice_obs_data_path', 'region_mask_path', 'run_MOC']
             for param in required_parameters:
                 if not config['diags']['mpas_analysis'].get(param):
-                    msg = 'Missing parameter {p} is required for MPAS-Analysis'.format(p=param)
+                    msg = 'Missing parameter {p} is required for MPAS-Analysis'.format(
+                        p=param)
                     messages.append(msg)
             if not isinstance(config['diags']['mpas_analysis'].get('generate_plots', ''), list):
-                config['diags']['mpas_analysis']['generate_plots'] = [config['diags']['mpas_analysis'].get('generate_plots', '')]
+                config['diags']['mpas_analysis']['generate_plots'] = [
+                    config['diags']['mpas_analysis'].get('generate_plots', '')]
     return messages
 # ------------------------------------------------------------------------
+
+
 def check_config_white_space(filepath):
     line_index = 0
     found = False
