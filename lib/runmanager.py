@@ -43,7 +43,6 @@ class RunManager(object):
 
     def __init__(self, event_list, event, config, filemanager):
 
-
         self.config = config
         self.account = config['global'].get('account', '')
         self.event_list = event_list
@@ -70,7 +69,8 @@ class RunManager(object):
             try:
                 self.manager = PBS()
             except:
-                raise Exception("Couldnt find either a slurm or PBS resource manager")
+                raise Exception(
+                    "Couldnt find either a slurm or PBS resource manager")
 
         max_jobs = config['global']['max_jobs']
         self.max_running_jobs = max_jobs if max_jobs else self.manager.get_node_number() * 3
@@ -84,7 +84,7 @@ class RunManager(object):
     def _duplicate_check(self, job):
         """
         iterate over all the jobs and check if the input job is already in the list
-        
+
         Parameters
         ----------
             job (Job): The job to check for duplicates
@@ -93,18 +93,19 @@ class RunManager(object):
             True if there is a duplicate
             False if there is NO duplicate
         """
-        for case in self.cases:
-            if case['case'] != job.case:
-                continue
-            for j in case['jobs']:
-                if j.job_type == job.job_type \
-                and j.start_year == job.start_year \
-                and j.end_year == job.end_year:
-                    if isinstance(job, Diag):
-                        if j.comparison != job.comparison:
-                            continue
-                    else:
-                        return True
+        case = [x for x in self.cases if x['case'] == job.case].pop()
+        if case:
+            for other_job in case['jobs']:
+                if job.job_type == other_job.job_type \
+                    and job.start_year == other_job.start_year \
+                    and job.end_year == other_job.end_year:
+                        if job.run_type:
+                            if job.run_type == other_job.run_type:
+                                return True
+                        else:
+                            if job.comparison:
+                                if job.comparison == other_job.comparison:
+                                    return True
         return False
 
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
@@ -121,7 +122,8 @@ class RunManager(object):
             """
         if not freqs:
             freqs = end - start + 1
-        if not isinstance(freqs, list): freqs = [freqs]
+        if not isinstance(freqs, list):
+            freqs = [freqs]
 
         for year in range(start, end + 1):
             for freq in freqs:
@@ -151,13 +153,15 @@ class RunManager(object):
             end (int): the last year of simulated data
             case (dict): the case to add this job to
         """
-        if not isinstance(freqs, list): freqs = [freqs]
+        if not isinstance(freqs, list):
+            freqs = [freqs]
         for year in range(start, end + 1):
             for freq in freqs:
                 freq = int(freq)
                 if (year - start) % freq == 0:
-                    # get the comparisons from the config                    
-                    comparisons = self.config['simulations'][case['case']].get('comparisons')
+                    # get the comparisons from the config
+                    comparisons = self.config['simulations'][case['case']].get(
+                        'comparisons')
                     # if this case has no comparisons move on
                     if not comparisons:
                         return
@@ -199,7 +203,7 @@ class RunManager(object):
                                 comparison=item,
                                 config=self.config)
                             if not self._duplicate_check(new_diag):
-                                case['jobs'].append(new_diag)    
+                                case['jobs'].append(new_diag)
 
     def setup_cases(self):
         """
@@ -215,19 +219,19 @@ class RunManager(object):
                 'short_name': self.config['simulations'][case]['short_name'],
                 'jobs': list()
             })
-        
+
         pp = self.config.get('post-processing')
         if pp:
             for key, val in pp.items():
                 cases_to_add = list()
                 for case in self.cases:
-                    if not self.config['simulations'][case['case']].get('job_types'): 
+                    if not self.config['simulations'][case['case']].get('job_types'):
                         continue
-                    if 'all' in self.config['simulations'][case['case']]['job_types'] or key in self.config['simulations'][case['case']]['job_types']: 
+                    if 'all' in self.config['simulations'][case['case']]['job_types'] or key in self.config['simulations'][case['case']]['job_types']:
                         cases_to_add.append(case)
                 if key in ['regrid', 'timeseries']:
                     for dtype in val:
-                        if dtype not in self.config['data_types']: 
+                        if dtype not in self.config['data_types']:
                             continue
                         for case in cases_to_add:
                             if 'all' in self.config['simulations'][case['case']]['data_types'] or dtype in self.config['simulations'][case['case']]['data_types']:
@@ -251,10 +255,9 @@ class RunManager(object):
             for key, val in diags.items():
                 # cases_to_add = list()
                 for case in self.cases:
-                    if not self.config['simulations'][case['case']].get('job_types'): 
+                    if not self.config['simulations'][case['case']].get('job_types'):
                         continue
                     if 'all' in self.config['simulations'][case['case']]['job_types'] or key in self.config['simulations'][case['case']]['job_types']:
-                        # cases_to_add.append(case)
                         self.add_diag_type_to_cases(
                             freqs=diags[key]['run_frequency'],
                             job_type=key,
@@ -273,14 +276,15 @@ class RunManager(object):
         for case in self.cases:
             for job in case['jobs']:
                 if job.comparison != 'obs':
-                    other_case, = filter(lambda case: case['case'] == job.comparison, self.cases)
+                    other_case, = filter(
+                        lambda case: case['case'] == job.comparison, self.cases)
                     job.setup_dependencies(
                         jobs=case['jobs'],
                         comparison_jobs=other_case['jobs'])
                 else:
                     job.setup_dependencies(
                         jobs=case['jobs'])
-    
+
     def check_data_ready(self):
         """
         Loop over all jobs, checking if their data is ready, and setting
@@ -289,7 +293,7 @@ class RunManager(object):
         for case in self.cases:
             for job in case['jobs']:
                 job.check_data_ready(self.filemanager)
-    
+
     def start_ready_jobs(self):
         """
         Loop over the list of jobs for each case, first setting up the data for, and then
@@ -302,7 +306,7 @@ class RunManager(object):
                 if len(self.running_jobs) >= self.max_running_jobs:
                     msg = 'running {} of {} jobs, waiting for queue to shrink'.format(
                         len(self.running_jobs), self.max_running_jobs)
-                    if self.debug: 
+                    if self.debug:
                         print_line(msg, self.event_list)
                     return
                 deps_ready = True
@@ -312,9 +316,10 @@ class RunManager(object):
                         deps_ready = False
                         break
                 if deps_ready and job.data_ready:
-                    
+
                     # if the job was finished by a previous run of the processflow
-                    valid = job.postvalidate(self.config, event_list=self.event_list)
+                    valid = job.postvalidate(
+                        self.config, event_list=self.event_list)
                     if valid:
                         job.status = JobStatus.COMPLETED
                         self._job_complete += 1
@@ -323,17 +328,21 @@ class RunManager(object):
                             event_list=self.event_list,
                             config=self.config)
                         self.report_completed_job()
-                        msg = '{}: Job previously computed, skipping'.format(job.msg_prefix())
+                        msg = '{}: Job previously computed, skipping'.format(
+                            job.msg_prefix())
                         print_line(msg, self.event_list)
                         continue
 
                     # the job is ready for submission
                     if job.run_type is not None:
-                        msg = '{}: Job ready, submitting to queue'.format(job.msg_prefix())
+                        msg = '{}: Job ready, submitting to queue'.format(
+                            job.msg_prefix())
                     elif isinstance(job, Diag):
-                        msg = '{}: Job ready, submitting to queue'.format(job.msg_prefix())
+                        msg = '{}: Job ready, submitting to queue'.format(
+                            job.msg_prefix())
                     else:
-                        msg = '{}: Job ready, submitting to queue'.format(job.msg_prefix())
+                        msg = '{}: Job ready, submitting to queue'.format(
+                            job.msg_prefix())
                     print_line(msg, self.event_list)
 
                     # set to pending before data setup so we dont double submit
@@ -355,17 +364,22 @@ class RunManager(object):
                         config=self.config,
                         dryrun=self.dryrun,
                         event_list=self.event_list)
-
-                    if run_id is False:
-                        msg = '{}: Prevalidation FAILED'.format(job.msg_prefix())
+                    if run_id == -1:
+                        msg = '{}: Prevalidation FAILED'.format(
+                            job.msg_prefix())
                         print_line(msg, self.event_list)
                         job.status = JobStatus.FAILED
+                    elif run_id == 0:
+                        msg = '{}: job previously computed, skipping'.format(
+                            job.msg_prefix())
+                        print_line(msg, self.event_list)
+                        job.status = JobStatus.COMPLETED
                     else:
                         self.running_jobs.append({
                             'manager_id': run_id,
                             'job_id': job.id
                         })
-    
+
     def get_job_by_id(self, jobid):
         for case in self.cases:
             for job in case['jobs']:
@@ -382,12 +396,13 @@ class RunManager(object):
                 out_str += '==' + '='*len(case['case']) + '==\n'
                 for job in case['jobs']:
                     out_str += '\n\tname: ' + job.job_type
-                    out_str += '\n\tperiod: {:04d}-{:04d}'.format(job.start_year, job.end_year)
+                    out_str += '\n\tperiod: {:04d}-{:04d}'.format(
+                        job.start_year, job.end_year)
                     if job._run_type:
                         out_str += '\n\trun_type: ' + job._run_type
                     out_str += '\n\tstatus: ' + job.status.name
                     deps_jobs = [self.get_job_by_id(x) for x in job.depends_on]
-                    if deps_jobs: 
+                    if deps_jobs:
                         out_str += '\n\tdependent_on: ' + str(
                             ['{}'.format(x.msg_prefix()) for x in deps_jobs])
                     out_str += '\n\tdata_ready: ' + str(job.data_ready)
@@ -399,7 +414,7 @@ class RunManager(object):
                         out_str += '\n'
             fp.write(out_str)
 
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     def _precheck(self, year_set, jobtype, data_type=None):
         """
@@ -417,8 +432,8 @@ class RunManager(object):
             if job.type == jobtype:
                 if job.type != 'regrid':
                     return False
-                else: # regrid is the only job type that can have multiple instances in a year_set
-                    if job.data_type == data_type: # but only one instance per data type
+                else:  # regrid is the only job type that can have multiple instances in a year_set
+                    if job.data_type == data_type:  # but only one instance per data type
                         return False
         return True
 
@@ -459,8 +474,9 @@ class RunManager(object):
                 # which will throw an exception
                 self._job_complete += 1
                 for_removal.append(item)
-                
-                valid = job.postvalidate(self.config, event_list=self.event_list)
+
+                valid = job.postvalidate(
+                    self.config, event_list=self.event_list)
                 if valid:
                     job.status = JobStatus.COMPLETED
                     job.handle_completion(
@@ -480,15 +496,16 @@ class RunManager(object):
             status = StatusMap[job_info.state]
             if status != job.status:
                 msg = '{prefix}: Job changed from {s1} to {s2}'.format(
-                        prefix=job.msg_prefix(),
-                        s1=ReverseMap[job.status],
-                        s2=ReverseMap[status])
+                    prefix=job.msg_prefix(),
+                    s1=ReverseMap[job.status],
+                    s2=ReverseMap[status])
                 print_line(msg, self.event_list)
                 job.status = status
 
                 if status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
                     self._job_complete += 1
-                    valid = job.postvalidate(self.config, event_list=self.event_list)
+                    valid = job.postvalidate(
+                        self.config, event_list=self.event_list)
                     if not valid:
                         job.status = JobStatus.FAILED
                     job.handle_completion(
@@ -501,7 +518,8 @@ class RunManager(object):
                         for depjob in self.get_jobs_that_depend(job.id):
                             depjob.status = JobStatus.FAILED
         if for_removal:
-            self.running_jobs = [x for x in self.running_jobs if x not in for_removal]
+            self.running_jobs = [
+                x for x in self.running_jobs if x not in for_removal]
         return
 
     def get_jobs_that_depend(self, job_id):
