@@ -17,7 +17,7 @@ from mailer import Mailer
 from models import DataFile
 
 
-def print_line(line, event_list, ignore_text=False):
+def print_line(line, event_list, ignore_text=False, newline=True):
     """
     Prints a message to either the console, the event_list, or the current event
 
@@ -36,7 +36,10 @@ def print_line(line, event_list, ignore_text=False):
         msg = '{time}: {line}'.format(
             time=timestr,
             line=line)
-        print msg
+        if newline:
+            print msg
+        else:
+            print msg,
         sys.stdout.flush()
 
 
