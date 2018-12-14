@@ -63,10 +63,16 @@ def transfer(sftp_client, file):
         msg = '{} transfer failed'.format(f_name)
         logging.error(msg)
         return False
+
+    if os.path.getsize(file['local_path']) == 0:
+        msg = '{} transfer failed to copy the file correctly'.format(f_name)
+        logging.error(msg)
+        os.remove(file['local_path'])
+        return False
     else:
         msg = '{} transfer successful'.format(f_name)
         logging.info(msg)
-    return True
+        return True
 
 def get_ssh_client(hostname, credential_path=False):    
     """
