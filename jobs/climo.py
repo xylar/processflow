@@ -17,6 +17,7 @@ class Climo(Job):
         self._data_required = ['atm']
         self._dryrun = True if kwargs.get('dryrun') == True else False
         self._regrid_path = ""
+
         custom_args = kwargs['config']['post-processing'][self.job_type].get(
             'custom_args')
         if custom_args:

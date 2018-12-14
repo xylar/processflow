@@ -67,24 +67,30 @@ class Diag(Job):
             if os.path.exists(host_path):
                 msg = '{prefix}: Removing previous output from host location'.format(
                     prefix=self.msg_prefix())
-                print_line(msg, event_list)
+                print_line(msg, event_list, newline=False)
                 rmtree(host_path)
+                msg = '... complete'
+                print msg
         if not os.path.exists(host_path):
             msg = '{prefix}: Moving files for web hosting'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg, event_list, newline=False)
             copy_tree(
                 src=img_source,
                 dst=host_path)
+            msg = '... complete'
+            print msg
             # fix permissions for apache
             msg = '{prefix}: Fixing permissions'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg, event_list, newline=False)
             call(['chmod', '-R', 'go+rx', host_path])
             tail, _ = os.path.split(host_path)
             for _ in range(2):
                 call(['chmod', 'go+rx', tail])
                 tail, _ = os.path.split(tail)
+            msg = '... complete'
+            print msg
         else:
             msg = '{prefix}: Files already present at host location, skipping'.format(
                 prefix=self.msg_prefix())

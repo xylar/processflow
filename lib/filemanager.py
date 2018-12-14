@@ -120,7 +120,8 @@ class FileManager(object):
                             filestr += '\n\t     local_path: ' + datafile.local_path
                             filestr += '\n\t     remote_path: ' + datafile.remote_path
                             filestr += '\n\t     year: ' + str(datafile.year)
-                            filestr += '\n\t     month: ' + str(datafile.month) + '\n'
+                            filestr += '\n\t     month: ' + \
+                                str(datafile.month) + '\n'
                             fp.write(filestr)
             except Exception as e:
                 print_debug(e)
@@ -133,21 +134,22 @@ class FileManager(object):
                 monthly = self._config['data_types'][datatype].get('monthly')
                 if start_year and end_year and monthly:
                     q = (DataFile
-                            .select()
-                            .where(
+                         .select()
+                         .where(
                                 (DataFile.year >= start_year) &
                                 (DataFile.year <= end_year) &
                                 (DataFile.case == case) &
                                 (DataFile.datatype == datatype)))
                 else:
                     q = (DataFile
-                            .select()
-                            .where(
+                         .select()
+                         .where(
                                 (DataFile.case == case) &
                                 (DataFile.datatype == datatype)))
                 datafiles = q.execute()
                 if not datafiles:
-                    msg = "ERROR: missing records for datatype {}".format(datatype)
+                    msg = "ERROR: missing records for datatype {}".format(
+                        datatype)
                     logging.error(msg)
                     print(msg)
                     return False
@@ -190,9 +192,10 @@ class FileManager(object):
                 instring = self._config['data_types'][data_type][case][data_type_option]
                 for item in self._config['simulations'][case]:
                     if item.upper() in self._config['data_types'][data_type][case][data_type_option]:
-                        instring = instring.replace(item.upper(), self._config['simulations'][case][item])
+                        instring = instring.replace(
+                            item.upper(), self._config['simulations'][case][item])
                 return instring
-        
+
         instring = self._config['data_types'][data_type][data_type_option]
         for string, val in replace.items():
             if string in instring:
@@ -264,13 +267,13 @@ class FileManager(object):
                     else:
                         # handle one-off data
                         filename = self.render_file_string(
-                                    data_type=_type,
-                                    data_type_option='file_format',
-                                    case=case)
+                            data_type=_type,
+                            data_type_option='file_format',
+                            case=case)
                         r_path = self.render_file_string(
-                                    data_type=_type,
-                                    data_type_option='remote_path',
-                                    case=case)
+                            data_type=_type,
+                            data_type_option='remote_path',
+                            case=case)
                         new_files.append({
                             'name': filename,
                             'remote_path': os.path.join(r_path, filename),
@@ -297,7 +300,7 @@ class FileManager(object):
 
             msg = 'Database update complete'
             print_line(msg, self._event_list)
-    
+
     def verify_remote_files(self, client, case):
         """
         Check that the user supplied file paths are valid for remote files
@@ -306,32 +309,42 @@ class FileManager(object):
             client: either an ssh_client or a globus_client
             case: the case to check remote paths for
         """
+
+        # return if file verification is turned off
         if not self._config['global']['verify']:
             return True
+
         msg = 'verifying remote file paths'
         print_line(msg, self._event_list)
 
+        # since each data type can have its own base path, get a set of
+        # all the data types we need to check for
         data_types_to_verify = []
         q = (DataFile
-                .select()
-                .where(
-                    (DataFile.case == case) & 
+             .select()
+             .where(
+                    (DataFile.case == case) &
                     (DataFile.local_status != FileStatus.PRESENT.value)))
-        for datafile in  q.execute():
+        for datafile in q.execute():
             if datafile.datatype not in data_types_to_verify:
                 data_types_to_verify.append(datafile.datatype)
-        
+
         found_all = True
+        # for each data type we need to check for, do an "ls" on the remote
+        # directory to get a list of all its contents, then check that all the files
+        # we're looking for of that type are in that directory
         for datatype in data_types_to_verify:
-            q = (DataFile
-                    .select()
-                    .where(
-                        (DataFile.case == case) &
-                        (DataFile.datatype == datatype)))
-            files = q.execute()
+            files = (DataFile
+                     .select()
+                     .where(
+                         (DataFile.case == case) &
+                         (DataFile.datatype == datatype))
+                     .limit(1)).execute()
+
             remote_path, _ = os.path.split(files[0].remote_path)
             msg = 'Checking {} files in {}'.format(datatype, remote_path)
             print_line(msg, self._event_list)
+
             if files[0].transfer_type == 'globus':
                 from lib.globus_interface import get_ls as globus_ls
                 remote_contents = globus_ls(
@@ -347,9 +360,8 @@ class FileManager(object):
                 msg = "No remote files found, please check file permissions and user access"
                 print_message(msg)
                 return False
-            remote_names = [x['name'] for x in remote_contents]
             for df in files:
-                if df.name not in remote_names:
+                if df.name not in remote_contents:
                     msg = 'Unable to find file {name} at {remote_path}'.format(
                         name=df.name,
                         remote_path=remote_path)
@@ -379,11 +391,11 @@ class FileManager(object):
                 'remote_path': df.remote_path,
                 'transfer_type': df.transfer_type,
             }
-    
+
     def add_files(self, data_type, file_list, super_type="raw_output"):
         """
         Add files to the database
-        
+
         Parameters:
             data_type (str): the data_type of the new files
             file_list (list): a list of dictionaries in the format
@@ -422,7 +434,6 @@ class FileManager(object):
                     new_files[idx: idx + step]).execute()
         except Exception as e:
             print_debug(e)
-        
 
     def update_local_status(self):
         """
@@ -525,8 +536,8 @@ class FileManager(object):
                 step = 50
                 for idx in range(0, len(required_files), step):
                     q = (DataFile
-                            .update({DataFile.local_status: FileStatus.IN_TRANSIT})
-                            .where(DataFile.name << [x.name for x in required_files[idx: step + idx]]))
+                         .update({DataFile.local_status: FileStatus.IN_TRANSIT})
+                         .where(DataFile.name << [x.name for x in required_files[idx: step + idx]]))
                     q.execute()
 
                 for file in required_files:
@@ -549,7 +560,8 @@ class FileManager(object):
                         return False
                     remote_uuid = required_files[0].remote_uuid
                     local_uuid = self._config['global']['local_globus_uuid']
-                    thread_name = '{}_globus_transfer'.format(required_files[0].case)
+                    thread_name = '{}_globus_transfer'.format(
+                        required_files[0].case)
                     _args = (client, remote_uuid,
                              local_uuid, target_files,
                              self.kill_event)
@@ -574,7 +586,8 @@ class FileManager(object):
                         credential_path=cred_path)
                     if not self.verify_remote_files(client=client, case=case):
                         return False
-                    thread_name = '{}_sftp_transfer'.format(required_files[0].case)
+                    thread_name = '{}_sftp_transfer'.format(
+                        required_files[0].case)
                     _args = (target_files, client, self.kill_event)
                     thread = Thread(
                         target=self._ssh_transfer,
@@ -609,8 +622,8 @@ class FileManager(object):
                     file['remote_path'])
                 print_line(msg, self._event_list)
                 if os.path.exists(file['local_path']) \
-                    and os.path.getsize(file['local_path']) == 0:
-                        os.remove(file['local_path'])
+                        and os.path.getsize(file['local_path']) == 0:
+                    os.remove(file['local_path'])
 
             msg = self.report_files_local()
             print_line(msg, self._event_list)
@@ -622,8 +635,8 @@ class FileManager(object):
         q = (DataFile
              .select(DataFile.local_status)
              .where(
-                (DataFile.local_status == FileStatus.PRESENT.value) & 
-                (DataFile.super_type == 'raw_output')))
+                 (DataFile.local_status == FileStatus.PRESENT.value) &
+                 (DataFile.super_type == 'raw_output')))
         local = len([x.local_status for x in q.execute()])
 
         q = (DataFile.select(DataFile.local_status))
@@ -648,22 +661,22 @@ class FileManager(object):
             if start_year and end_year:
                 if datatype in ['climo_regrid', 'climo_native', 'ts_regrid', 'ts_native']:
                     query = (DataFile
-                         .select()
-                         .where(
-                                (DataFile.month == end_year) &
-                                (DataFile.year == start_year) &
-                                (DataFile.case == case) &
-                                (DataFile.datatype == datatype) &
-                                (DataFile.local_status == FileStatus.PRESENT.value)))
+                             .select()
+                             .where(
+                                 (DataFile.month == end_year) &
+                                 (DataFile.year == start_year) &
+                                 (DataFile.case == case) &
+                                 (DataFile.datatype == datatype) &
+                                 (DataFile.local_status == FileStatus.PRESENT.value)))
                 else:
                     query = (DataFile
-                            .select()
-                            .where(
-                                    (DataFile.year <= end_year) &
-                                    (DataFile.year >= start_year) &
-                                    (DataFile.case == case) &
-                                    (DataFile.datatype == datatype) &
-                                    (DataFile.local_status == FileStatus.PRESENT.value)))
+                             .select()
+                             .where(
+                                 (DataFile.year <= end_year) &
+                                 (DataFile.year >= start_year) &
+                                 (DataFile.case == case) &
+                                 (DataFile.datatype == datatype) &
+                                 (DataFile.local_status == FileStatus.PRESENT.value)))
             else:
                 query = (DataFile
                          .select()

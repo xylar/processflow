@@ -26,32 +26,47 @@ class AMWG(Diag):
         self._job_type = 'amwg'
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
-        self._host_path = ''
 
-        custom_args = kwargs['config']['diags'][self.job_type].get(
-            'custom_args')
-        if custom_args:
-            self.set_custom_args(custom_args)
 
-        # setup the output directory, creating it if it doesnt already exist
-        custom_output_path = kwargs['config']['diags'][self.job_type].get(
-            'custom_output_path')
-        if custom_output_path:
-            self._replace_dict['COMPARISON'] = self._short_comp_name
-            self._output_path = self.setup_output_directory(custom_output_path)
+        config = kwargs.get('config')
+        if config:
+            if config['global'].get('host'):
+                self._host_path = os.path.join(
+                    config['img_hosting']['host_directory'],
+                    self.case,
+                    'amwg',
+                    '{start:04d}_{end:04d}_vs_{comp}'.format(
+                        start=self.start_year,
+                        end=self.end_year,
+                        comp=self._short_comp_name))
+            custom_args = config['diags'][self.job_type].get(
+                'custom_args')
+            if custom_args:
+                self.set_custom_args(custom_args)
+
+            # setup the output directory, creating it if it doesnt already exist
+            custom_output_path = config['diags'][self.job_type].get(
+                'custom_output_path')
+            if custom_output_path:
+                self._replace_dict['COMPARISON'] = self._short_comp_name
+                self._output_path = self.setup_output_directory(custom_output_path)
+            else:
+                self._output_path = os.path.join(
+                    config['global']['project_path'],
+                    'output',
+                    'diags',
+                    self.short_name,
+                    self.job_type,
+                    '{start:04d}_{end:04d}_vs_{comp}'.format(
+                        start=self.start_year,
+                        end=self.end_year,
+                        comp=self._short_comp_name))
+            if not os.path.exists(self._output_path):
+                os.makedirs(self._output_path)
         else:
-            self._output_path = os.path.join(
-                kwargs['config']['global']['project_path'],
-                'output',
-                'diags',
-                self.short_name,
-                self.job_type,
-                '{start:04d}_{end:04d}_vs_{comp}'.format(
-                    start=self.start_year,
-                    end=self.end_year,
-                    comp=self._short_comp_name))
-        if not os.path.exists(self._output_path):
-            os.makedirs(self._output_path)
+            self._host_path = ''
+            self._output_path = ''
+
     # -----------------------------------------------
     
     def setup_data(self, config, filemanager, case):
@@ -171,6 +186,9 @@ class AMWG(Diag):
         # get environment path to use as NCARG_ROOT
         variables['NCARG_ROOT'] = os.environ['CONDA_PREFIX']
 
+        # remove previous amwg script if it exists
+        if os.path.exists(csh_template_out):
+            os.remove(csh_template_out)
         render(
             variables=variables,
             input_path=template_input_path,
@@ -206,18 +224,6 @@ class AMWG(Diag):
         img_source_tar = img_source + '.tar'
         if not os.path.exists(img_source):
             return False
-
-        # the host path might not have been set yet
-        if not self._host_path:
-            if config['global'].get('host'):
-                self._host_path = os.path.join(
-                    config['img_hosting']['host_directory'],
-                    self.case,
-                    'amwg',
-                    '{start:04d}_{end:04d}_vs_{comp}'.format(
-                        start=self.start_year,
-                        end=self.end_year,
-                        comp=self._short_comp_name))
 
         # the minimum number of files expected from each plotset
         expected_files = {
@@ -355,16 +361,6 @@ class AMWG(Diag):
             self._output_path,
             '{case}-vs-{comp}'.format(
                 case=self.short_name,
-                comp=self._short_comp_name))
-
-        # setup the web hosting
-        self._host_path = os.path.join(
-            config['img_hosting']['host_directory'],
-            self.short_name,
-            'amwg',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
                 comp=self._short_comp_name))
 
         if not os.path.exists(img_source):

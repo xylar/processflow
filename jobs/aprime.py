@@ -22,7 +22,6 @@ class Aprime(Diag):
         super(Aprime, self).__init__(*args, **kwargs)
         self._job_type = 'aprime'
         self._requires = ''
-        self._host_path = ''
         self._input_base_path = ''
         self._data_required = ['atm', 'cice', 'ocn',
                                'ocn_restart', 'cice_restart',
@@ -30,30 +29,40 @@ class Aprime(Diag):
                                'ocn_in', 'cice_in',
                                'meridionalHeatTransport']
 
-        custom_args = kwargs['config']['diags'][self.job_type].get(
-            'custom_args')
-        if custom_args:
-            self.set_custom_args(custom_args)
-        
-        # setup the output directory, creating it if it doesnt already exist
-        custom_output_path = kwargs['config']['diags'][self.job_type].get(
-            'custom_output_path')
-        if custom_output_path:
-            self._replace_dict['COMPARISON'] = self._short_comp_name
-            self._output_path = self.setup_output_directory(custom_output_path)
+        config = kwargs.get('config')
+        if config:
+            if config['global'].get('host'):
+                self._host_path = os.path.join(
+                    config['img_hosting']['host_directory'],
+                    self.case,
+                    'aprime')
+            custom_args = config['diags'][self.job_type].get(
+                'custom_args')
+            if custom_args:
+                self.set_custom_args(custom_args)
+
+            # setup the output directory, creating it if it doesnt already exist
+            custom_output_path = config['diags'][self.job_type].get(
+                'custom_output_path')
+            if custom_output_path:
+                self._replace_dict['COMPARISON'] = self._short_comp_name
+                self._output_path = self.setup_output_directory(custom_output_path)
+            else:
+                self._output_path = os.path.join(
+                    kwargs['config']['global']['project_path'],
+                    'output',
+                    'diags',
+                    self.short_name,
+                    self.job_type,
+                    '{start:04d}_{end:04d}_vs_{comp}'.format(
+                        start=self.start_year,
+                        end=self.end_year,
+                        comp=self._short_comp_name))
+            if not os.path.exists(self._output_path):
+                os.makedirs(self._output_path)
         else:
-            self._output_path = os.path.join(
-                kwargs['config']['global']['project_path'],
-                'output',
-                'diags',
-                self.short_name,
-                self.job_type,
-                '{start:04d}_{end:04d}_vs_{comp}'.format(
-                    start=self.start_year,
-                    end=self.end_year,
-                    comp=self._short_comp_name))
-        if not os.path.exists(self._output_path):
-            os.makedirs(self._output_path)
+            self._host_path = ''
+            self._output_path = ''
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -79,11 +88,6 @@ class Aprime(Diag):
         # fix the input paths
         self._fix_input_paths()
 
-        self._host_path = os.path.join(
-            config['img_hosting']['host_directory'],
-            self.short_name,
-            'aprime')
-
         # setup template
         template_out = os.path.join(
             config['global']['run_scripts_path'],
@@ -106,6 +110,9 @@ class Aprime(Diag):
             config['global']['resource_path'],
             'aprime_template_vs_obs.bash')
 
+        # remove previous run script if it exists
+        if os.path.exists(template_out):
+            os.remove(template_out)
         render(
             variables=variables,
             input_path=template_input_path,
@@ -132,13 +139,10 @@ class Aprime(Diag):
             False otherwise
         """
 
-        self._host_path = os.path.join(
-            config['img_hosting']['host_directory'],
-            self.short_name,
-            'aprime')
         num_missing = self._check_links(config)
-
-        if num_missing is not None and num_missing == 0:
+        if num_missing is None:
+            return True
+        elif num_missing == 0:
             return True
         else:
             if self._has_been_executed:
@@ -174,12 +178,6 @@ class Aprime(Diag):
         # if hosting is turned off, simply return
         if not config['global']['host']:
             return
-
-        # setup the web hosting
-        self._host_path = os.path.join(
-            config['img_hosting']['host_directory'],
-            self.short_name,
-            'aprime')
 
         self.setup_hosting(
             always_copy=config['global']['always_copy'],

@@ -265,9 +265,7 @@ class Job(object):
         Parameters:
             cmd (str): the command to submit
             config (dict): the global configuration object
-        Retuns:
-            If the job.prevalidate FAILS, returns -1
-            if the job.postvalidate SUCCEEDS, return 0
+        Returns:
             job_id (int): the job_id from the resource manager
         """
         # setup for the run script
@@ -334,12 +332,6 @@ class Job(object):
             logging.info(msg)
             self.status = JobStatus.COMPLETED
             return False
-        else:
-            if not self.prevalidate():
-                return -1
-            if self.postvalidate(config, event_list):
-                self.status = JobStatus.COMPLETED
-                return 0
 
         # submit the run script to the resource controller
         self._job_id = manager.batch(run_script)

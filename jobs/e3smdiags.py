@@ -17,7 +17,18 @@ class E3SMDiags(Diag):
         self._job_type = 'e3sm_diags'
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
-        self._host_path = ''
+
+        if kwargs['config']['host']:
+            self._host_path = os.path.join(
+                kwargs['config']['img_hosting']['host_directory'],
+                self.short_name,
+                'e3sm_diags',
+                '{start:04d}_{end:04d}_vs_{comp}'.format(
+                    start=self.start_year,
+                    end=self.end_year,
+                    comp=self._short_comp_name))
+        else:
+            self._host_path = ''
 
         custom_args = kwargs['config']['diags']['e3sm_diags'].get(
             'custom_args')
@@ -136,6 +147,9 @@ class E3SMDiags(Diag):
             variables['reference_data_path'] = input_path
             variables['ref_name'] = self.comparison
             variables['reference_name'] = config['simulations'][self.comparison]['short_name']
+        # remove previous run script if it exists
+        if os.path.exists(param_template_out):
+            os.remove(param_template_out)
         render(
             variables=variables,
             input_path=template_input_path,
@@ -184,16 +198,6 @@ class E3SMDiags(Diag):
         # if hosting is turned off, simply return
         if not config['global'].get('host'):
             return
-
-        # else setup the web hosting
-        self._host_path = os.path.join(
-            config['img_hosting']['host_directory'],
-            self.short_name,
-            'e3sm_diags',
-            '{start:04d}_{end:04d}_vs_{comp}'.format(
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name))
 
         self.setup_hosting(
             always_copy=config['global'].get('always_copy', False),

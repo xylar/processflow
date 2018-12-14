@@ -97,15 +97,15 @@ class RunManager(object):
         if case:
             for other_job in case['jobs']:
                 if job.job_type == other_job.job_type \
-                    and job.start_year == other_job.start_year \
-                    and job.end_year == other_job.end_year:
-                        if job.run_type:
-                            if job.run_type == other_job.run_type:
+                        and job.start_year == other_job.start_year \
+                        and job.end_year == other_job.end_year:
+                    if job.run_type:
+                        if job.run_type == other_job.run_type:
+                            return True
+                    else:
+                        if job.comparison:
+                            if job.comparison == other_job.comparison:
                                 return True
-                        else:
-                            if job.comparison:
-                                if job.comparison == other_job.comparison:
-                                    return True
         return False
 
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
@@ -354,31 +354,29 @@ class RunManager(object):
                         filemanager=self.filemanager,
                         case=job.case)
                     # if this job needs data from another case, set that up too
-                    if isinstance(job, Diag):
-                        if job.comparison != 'obs':
-                            job.setup_data(
-                                config=self.config,
-                                filemanager=self.filemanager,
-                                case=job.comparison)
-                    run_id = job.execute(
-                        config=self.config,
-                        dryrun=self.dryrun,
-                        event_list=self.event_list)
-                    if run_id == -1:
+                    if job.comparison != 'obs':
+                        job.setup_data(
+                            config=self.config,
+                            filemanager=self.filemanager,
+                            case=job.comparison)
+                    if not job.prevalidate():
                         msg = '{}: Prevalidation FAILED'.format(
                             job.msg_prefix())
                         print_line(msg, self.event_list)
                         job.status = JobStatus.FAILED
-                    elif run_id == 0:
-                        msg = '{}: job previously computed, skipping'.format(
-                            job.msg_prefix())
-                        print_line(msg, self.event_list)
-                        job.status = JobStatus.COMPLETED
                     else:
-                        self.running_jobs.append({
-                            'manager_id': run_id,
-                            'job_id': job.id
-                        })
+                        run_id = job.execute(
+                            config=self.config,
+                            dryrun=self.dryrun,
+                            event_list=self.event_list)
+                        if run_id == 0:
+                            job.status = JobStatus.COMPLETED
+                        else:
+                            self.running_jobs.append({
+                                'manager_id': run_id,
+                                'job_id': job.id
+                            })
+                        
 
     def get_job_by_id(self, jobid):
         for case in self.cases:

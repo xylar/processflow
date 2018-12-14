@@ -22,7 +22,6 @@ class MPASAnalysis(Diag):
         super(MPASAnalysis, self).__init__(*args, **kwargs)
         self._job_type = 'mpas_analysis'
         self._requires = ''
-        self._host_path = ''
         self._host_url = ''
         self.case_start_year = kwargs['config']['simulations']['start_year']
         self._data_required = ['cice', 'ocn',
@@ -30,6 +29,18 @@ class MPASAnalysis(Diag):
                                'ocn_streams', 'cice_streams',
                                'ocn_in', 'cice_in',
                                'meridionalHeatTransport']
+        
+        if kwargs['config']['host']:
+            self._host_path = os.path.join(
+                kwargs['config']['img_hosting']['host_directory'],
+                self.short_name,
+                'mpas_analysis',
+                '{start:04d}_{end:04d}_vs_{comp}'.format(
+                    start=self.start_year,
+                    end=self.end_year,
+                    comp=self._short_comp_name))
+        else:
+            self._host_path = 'html'
 
         custom_args = kwargs['config']['diags'][self.job_type].get(
             'custom_args')
@@ -78,18 +89,6 @@ class MPASAnalysis(Diag):
         """
         self._dryrun = dryrun
         mpas_config = config['diags']['mpas_analysis']
-
-        if config.get('img_hosting'):
-            self._host_path = os.path.join(
-                config['img_hosting']['host_directory'],
-                self.short_name,
-                self._job_type,
-                '{:04d}_{:04d}_vs_{}'.format(
-                    self._start_year,
-                    self._end_year,
-                    self._short_comp_name))
-        else:
-            self._host_path = 'html'
 
         # setup template
         template_out = os.path.join(
@@ -142,6 +141,9 @@ class MPASAnalysis(Diag):
             'runMOC': mpas_config.get('run_MOC', ''),
             'htmlSubdirectory': self._host_path
         }
+        # remove previous run script if it exists
+        if os.path.exists(template_out):
+            os.remove(template_out)
         render(
             variables=variables,
             input_path=template_input_path,
@@ -201,13 +203,5 @@ class MPASAnalysis(Diag):
             event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
-
-        if config['global']['host']:
-            self._host_url = 'https://{server}/{prefix}/{case}/mpas_analysis/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
-                server=config['img_hosting']['img_host_server'],
-                prefix=config['img_hosting']['url_prefix'],
-                case=self.short_name,
-                start=self.start_year,
-                end=self.end_year,
-                comp=self._short_comp_name)
+        pass
     # -----------------------------------------------
