@@ -18,7 +18,7 @@ class E3SMDiags(Diag):
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
 
-        if kwargs['config']['host']:
+        if kwargs['config']['global']['host']:
             self._host_path = os.path.join(
                 kwargs['config']['img_hosting']['host_directory'],
                 self.short_name,

@@ -30,7 +30,7 @@ class MPASAnalysis(Diag):
                                'ocn_in', 'cice_in',
                                'meridionalHeatTransport']
         
-        if kwargs['config']['host']:
+        if kwargs['config']['global']['host']:
             self._host_path = os.path.join(
                 kwargs['config']['img_hosting']['host_directory'],
                 self.short_name,
