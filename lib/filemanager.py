@@ -639,7 +639,9 @@ class FileManager(object):
                  (DataFile.super_type == 'raw_output')))
         local = len([x.local_status for x in q.execute()])
 
-        q = (DataFile.select(DataFile.local_status))
+        q = (DataFile
+             .select(DataFile.local_status)
+             .where(DataFile.super_type == 'raw_output'))
         total = len([x.local_status for x in q.execute()])
 
         msg = '{local}/{total} files available locally or {prec:.2f}%'.format(
