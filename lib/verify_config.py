@@ -217,7 +217,7 @@ def verify_config(config):
                     config['post-processing']['timeseries']['run_frequency'] = [
                         config['post-processing']['timeseries']['run_frequency']]
             for item in config['post-processing']['timeseries']:
-                if item in ['run_frequency', 'regrid_map_path', 'destination_grid_name']:
+                if item in ['run_frequency', 'regrid_map_path', 'destination_grid_name', 'custom_args']:
                     continue
                 if item not in ['atm', 'lnd', 'ocn']:
                     msg = '{} is an unsupported timeseries data type'.format(
