@@ -458,8 +458,8 @@ class FileManager(object):
                         change = True
                 else:
                     if datafile.transfer_type == 'local':
-                        msg = '{case} transfer_type is local, but {filename} is not present'.format(
-                            case=datafile.case, filename=datafile.name)
+                        msg = '{case} transfer_type is set to local, but {filename} is not present at {path}'.format(
+                            case=datafile.case, filename=datafile.name, path=datafile.local_path)
                         logging.error(msg)
                         if not printed:
                             print_line(msg, self._event_list)
