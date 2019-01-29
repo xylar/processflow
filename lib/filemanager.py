@@ -185,7 +185,9 @@ class FileManager(object):
                         instring = instring.replace(item.upper(), self._config['simulations'][case][item])
                 return instring
         
-        instring = self._config['data_types'][data_type][data_type_option]
+        instring = self._config['data_types'][data_type].get(data_type_option)
+        if not instring:
+            return ""
         for string, val in replace.items():
             if string in instring:
                 instring = instring.replace(string, val)
