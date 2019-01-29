@@ -27,22 +27,6 @@ def verify_config(config):
     # ------------------------------------------------------------------------
     # check simulations
     # ------------------------------------------------------------------------
-    if not config['simulations'].get('comparisons'):
-        if config.get('diags'):
-            msg = 'no comparisons specified'
-            messages.append(msg)
-    else:
-        for comp in config['simulations']['comparisons']:
-            if not isinstance(config['simulations']['comparisons'][comp], list):
-                config['simulations']['comparisons'][comp] = [
-                    config['simulations']['comparisons'][comp]]
-            for other_sim in config['simulations']['comparisons'][comp]:
-                if other_sim in ['obs', 'all']:
-                    continue
-                if other_sim not in config['simulations']:
-                    msg = '{} not found in config.simulations'.format(
-                        other_sim)
-                    messages.append(msg)
     if not config['simulations'].get('start_year'):
         msg = 'no start_year set for simulations'
         messages.append(msg)
@@ -55,8 +39,12 @@ def verify_config(config):
     else:
         config['simulations']['end_year'] = int(
             config['simulations']['end_year'])
+    if int(config['simulations'].get('end_year')) < int(config['simulations'].get('start_year')):
+        msg = 'simulation end_year is less then start_year, is time going backwards!?'
+        messages.append(msg)
+
     for sim in config.get('simulations'):
-        if sim in ['comparisons', 'start_year', 'end_year']:
+        if sim in ['start_year', 'end_year']:
             continue
         if not config['simulations'][sim].get('transfer_type'):
             msg = '{} is missing trasfer_type, if the data is local, set transfer_type to \'local\''.format(
@@ -88,9 +76,6 @@ def verify_config(config):
                 config['global']['project_path'],
                 'input',
                 sim)
-        if int(config['simulations'].get('end_year', 0)) < int(config['simulations'].get('start_year', 0)):
-            msg = 'simulation end_year is less then start_year, is time going backwards!?'
-            messages.append(msg)
         if not config['simulations'][sim].get('data_types'):
             msg = 'no data_types found for {}, set to \'all\' to select all types, or list only data_types desired'.format(
                 sim)
@@ -124,9 +109,6 @@ def verify_config(config):
     for ftype in config.get('data_types'):
         if not config['data_types'][ftype].get('file_format'):
             msg = '{} has no file_format'.format(ftype)
-            messages.append(msg)
-        if not config['data_types'][ftype].get('remote_path'):
-            msg = '{} has no remote_path'.format(ftype)
             messages.append(msg)
         if not config['data_types'][ftype].get('local_path'):
             msg = '{} has no local_path'.format(ftype)
