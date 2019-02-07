@@ -331,7 +331,7 @@ class AMWG(Diag):
             return False
     # -----------------------------------------------
 
-    def handle_completion(self, event_list, config, *args):
+    def handle_completion(self, file_manager, event_list, config, *args):
         """
         Sets up variables needed to web hosting
 

@@ -148,7 +148,7 @@ class Climo(Job):
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config):
+    def handle_completion(self, filemanager, event_list, config, *args):
         """
         Adds the output files to the filemanager database
             as 'climo_regrid' and 'climo_native' data types

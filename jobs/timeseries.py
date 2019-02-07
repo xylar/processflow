@@ -174,7 +174,7 @@ class Timeseries(Job):
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config):
+    def handle_completion(self, filemanager, event_list, config, *args):
         """
         Post run handler, adds produced timeseries variable files into
         the filemanagers database

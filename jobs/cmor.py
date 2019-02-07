@@ -125,7 +125,7 @@ class Cmor(Job):
         return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config):
+    def handle_completion(self, filemanager, event_list, config, *args):
         """
         Adds the output from cmor into the filemanager database as type 'cmorized'
 

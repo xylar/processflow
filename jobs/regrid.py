@@ -134,7 +134,7 @@ class Regrid(Job):
         return True
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config):
+    def handle_completion(self, filemanager, event_list, config, *args):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())

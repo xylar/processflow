@@ -153,7 +153,7 @@ class Aprime(Diag):
             return False
     # -----------------------------------------------
 
-    def handle_completion(self, event_list, config, *args):
+    def handle_completion(self, file_manager, event_list, config, *args):
         """
         Setup for webhosting after a successful run
         

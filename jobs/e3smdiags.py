@@ -157,10 +157,10 @@ class E3SMDiags(Diag):
         return self._check_links(config)
     # -----------------------------------------------
 
-    def handle_completion(self, event_list, config, *args):
+    def handle_completion(self, file_manager, event_list, config, *args):
         """
         Perform setup for webhosting
-        
+
         Parameters
         ----------
             event_list (EventList): an event list to push user notifications into
