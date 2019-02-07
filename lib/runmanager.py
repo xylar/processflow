@@ -149,13 +149,18 @@ class RunManager(object):
             end (int): the last year of simulated data
             case (dict): the case to add this job to
         """
+        case_name = case['case']
         if not isinstance(freqs, list): freqs = [freqs]
         for year in range(start, end + 1):
             for freq in freqs:
                 freq = int(freq)
                 if (year - start) % freq == 0:
                     # get the comparisons from the config                    
-                    comparisons = self.config['simulations']['comparisons'][case['case']]
+                    comparisons = self.config['simulations'][case_name].get('comparisons')
+                    if not comparisons:
+                        continue
+                    if not isinstance(comparisons, list):
+                        comparisons = [comparisons]
                     if job_type == 'aprime':
                         comparisons = ['obs']
                     job_end = year + freq - 1
@@ -165,10 +170,10 @@ class RunManager(object):
                     for item in comparisons:
                         if item == 'all':
                             for other_case in self.config['simulations']:
-                                if other_case in ['start_year', 'end_year', 'comparisons', case['case']]: continue
+                                if other_case in ['start_year', 'end_year', 'comparisons', case_name]: continue
                                 new_diag = job_map[job_type](
                                     short_name=case['short_name'],
-                                    case=case['case'],
+                                    case=case_name,
                                     start=year,
                                     end=job_end,
                                     comparison=other_case,
@@ -177,7 +182,7 @@ class RunManager(object):
                                     case['jobs'].append(new_diag)
                             new_diag = job_map[job_type](
                                 short_name=case['short_name'],
-                                case=case['case'],
+                                case=case_name,
                                 start=year,
                                 end=job_end,
                                 comparison='obs',
@@ -187,7 +192,7 @@ class RunManager(object):
                         else:
                             new_diag = job_map[job_type](
                                 short_name=case['short_name'],
-                                case=case['case'],
+                                case=case_name,
                                 start=year,
                                 end=job_end,
                                 comparison=item,
