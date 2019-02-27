@@ -32,7 +32,8 @@ class JobInfo(object):
             'PARTITION': self.partition,
             'STATE': self.state,
             'TIME': self.time,
-            'USER': self.user
+            'USER': self.user,
+            'COMMAND': self.command
         })
 
     def set_attr(self, attr, val):

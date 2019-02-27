@@ -15,6 +15,8 @@ from jobs.job import Job
 class Diag(Job):
     def __init__(self, *args, **kwargs):
         super(Diag, self).__init__(*args, **kwargs)
+        self._short_comp_name = ""
+        self._host_url = ""
         self._comparison = kwargs.get('comparison', 'obs')
     # -----------------------------------------------
 
@@ -91,4 +93,13 @@ class Diag(Job):
                 status=self.status.name,
                 console_path=self._console_output_path)
         return msg
+    # -----------------------------------------------
+
+    def msg_prefix(self):
+        return '{type}-{start:04d}-{end:04d}-{case}-vs-{comp}'.format(
+                type=self.job_type,
+                start=self.start_year,
+                end=self.end_year,
+                case=self.short_name,
+                comp=self._short_comp_name)
     # -----------------------------------------------

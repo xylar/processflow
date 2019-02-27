@@ -56,6 +56,10 @@ def parse_args(argv=None, print_help=None):
         '-v', '--version',
         help='Print version information and exit.',
         action='store_true')
+    parser.add_argument(
+        '-s', '--serial',
+        help="Run in serial on systems without a resource manager",
+        action='store_true')
 
     if print_help:
         parser.print_help()
@@ -132,6 +136,11 @@ Please add a space and run again.'''.format(num=line_index)
         print_debug(e)
         sys.exit(1)
     
+    if pargs.serial:
+        config['global']['serial'] = True
+    else:
+        config['global']['serial'] = False
+
     if pargs.resource_path:
         config['global']['resource_path'] = os.path.abspath(pargs.resource_path)
     else:

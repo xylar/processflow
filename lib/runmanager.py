@@ -8,6 +8,8 @@ from time import sleep
 
 from lib.slurm import Slurm
 from lib.pbs import PBS
+from lib.serial import Serial
+
 from lib.util import get_climo_output_files
 from lib.util import create_symlink_dir
 from lib.util import print_line
@@ -62,13 +64,21 @@ class RunManager(object):
         self._job_total = 0
         self._job_complete = 0
 
-        try:
-            self.manager = Slurm()
-        except:
+        if config['global']['serial']:
+            msg = '\n\n=== Running in Serial Mode ===\n'
+            print_line(msg, event_list)
+            self.manager = Serial()
+        else:
             try:
-                self.manager = PBS()
+                self.manager = Slurm()
             except:
-                raise Exception("Couldnt find either a slurm or PBS resource manager")
+                try:
+                    self.manager = PBS()
+                except:
+                    msg = "Neither Slurm nor PBS found, run with --serial for serial execution"
+                    print_line(msg, event_list)
+                    raise Exception(msg)
+                
 
         max_jobs = config['global']['max_jobs']
         self.max_running_jobs = max_jobs if max_jobs else self.manager.get_node_number() * 3
@@ -76,7 +86,6 @@ class RunManager(object):
             sleep(1)
             msg = 'Unable to communication with scontrol, checking again'
             print_line(msg, event_list)
-            logging.error(msg)
             self.max_running_jobs = self.manager.get_node_number() * 3
 
     def _duplicate_check(self, job):
@@ -134,7 +143,8 @@ class RunManager(object):
                         start=year,
                         end=job_end,
                         run_type=run_type,
-                        config=self.config)
+                        config=self.config,
+                        manager=self.manager)
                     if not self._duplicate_check(new_job):
                         case['jobs'].append(new_job)
 
@@ -177,7 +187,8 @@ class RunManager(object):
                                     start=year,
                                     end=job_end,
                                     comparison=other_case,
-                                    config=self.config)
+                                    config=self.config,
+                                    manager=self.manager)
                                 if not self._duplicate_check(new_diag):
                                     case['jobs'].append(new_diag)
                             new_diag = job_map[job_type](
@@ -186,7 +197,8 @@ class RunManager(object):
                                 start=year,
                                 end=job_end,
                                 comparison='obs',
-                                config=self.config)
+                                config=self.config,
+                                manager=self.manager)
                             if not self._duplicate_check(new_diag):
                                 case['jobs'].append(new_diag)
                         else:
@@ -196,7 +208,8 @@ class RunManager(object):
                                 start=year,
                                 end=job_end,
                                 comparison=item,
-                                config=self.config)
+                                config=self.config,
+                                manager=self.manager)
                             if not self._duplicate_check(new_diag):
                                 case['jobs'].append(new_diag)    
 
@@ -467,6 +480,7 @@ class RunManager(object):
                         self.config)
                     self.report_completed_job()
                 else:
+                    import ipdb; ipdb.set_trace()
                     job.status = JobStatus.FAILED
                     line = "{job}: resource manager lookup error for jobid {id}. The job may have failed, check the error output".format(
                         job=job.msg_prefix(),
