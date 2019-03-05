@@ -296,7 +296,7 @@ class Job(object):
                     value=item)
 
         with open(run_script, 'w') as batchfile:
-            batchfile.write('#!/bin/bash')
+            batchfile.write('#!/bin/bash\n')
             batchfile.write(script_prefix)
 
         template_input_path = os.path.join(
