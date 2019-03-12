@@ -3,13 +3,17 @@ A child of Job, the Diag class is the parent for all diagnostic jobs
 """
 import json
 import os
+import logging
+import sys
 
 from shutil import copytree, rmtree
 from subprocess import call
 
 from lib.jobstatus import JobStatus
-from lib.util import print_line
+from lib.util import print_line, create_symlink_dir, render
 from jobs.job import Job
+from lib.slurm import Slurm
+from lib.pbs import PBS
 
 
 class Diag(Job):
@@ -102,4 +106,170 @@ class Diag(Job):
                 end=self.end_year,
                 case=self.short_name,
                 comp=self._short_comp_name)
+    # -----------------------------------------------
+
+    def setup_data(self, config, filemanager, case):
+        """
+        symlinks all data_types sepecified in the jobs _data_required field,
+        and puts a copy of the path for the links into the _input_file_paths field
+        """
+        for datatype in self._data_required:
+            datainfo = config['data_types'].get(datatype)
+            if not datainfo:
+                print "ERROR: Unable to find config information for {}".format(
+                    datatype)
+                sys.exit(1)
+            monthly = datainfo.get('monthly')
+            # first get the list of file paths to the data
+            if monthly == 'True' or monthly == True:
+                files = filemanager.get_file_paths_by_year(
+                    datatype=datatype,
+                    case=case,
+                    start_year=self._start_year,
+                    end_year=self._end_year)
+            else:
+                files = filemanager.get_file_paths_by_year(
+                    datatype=datatype,
+                    case=case)
+            if not files or len(files) == 0:
+                msg = '{prefix}: filemanager cant find input files for datatype {datatype}'.format(
+                    prefix=self.msg_prefix(),
+                    datatype=datatype)
+                logging.error(msg)
+                continue
+
+            # extract the file names
+            filesnames = list()
+            for file in files:
+                tail, head = os.path.split(file)
+                filesnames.append(head)
+
+            # setup the temp directory to hold symlinks
+            if self._comparison == 'obs':
+                comp = 'obs'
+            else:
+                comp = config['simulations'][self.comparison]['short_name']
+            temp_path = os.path.join(
+                config['global']['project_path'],
+                'output', 'temp', self._short_name, self._job_type,
+                '{:04d}_{:04d}_vs_{}'.format(self._start_year, self._end_year, comp))
+
+            if not os.path.exists(temp_path):
+                os.makedirs(temp_path)
+
+            # keep a reference to the input data for later
+            self._input_file_paths.extend(
+                [os.path.join(temp_path, x) for x in filesnames])
+
+            # create the symlinks
+            create_symlink_dir(
+                src_dir=tail,
+                src_list=filesnames,
+                dst=temp_path)
+
+        return
+    # -----------------------------------------------
+
+    def _submit_cmd_to_manager(self, config, cmd):
+        """
+        Takes the jobs main cmd, generates a batch script and submits the script
+        to the resource manager controller
+
+        Parameters:
+            cmd (str): the command to submit
+            config (dict): the global configuration object
+        Retuns:
+            job_id (int): the job_id from the resource manager
+        """
+        # setup for the run script
+        scripts_path = os.path.join(
+            config['global']['project_path'],
+            'output', 'scripts')
+        if self._run_type is not None:
+            run_name = '{type}_{run_type}_{start:04d}_{end:04d}_{case}'.format(
+                type=self.job_type,
+                run_type=self._run_type,
+                start=self.start_year,
+                end=self.end_year,
+                case=self.short_name)
+        elif isinstance(self, Diag):
+            run_name = '{type}_{start:04d}_{end:04d}_{case}_vs_{comp}'.format(
+                type=self.job_type,
+                run_type=self._run_type,
+                start=self.start_year,
+                end=self.end_year,
+                case=self.short_name,
+                comp=self._short_comp_name)
+        else:
+            run_name = '{type}_{start:04d}_{end:04d}_{case}'.format(
+                type=self.job_type,
+                start=self.start_year,
+                end=self.end_year,
+                case=self.short_name)
+        run_script = os.path.join(scripts_path, run_name)
+        self._console_output_path = '{}.out'.format(run_script)
+        if os.path.exists(run_script):
+            os.remove(run_script)
+
+        # generate the run script using the manager arguments and command
+        command = ' '.join(cmd)
+        script_prefix = ''
+
+        if isinstance(self._manager, Slurm):
+            margs = self._manager_args['slurm']
+            margs.append(
+                '-o {}'.format(self._console_output_path))
+            manager_prefix = '#SBATCH'
+            for item in margs:
+                script_prefix += '{prefix} {value}\n'.format(
+                    prefix=manager_prefix,
+                    value=item)
+        elif isinstance(self._manager, PBS):
+            margs = self._manager_args['pbs']
+            margs.append(
+                '-o {}'.format(self._console_output_path))
+            margs.append(
+                '-e {}'.format(self._console_output_path.replace('.out', '.err')))
+            manager_prefix = '#PBS'
+            for item in margs:
+                script_prefix += '{prefix} {value}\n'.format(
+                    prefix=manager_prefix,
+                    value=item)
+
+        with open(run_script, 'w') as batchfile:
+            batchfile.write('#!/bin/bash\n')
+            batchfile.write(script_prefix)
+
+        template_input_path = os.path.join(
+            config['global']['resource_path'],
+            'env_loader.bash')
+        variables = {
+            'user_env_path': os.environ['CONDA_PREFIX'],
+            'cmd': command
+        }
+        render(
+            variables=variables,
+            input_path=template_input_path,
+            output_path=run_script)
+        # with open(run_script, 'w+') as batchfile:
+        #     batchfile.write(command)
+
+        # if this is a dry run, set the status and exit
+        if self._dryrun:
+            msg = '{}: dryrun is set, completing without running'.format(
+                self.msg_prefix())
+            logging.info(msg)
+            self.status = JobStatus.COMPLETED
+            return False
+        else:
+            if not self.prevalidate():
+                return False
+            if self.postvalidate(config):
+                self.status = JobStatus.COMPLETED
+                return True
+
+        # submit the run script to the resource controller
+        self._job_id = self._manager.batch(run_script)
+        self._has_been_executed = True
+        return self._job_id
     # -----------------------------------------------

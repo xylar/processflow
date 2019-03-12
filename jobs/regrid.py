@@ -70,7 +70,7 @@ class Regrid(Job):
                 '-s', config['post-processing']['regrid']['lnd']['source_grid_path'],
                 '-g', config['post-processing']['regrid']['lnd']['destination_grid_path']
             ])
-        elif self.run_type == 'ocn':
+        elif self.run_type == 'ocn' or self.run_type == 'cice': 
             cmd.extend([
                 '-P', 'mpas',
                 '-m', config['post-processing']['regrid'][self.run_type]['regrid_map_path']
@@ -82,7 +82,7 @@ class Regrid(Job):
         else:
             msg = 'Unsupported regrid type'
             logging.error(msg)
-            self.status = FAILED
+            self.status = JobStatus.FAILED
             return 0
 
         # input_path, _ = os.path.split(self._input_file_paths[0])
@@ -169,7 +169,3 @@ class Regrid(Job):
         return self._run_type
     # -----------------------------------------------
 
-    @property
-    def data_type(self):
-        return self._data_type
-    # -----------------------------------------------

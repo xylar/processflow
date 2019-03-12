@@ -33,7 +33,11 @@ class Slurm(object):
         out = out.split()
         if 'error' in out:
             return 0
-        job_id = int(out[-1])
+        try:
+            job_id = int(out[-1])
+        except IndexError as e:
+            print "error submitting job to slurm " + out
+            return 0
         return job_id
     # -----------------------------------------------
     def _submit(self, subtype, cmd, sargs=None):

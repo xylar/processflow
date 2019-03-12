@@ -111,8 +111,9 @@ class RunManager(object):
                         if j.comparison != job.comparison:
                             continue
                     else:
-                        return True
-        return False
+                        if j.run_type == job.run_type:
+                            return True
+            return False
 
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
         """
@@ -480,7 +481,6 @@ class RunManager(object):
                         self.config)
                     self.report_completed_job()
                 else:
-                    import ipdb; ipdb.set_trace()
                     job.status = JobStatus.FAILED
                     line = "{job}: resource manager lookup error for jobid {id}. The job may have failed, check the error output".format(
                         job=job.msg_prefix(),

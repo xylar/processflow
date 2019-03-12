@@ -169,27 +169,29 @@ def verify_config(config):
         # check ncclimo
         # ------------------------------------------------------------------------
         if config['post-processing'].get('climo'):
-            if not config['post-processing']['climo'].get('regrid_map_path'):
-                msg = 'no regrid_map_path given for climo'
-                messages.append(msg)
-            if not config['post-processing']['climo'].get('destination_grid_name'):
-                msg = 'no destination_grid_name given for climo'
-                messages.append(msg)
-            if not config['post-processing']['climo'].get('run_frequency'):
-                msg = 'no run_frequency given for ncclimo'
-                messages.append(msg)
-            else:
-                if not isinstance(config['post-processing']['climo'].get('run_frequency'), list):
-                    config['post-processing']['climo']['run_frequency'] = [
-                        config['post-processing']['climo']['run_frequency']]
             for sim in config['simulations']:
-                if sim in ['start_year', 'end_year', 'comparisons']:
+                if sim in ['start_year', 'end_year']:
                     continue
-                if 'all' not in config['simulations'][sim].get('data_types'):
-                    if 'atm' not in config['simulations'][sim].get('data_types'):
-                        msg = 'ncclimo is set to run for simulation {}, but this simulation does not have atm in its data_types'.format(
-                            sim)
-                        messages.append(msg)
+                if 'climo' not in config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
+                    continue
+                if 'all' not in config['simulations'][sim].get('data_types') and 'atm' not in config['simulations'][sim].get('data_types'):
+                    msg = 'ncclimo is set to run for simulation {}, but this simulation does not have atm in its data_types'.format(
+                        sim)
+                    messages.append(msg)
+                if not config['post-processing']['climo'].get('regrid_map_path'):
+                    msg = 'no regrid_map_path given for climo'
+                    messages.append(msg)
+                if not config['post-processing']['climo'].get('destination_grid_name'):
+                    msg = 'no destination_grid_name given for climo'
+                    messages.append(msg)
+                if not config['post-processing']['climo'].get('run_frequency'):
+                    msg = 'no run_frequency given for ncclimo'
+                    messages.append(msg)
+                else:
+                    if not isinstance(config['post-processing']['climo'].get('run_frequency'), list):
+                        config['post-processing']['climo']['run_frequency'] = [
+                            config['post-processing']['climo']['run_frequency']]
+
         # ------------------------------------------------------------------------
         # check timeseries
         # ------------------------------------------------------------------------
@@ -204,7 +206,7 @@ def verify_config(config):
             for item in config['post-processing']['timeseries']:
                 if item in ['run_frequency', 'regrid_map_path', 'destination_grid_name']:
                     continue
-                if item not in ['atm', 'lnd', 'ocn']:
+                if item not in ['atm', 'lnd', 'ocn', 'cice']:
                     msg = '{} is an unsupported timeseries data type'.format(
                         item)
                     messages.append(msg)
@@ -335,7 +337,6 @@ def verify_config(config):
                 messages.append(msg)
     return messages
 # ------------------------------------------------------------------------
-
 
 def check_config_white_space(filepath):
     line_index = 0

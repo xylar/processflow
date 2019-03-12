@@ -115,7 +115,8 @@ class Job(object):
         for datatype in self._data_required:
             datainfo = config['data_types'].get(datatype)
             if not datainfo:
-                print "ERROR: Unable to find config information for {}".format(datatype)
+                print "ERROR: Unable to find config information for {}".format(
+                    datatype)
                 sys.exit(1)
             monthly = datainfo.get('monthly')
             # first get the list of file paths to the data
@@ -149,15 +150,6 @@ class Job(object):
                     'output', 'temp', self._short_name,
                     '{}_{}'.format(self._job_type, self._run_type),
                     '{:04d}_{:04d}'.format(self._start_year, self._end_year))
-            elif isinstance(self, Diag):
-                if self._comparison == 'obs':
-                    comp = 'obs'
-                else:
-                    comp = config['simulations'][self.comparison]['short_name']
-                temp_path = os.path.join(
-                    config['global']['project_path'],
-                    'output', 'temp', self._short_name, self._job_type,
-                    '{:04d}_{:04d}_vs_{}'.format(self._start_year, self._end_year, comp))
             else:
                 temp_path = os.path.join(
                     config['global']['project_path'],
@@ -253,14 +245,6 @@ class Job(object):
                 start=self.start_year,
                 end=self.end_year,
                 case=self.short_name)
-        elif isinstance(self, Diag):
-            run_name = '{type}_{start:04d}_{end:04d}_{case}_vs_{comp}'.format(
-                type=self.job_type,
-                run_type=self._run_type,
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name,
-                comp=self._short_comp_name)
         else:
             run_name = '{type}_{start:04d}_{end:04d}_{case}'.format(
                 type=self.job_type,
@@ -278,6 +262,8 @@ class Job(object):
 
         if isinstance(self._manager, Slurm):
             margs = self._manager_args['slurm']
+            margs.append(
+                '-o {}'.format(self._console_output_path))
             manager_prefix = '#SBATCH'
             for item in margs:
                 script_prefix += '{prefix} {value}\n'.format(
@@ -285,11 +271,11 @@ class Job(object):
                     value=item)
         elif isinstance(self._manager, PBS):
             margs = self._manager_args['pbs']
-            manager_prefix = '#PBS'
-            self._manager_args['pbs'].append(
+            margs.append(
                 '-o {}'.format(self._console_output_path))
-            self._manager_args['pbs'].append(
+            margs.append(
                 '-e {}'.format(self._console_output_path.replace('.out', '.err')))
+            manager_prefix = '#PBS'
             for item in margs:
                 script_prefix += '{prefix} {value}\n'.format(
                     prefix=manager_prefix,
@@ -310,8 +296,6 @@ class Job(object):
             variables=variables,
             input_path=template_input_path,
             output_path=run_script)
-        # with open(run_script, 'w+') as batchfile:
-        #     batchfile.write(command)
 
         # if this is a dry run, set the status and exit
         if self._dryrun:
@@ -447,6 +431,4 @@ class Job(object):
             'short_name': self._short_name
         }, sort_keys=True, indent=4)
 
-
     # -----------------------------------------------
-from jobs.diag import Diag
