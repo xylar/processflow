@@ -8,6 +8,8 @@ from time import sleep
 
 from lib.slurm import Slurm
 from lib.pbs import PBS
+from lib.serial import Serial
+
 from lib.util import get_climo_output_files
 from lib.util import create_symlink_dir
 from lib.util import print_line
@@ -63,14 +65,20 @@ class RunManager(object):
         self._job_total = 0
         self._job_complete = 0
 
-        try:
-            self.manager = Slurm()
-        except:
+        if config['global']['serial']:
+            msg = '\n\n=== Running in Serial Mode ===\n'
+            print_line(msg, event_list)
+            self.manager = Serial()
+        else:
             try:
-                self.manager = PBS()
+                self.manager = Slurm()
             except:
-                raise Exception(
-                    "Couldnt find either a slurm or PBS resource manager")
+                try:
+                    self.manager = PBS()
+                except:
+                    msg = "Neither Slurm nor PBS found, run with --serial for serial execution"
+                    print_line(msg, event_list)
+                    raise Exception(msg)
 
         max_jobs = config['global']['max_jobs']
         self.max_running_jobs = max_jobs if max_jobs else self.manager.get_node_number() * 3
@@ -78,7 +86,6 @@ class RunManager(object):
             sleep(1)
             msg = 'Unable to communication with scontrol, checking again'
             print_line(msg, event_list)
-            logging.error(msg)
             self.max_running_jobs = self.manager.get_node_number() * 3
 
     def _duplicate_check(self, job):
@@ -103,10 +110,11 @@ class RunManager(object):
                         if job.run_type == other_job.run_type:
                             return True
                     else:
-                        if job.comparison:
-                            if job.comparison == other_job.comparison:
-                                return True
-        return False
+                        if job.comparison and job.comparison == other_job.comparison:
+                            return True
+                        if j.run_type == job.run_type:
+                            return True
+            return False
 
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
         """
@@ -138,7 +146,8 @@ class RunManager(object):
                         start=year,
                         end=job_end,
                         run_type=run_type,
-                        config=self.config)
+                        config=self.config,
+                        manager=self.manager)
                     if not self._duplicate_check(new_job):
                         case['jobs'].append(new_job)
 
@@ -153,18 +162,24 @@ class RunManager(object):
             end (int): the last year of simulated data
             case (dict): the case to add this job to
         """
+
         if not isinstance(freqs, list):
             freqs = [freqs]
+
+        case_name = case['case']
+
         for year in range(start, end + 1):
             for freq in freqs:
                 freq = int(freq)
                 if (year - start) % freq == 0:
-                    # get the comparisons from the config
-                    comparisons = self.config['simulations'][case['case']].get(
-                        'comparisons')
-                    # if this case has no comparisons move on
+
+                    # get the comparisons from the config                    
+                    comparisons = self.config['simulations'][case_name].get('comparisons')
                     if not comparisons:
-                        return
+                        continue
+                    if not isinstance(comparisons, list):
+                        comparisons = [comparisons]
+
                     if job_type == 'aprime':
                         comparisons = ['obs']
                     job_end = year + freq - 1
@@ -174,34 +189,39 @@ class RunManager(object):
                     for item in comparisons:
                         if item == 'all':
                             for other_case in self.config['simulations']:
-                                if other_case in ['start_year', 'end_year', case['case']]:
+
+                                if other_case in ['start_year', 'end_year', case_name]:
                                     continue
+
                                 new_diag = job_map[job_type](
                                     short_name=case['short_name'],
-                                    case=case['case'],
+                                    case=case_name,
                                     start=year,
                                     end=job_end,
                                     comparison=other_case,
-                                    config=self.config)
+                                    config=self.config,
+                                    manager=self.manager)
                                 if not self._duplicate_check(new_diag):
                                     case['jobs'].append(new_diag)
                             new_diag = job_map[job_type](
                                 short_name=case['short_name'],
-                                case=case['case'],
+                                case=case_name,
                                 start=year,
                                 end=job_end,
                                 comparison='obs',
-                                config=self.config)
+                                config=self.config,
+                                manager=self.manager)
                             if not self._duplicate_check(new_diag):
                                 case['jobs'].append(new_diag)
                         else:
                             new_diag = job_map[job_type](
                                 short_name=case['short_name'],
-                                case=case['case'],
+                                case=case_name,
                                 start=year,
                                 end=job_end,
                                 comparison=item,
-                                config=self.config)
+                                config=self.config,
+                                manager=self.manager)
                             if not self._duplicate_check(new_diag):
                                 case['jobs'].append(new_diag)
 

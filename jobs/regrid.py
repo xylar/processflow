@@ -80,7 +80,7 @@ class Regrid(Job):
                 '-s', config['post-processing']['regrid']['lnd']['source_grid_path'],
                 '-g', config['post-processing']['regrid']['lnd']['destination_grid_path']
             ])
-        elif self.run_type == 'ocn':
+        elif self.run_type == 'ocn' or self.run_type == 'cice': 
             cmd.extend([
                 '-P', 'mpas',
                 '-m', config['post-processing']['regrid'][self.run_type]['regrid_map_path']
@@ -190,3 +190,4 @@ class Regrid(Job):
             end=self.end_year,
             case=self.short_name)
     # -----------------------------------------------
+

@@ -19,7 +19,7 @@ class Job(object):
     A base job class for all post-processing and diagnostic jobs
     """
 
-    def __init__(self, start, end, case, short_name, data_required=None, dryrun=False, **kwargs):
+    def __init__(self, start, end, case, short_name, data_required=None, dryrun=False, manager=None, **kwargs):
         self._start_year = start
         self._end_year = end
         self._data_required = data_required
@@ -38,6 +38,10 @@ class Job(object):
         self._console_output_path = None
         self._output_path = ''
         self._dryrun = dryrun
+
+        if manager:
+            self._manager = manager
+
         self._manager_args = {
             'slurm': ['-t 0-10:00', '-N 1'],
             'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
@@ -173,6 +177,21 @@ class Job(object):
             if not os.path.exists(self._input_base_path):
                 os.makedirs(self._input_base_path)
 
+            # setup the temp directory to hold symlinks
+            if self._run_type is not None:
+                temp_path = os.path.join(
+                    config['global']['project_path'],
+                    'output', 'temp', self._short_name,
+                    '{}_{}'.format(self._job_type, self._run_type),
+                    '{:04d}_{:04d}'.format(self._start_year, self._end_year))
+            else:
+                temp_path = os.path.join(
+                    config['global']['project_path'],
+                    'output', 'temp', self._short_name, self._job_type,
+                    '{:04d}_{:04d}'.format(self._start_year, self._end_year))
+            if not os.path.exists(temp_path):
+                os.makedirs(temp_path)
+
             # keep a reference to the input data for later
             self._input_file_paths.extend(
                 [os.path.join(self._input_base_path, x) for x in filesnames])
@@ -250,11 +269,19 @@ class Job(object):
     # -----------------------------------------------
 
     def get_run_name(self):
-        return '{type}_{start:04d}_{end:04d}_{case}'.format(
-            type=self.job_type,
-            start=self.start_year,
-            end=self.end_year,
-            case=self.short_name)
+        if self._run_type is not None:
+            run_name = '{type}_{run_type}_{start:04d}_{end:04d}_{case}'.format(
+                type=self.job_type,
+                run_type=self._run_type,
+                start=self.start_year,
+                end=self.end_year,
+                case=self.short_name)
+        else:
+            run_name = '{type}_{start:04d}_{end:04d}_{case}'.format(
+                type=self.job_type,
+                start=self.start_year,
+                end=self.end_year,
+                case=self.short_name)
     # -----------------------------------------------
 
     def _submit_cmd_to_manager(self, config, cmd, event_list):
@@ -272,40 +299,38 @@ class Job(object):
         scripts_path = os.path.join(
             config['global']['project_path'],
             'output', 'scripts')
+
         run_name = self.get_run_name()
+
         run_script = os.path.join(scripts_path, run_name)
         self._console_output_path = '{}.out'.format(run_script)
         if os.path.exists(run_script):
             os.remove(run_script)
 
-        try:
-            manager = Slurm()
-            manager_prefix = '#SBATCH'
-            self._manager_args['slurm'].append(
-                '-o {}'.format(self._console_output_path))
-        except:
-            try:
-                manager = PBS()
-                manager_prefix = '#PBS'
-                self._manager_args['pbs'].append(
-                    '-o {}'.format(self._console_output_path))
-                self._manager_args['pbs'].append(
-                    '-e {}'.format(self._console_output_path.replace('.out', '.err')))
-            except:
-                raise Exception("No resource manager found")
-
         # generate the run script using the manager arguments and command
         command = ' '.join(cmd)
         script_prefix = ''
 
-        if isinstance(manager, Slurm):
+        if isinstance(self._manager, Slurm):
             margs = self._manager_args['slurm']
-        else:
+            margs.append(
+                '-o {}'.format(self._console_output_path))
+            manager_prefix = '#SBATCH'
+            for item in margs:
+                script_prefix += '{prefix} {value}\n'.format(
+                    prefix=manager_prefix,
+                    value=item)
+        elif isinstance(self._manager, PBS):
             margs = self._manager_args['pbs']
-        for item in margs:
-            script_prefix += '{prefix} {value}\n'.format(
-                prefix=manager_prefix,
-                value=item)
+            margs.append(
+                '-o {}'.format(self._console_output_path))
+            margs.append(
+                '-e {}'.format(self._console_output_path.replace('.out', '.err')))
+            manager_prefix = '#PBS'
+            for item in margs:
+                script_prefix += '{prefix} {value}\n'.format(
+                    prefix=manager_prefix,
+                    value=item)
 
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
@@ -322,8 +347,6 @@ class Job(object):
             variables=variables,
             input_path=template_input_path,
             output_path=run_script)
-        # with open(run_script, 'w+') as batchfile:
-        #     batchfile.write(command)
 
         # if this is a dry run, set the status and exit
         if self._dryrun:
@@ -334,7 +357,7 @@ class Job(object):
             return False
 
         # submit the run script to the resource controller
-        self._job_id = manager.batch(run_script)
+        self._job_id = self._manager.batch(run_script)
         self._has_been_executed = True
         return self._job_id
     # -----------------------------------------------
