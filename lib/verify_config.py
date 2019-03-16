@@ -134,7 +134,7 @@ def verify_config(config):
         # ------------------------------------------------------------------------
         if config['post-processing'].get('regrid'):
             for item in config['post-processing']['regrid']:
-                if item in ['destination_grid_name']:
+                if item in ['custom_args']:
                     continue
                 if item == 'lnd':
                     if not config['post-processing']['regrid'][item].get('source_grid_path'):

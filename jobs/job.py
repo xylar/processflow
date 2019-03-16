@@ -91,11 +91,11 @@ class Job(object):
             new_arg = '{} {}'.format(arg, val)
             for manager, manager_args in self._manager_args.items():
                 found = False
-                for marg in manager_args:
+                for idx, marg in enumerate(manager_args):
                     if arg in marg:
-                        marg = new_arg
+                        manager_args[idx] = new_arg
                         found = True
-                        break
+                        return
                 if not found:
                     manager_args.append(new_arg)
     # -----------------------------------------------
@@ -259,7 +259,6 @@ class Job(object):
         # generate the run script using the manager arguments and command
         command = ' '.join(cmd)
         script_prefix = ''
-
         if isinstance(self._manager, Slurm):
             margs = self._manager_args['slurm']
             margs.append(
