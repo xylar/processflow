@@ -37,7 +37,7 @@ class Slurm(object):
         try:
             job_id = int(out[-1])
         except IndexError as e:
-            print "error submitting job to slurm " + out
+            print "error submitting job to slurm " + str(out) + " " + str(err)
             return 0
         return job_id
     # -----------------------------------------------

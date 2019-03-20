@@ -115,7 +115,7 @@ class Job(object):
                     if arg in marg:
                         manager_args[idx] = new_arg
                         found = True
-                        return
+                        break
                 if not found:
                     manager_args.append(new_arg)
     # -----------------------------------------------
