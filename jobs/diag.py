@@ -218,7 +218,7 @@ class Diag(Job):
         return
     # -----------------------------------------------
 
-    def _submit_cmd_to_manager(self, config, cmd):
+    def _submit_cmd_to_manager(self, config, cmd, event_list):
         """
         Takes the jobs main cmd, generates a batch script and submits the script
         to the resource manager controller
@@ -240,7 +240,7 @@ class Diag(Job):
                 start=self.start_year,
                 end=self.end_year,
                 case=self.short_name)
-        elif isinstance(self, Diag):
+        else:
             run_name = '{type}_{start:04d}_{end:04d}_{case}_vs_{comp}'.format(
                 type=self.job_type,
                 run_type=self._run_type,
@@ -248,12 +248,7 @@ class Diag(Job):
                 end=self.end_year,
                 case=self.short_name,
                 comp=self._short_comp_name)
-        else:
-            run_name = '{type}_{start:04d}_{end:04d}_{case}'.format(
-                type=self.job_type,
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name)
+
         run_script = os.path.join(scripts_path, run_name)
         self._console_output_path = '{}.out'.format(run_script)
         if os.path.exists(run_script):
@@ -299,8 +294,6 @@ class Diag(Job):
             variables=variables,
             input_path=template_input_path,
             output_path=run_script)
-        # with open(run_script, 'w+') as batchfile:
-        #     batchfile.write(command)
 
         # if this is a dry run, set the status and exit
         if self._dryrun:
@@ -309,12 +302,6 @@ class Diag(Job):
             logging.info(msg)
             self.status = JobStatus.COMPLETED
             return False
-        else:
-            if not self.prevalidate():
-                return False
-            if self.postvalidate(config):
-                self.status = JobStatus.COMPLETED
-                return True
 
         # submit the run script to the resource controller
         self._job_id = self._manager.batch(run_script)

@@ -270,14 +270,14 @@ class Job(object):
 
     def get_run_name(self):
         if self._run_type is not None:
-            run_name = '{type}_{run_type}_{start:04d}_{end:04d}_{case}'.format(
+            return '{type}_{run_type}_{start:04d}_{end:04d}_{case}'.format(
                 type=self.job_type,
                 run_type=self._run_type,
                 start=self.start_year,
                 end=self.end_year,
                 case=self.short_name)
         else:
-            run_name = '{type}_{start:04d}_{end:04d}_{case}'.format(
+            return '{type}_{start:04d}_{end:04d}_{case}'.format(
                 type=self.job_type,
                 start=self.start_year,
                 end=self.end_year,

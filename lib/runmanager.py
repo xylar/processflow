@@ -381,20 +381,11 @@ class RunManager(object):
                                 config=self.config,
                                 filemanager=self.filemanager,
                                 case=job.comparison)
-                    run_id = job.execute(
-                        config=self.config,
-                        dryrun=self.dryrun,
-                        event_list=self.event_list)
 
                     if self.config['global']['dryrun'] == True:
                         msg = '{}: Dry run mode active, not submitting'.format(job.msg_prefix())
                         print_line(msg, self.event_list)
-                        job.status = JobStatus.COMPLETED
-                    elif run_id is False:
-                        msg = '{}: Prevalidation FAILED'.format(job.msg_prefix())
-
-                        print_line(msg, self.event_list)
-                        job.status = JobStatus.FAILED
+                        job.status = JobStatus.CANCELLED
                     else:
                         run_id = job.execute(
                             config=self.config,
