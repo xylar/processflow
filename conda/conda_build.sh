@@ -1,5 +1,5 @@
 export VERSION="2.2.0"
-export BUILD_NAME="rc2"
+export BUILD_NAME="rc3"
 export CONDA_BLD_PATH=~/conda-bld
 USER="e3sm"
 PLATFORM="linux-64"
@@ -19,7 +19,7 @@ else
 fi
 echo "Building" $VERSION"-"$BUILD_NAME "for label:" $TAG
 
-conda build -c $USER -c conda-forge -c cdat .
+conda build --python=2.7 -c conda-forge -c e3sm -c cdat -c cdat/label/v81 conda/meta.yaml 
 
 if [ $? -eq 1 ]; then
     echo "conda build failed"

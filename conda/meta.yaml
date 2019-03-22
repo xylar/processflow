@@ -24,7 +24,7 @@ requirements:
     - python
     - setuptools
     - nco
-    - ncl
+    - ncl ==6.5.0
     - e3sm_diags
     - e3sm_to_cmip
     - sqlite
@@ -36,6 +36,5 @@ requirements:
     - jinja2
     - globus-sdk ==1.1.1
     - globus-cli ==1.1.2
-    - click
     - jmespath
     - requests
