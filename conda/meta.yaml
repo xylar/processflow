@@ -24,8 +24,8 @@ requirements:
     - python
     - setuptools
     - nco
-    - ncl ==6.5.0
-    - e3sm_diags
+    - ncl
+    - e3sm_diags >=1.6.0
     - e3sm_to_cmip
     - sqlite
     - peewee
