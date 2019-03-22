@@ -213,7 +213,7 @@ class FileManager(object):
         print_line(
             line=msg,
             event_list=self._event_list)
-        newfiles = list()
+
         start_year = int(self._config['simulations']['start_year'])
         end_year = int(self._config['simulations']['end_year'])
         with DataFile._meta.database.atomic():
@@ -221,6 +221,7 @@ class FileManager(object):
             for case in self._config['simulations']:
                 if case in ['start_year', 'end_year']:
                     continue
+
                 # for each data type
                 for _type in self._config['data_types']:
                     data_types_for_case = self._config['simulations'][case]['data_types']

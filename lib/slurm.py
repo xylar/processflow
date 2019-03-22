@@ -132,7 +132,7 @@ class Slurm(object):
         cmd = 'sinfo show nodes | grep up | wc -l'
         p = Popen([cmd], stderr=PIPE, stdout=PIPE, shell=True)
         out, err = p.communicate()
-        while 'Transport endpoint is not connected' in out and not e:
+        while 'Transport endpoint is not connected' in out and not err:
             sleep(1)
             p = Popen([cmd], stderr=PIPE, stdout=PIPE, shell=True)
             err, out = p.communicate()
@@ -172,4 +172,23 @@ class Slurm(object):
                 'STATE': line[3],
             })
         return queueinfo
+    # -----------------------------------------------
+
+    def cancel(self, job_id):
+        tries = 0
+        while tries != 10:
+            try:
+                cmd = ['scancel', str(job_id)]
+                proc = Popen(cmd, shell=False, stderr=PIPE, stdout=PIPE)
+                out, err = proc.communicate()
+                if 'Transport endpoint is not connected' in err or err:
+                    tries += 1
+                    sleep(tries)
+                else:
+                    return True
+            except Exception as e:
+                print_debug(e)
+                sleep(1)
+        return False
+    
     # -----------------------------------------------

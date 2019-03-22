@@ -301,7 +301,6 @@ Please add a space and run again.'''.format(num=line_index)
     # setup the runmanager
     runmanager = RunManager(
         event_list=event_list,
-        event=event,
         config=config,
         filemanager=filemanager)
     runmanager.setup_cases()

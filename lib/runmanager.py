@@ -43,15 +43,15 @@ job_map = {
 
 class RunManager(object):
 
-    def __init__(self, event_list, event, config, filemanager):
+    def __init__(self, event_list, config, filemanager):
 
         self.config = config
         self.account = config['global'].get('account', '')
         self.event_list = event_list
         self.filemanager = filemanager
-        self.dryrun = True if config['global']['dryrun'] == True else False
-        self.debug = True if config['global']['debug'] == True else False
-        self._resource_path = config['global']['resource_path']
+        self.dryrun = True if config['global'].get('dryrun') == True else False
+        self.debug = True if config['global'].get('debug') == True else False
+        self._resource_path = config['global'].get('resource_path')
         """
         A list of cases, dictionaries structured as:
             case (str): the full case name
@@ -61,11 +61,10 @@ class RunManager(object):
         self.cases = list()
 
         self.running_jobs = list()
-        self.kill_event = event
         self._job_total = 0
         self._job_complete = 0
 
-        if config['global']['serial']:
+        if config['global'].get('serial'):
             msg = '\n\n=== Running in Serial Mode ===\n'
             print_line(msg, event_list)
             self.manager = Serial()
@@ -80,7 +79,7 @@ class RunManager(object):
                     print_line(msg, event_list)
                     raise Exception(msg)
 
-        max_jobs = config['global']['max_jobs']
+        max_jobs = config['global'].get('max_jobs', 1)
         self.max_running_jobs = max_jobs if max_jobs else self.manager.get_node_number() * 3
         while self.max_running_jobs == 0:
             sleep(1)
@@ -112,7 +111,7 @@ class RunManager(object):
                     else:
                         if job.comparison and job.comparison == other_job.comparison:
                             return True
-                        if j.run_type == job.run_type:
+                        if job.run_type == other_job.run_type:
                             return True
             return False
 

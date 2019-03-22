@@ -5,4 +5,4 @@ short_test_name = '{{ short_name }}'
 backend = '{{ backend }}'
 results_dir = '{{ results_dir }}'
 multiprocessing = True
-num_workers = 24
+num_workers = {{ num_workers }}

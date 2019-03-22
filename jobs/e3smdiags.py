@@ -133,6 +133,7 @@ class E3SMDiags(Diag):
         variables['test_name'] = self.case
         variables['backend'] = config['diags']['e3sm_diags']['backend']
         variables['results_dir'] = self._output_path
+        variables['num_workers'] = config['diags']['e3sm_diags'].get('num_workers', 24)
 
         if self.comparison == 'obs':
             template_input_path = os.path.join(

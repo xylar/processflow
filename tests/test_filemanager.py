@@ -2,6 +2,7 @@ import os, sys
 import unittest
 import shutil
 import inspect
+import threading
 
 from configobj import ConfigObj
 
@@ -12,6 +13,7 @@ from lib.filemanager import FileManager
 from lib.models import DataFile
 from lib.events import EventList
 from lib.util import print_message
+from lib.initialize import initialize
 from globus_cli.services.transfer import get_client
 
 
@@ -28,11 +30,10 @@ class TestFileManager(unittest.TestCase):
 
     def test_filemanager_setup_valid_from_scratch(self):
         """
-        run filemansger setup with no sta
+        run filemansger setup from scratch
         """
 
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        sta = False
         db = '{}.db'.format(inspect.stack()[0][3])
         config_path = 'tests/test_configs/valid_config_from_scratch.cfg'
         config = ConfigObj(config_path)
@@ -71,12 +72,20 @@ class TestFileManager(unittest.TestCase):
     
     def test_filemanager_get_file_paths(self):
         """
-        run the filemanager setup with sta turned on
+        run the filemanager setup with short term archive turned on
         """
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         config_path = 'tests/test_configs/filemanager_partial_data.cfg'
-        config = ConfigObj(config_path)
         db = '{}.db'.format(inspect.stack()[0][3])
+
+        pargv = ['-c', config_path]
+        config, _, _ = initialize(
+            argv=pargv,
+            version='0.0.0',
+            branch='__testing__',
+            event_list=EventList(),
+            kill_event=threading.Event(),
+            testing=True)
 
         filemanager = FileManager(
             database=db,
@@ -101,14 +110,14 @@ class TestFileManager(unittest.TestCase):
 
         # test that the filemanager returns correct paths with no year
         paths = filemanager.get_file_paths_by_year(
-            datatype='ocn_streams',
+            datatype='ocn',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison')
         for path in paths:
             self.assertTrue(os.path.exists(path))
 
         # test nothing is returned for incorrect yeras
         paths = filemanager.get_file_paths_by_year(
-            datatype='ocn_streams',
+            datatype='ocn',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
             start_year=1,
             end_year=100)
@@ -124,14 +133,14 @@ class TestFileManager(unittest.TestCase):
 
         # test the filemanager knows when data is NOT ready
         ready = filemanager.check_data_ready(
-            data_required=['atm'], 
+            data_required=['dummy'], 
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
             start_year=1,
             end_year=3)
         self.assertFalse(ready)
 
         ready = filemanager.check_data_ready(
-            data_required=['ocn_streams'], 
+            data_required=['ocn'], 
             case='20180129.DECKv1b_piControl.ne30_oEC.edison')
         self.assertTrue(ready)
 

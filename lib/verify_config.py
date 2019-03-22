@@ -106,6 +106,10 @@ def verify_config(config):
                     msg = '{} is set to run job {}, but this run type is not in either the post-processing or diags config sections'.format(
                         sim, job_type)
                     messages.append(msg)
+        else:
+            msg = 'No job_types given for {}'.format(sim)
+            messages.append(msg)
+            return messages
 
     # ------------------------------------------------------------------------
     # check data_types
