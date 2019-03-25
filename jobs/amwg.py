@@ -27,13 +27,14 @@ class AMWG(Diag):
         self._requires = 'climo'
         self._data_required = ['climo_regrid']
 
-
         config = kwargs.get('config')
         if config:
+            if config['global'].get('dryrun') == True:
+                self._dryrun = True
             if config['global'].get('host'):
                 self._host_path = os.path.join(
                     config['img_hosting']['host_directory'],
-                    self.case,
+                    self.short_name,
                     'amwg',
                     '{start:04d}_{end:04d}_vs_{comp}'.format(
                         start=self.start_year,
@@ -49,7 +50,8 @@ class AMWG(Diag):
                 'custom_output_path')
             if custom_output_path:
                 self._replace_dict['COMPARISON'] = self._short_comp_name
-                self._output_path = self.setup_output_directory(custom_output_path)
+                self._output_path = self.setup_output_directory(
+                    custom_output_path)
             else:
                 self._output_path = os.path.join(
                     config['global']['project_path'],
@@ -68,7 +70,7 @@ class AMWG(Diag):
             self._output_path = ''
 
     # -----------------------------------------------
-    
+
     def setup_data(self, config, filemanager, case):
         """
         Change input file names to match what amwg expects
@@ -150,7 +152,13 @@ class AMWG(Diag):
                 case=self.short_name,
                 comp=self._short_comp_name))
         variables = dict()
-        input_path, _ = os.path.split(self._input_file_paths[0])
+
+        if dryrun:
+            input_path = os.path.join(
+                config['global']['project_path'], 'dummpy_input_path')
+        else:
+            input_path, _ = os.path.split(self._input_file_paths[0])
+
         variables['test_casename'] = self.case
         variables['short_name'] = self.short_name
         variables['test_path_history'] = input_path + os.sep
@@ -184,7 +192,7 @@ class AMWG(Diag):
             variables['cntl_path_climo'] = input_path + os.sep
 
         # get environment path to use as NCARG_ROOT
-        variables['NCARG_ROOT'] = os.environ['CONDA_PREFIX']
+        # variables['NCARG_ROOT'] = os.environ['CONDA_PREFIX']
 
         # remove previous amwg script if it exists
         if os.path.exists(csh_template_out):
@@ -354,7 +362,7 @@ class AMWG(Diag):
         logging.info(msg)
 
         # if hosting is turned off, simply return
-        if not config['global']['host']:
+        if not config['global'].get('host'):
             return
 
         img_source = os.path.join(
@@ -454,12 +462,11 @@ class AMWG(Diag):
             os.rename(page_path, page_path + '.bak')
             with open(page_path, 'w') as outfile:
                 outfile.write(str(output_page))
-            return True
         else:
             msg = '{prefix}: all links found'.format(
                 prefix=self.msg_prefix())
             logging.info(msg)
-            return True
+        return True
     # -----------------------------------------------
 
     def _change_input_file_names(self):
@@ -467,6 +474,8 @@ class AMWG(Diag):
         change case_01_000101_000201_climo.nc to
                case_01_climo.nc
         """
+        if self._dryrun:
+            return
 
         # get a reference to the input directory
         input_path, _ = os.path.split(self._input_file_paths[0])
@@ -474,7 +483,12 @@ class AMWG(Diag):
 
         for input_index, input_file in enumerate(self._input_file_paths):
             _, filename = os.path.split(input_file)
-            string_index = re.search(pattern, filename).start()
+
+            try:
+                string_index = re.search(pattern, filename).start()
+            except AttributeError:
+                # the file is alreay in the format AMWG expects
+                continue
 
             # chop off the last part of the string which holds the year stamp
             new_name = os.path.join(
@@ -483,4 +497,5 @@ class AMWG(Diag):
             self._input_file_paths[input_index] = new_name
             # change the name of the file
             os.rename(input_file, new_name)
+
     # -----------------------------------------------
