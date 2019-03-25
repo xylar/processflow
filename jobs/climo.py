@@ -113,6 +113,12 @@ class Climo(Job):
         """
         self._dryrun = dryrun
 
+        if dryrun:
+            if not config['data_types'].get('climo_regrid'):
+                config['data_types']['climo_regrid'] = {'monthly': True}
+            if not config['data_types'].get('climo_native'):
+                config['data_types']['climo_native'] = {'monthly': True}
+
         input_path, _ = os.path.split(self._input_file_paths[0])
         cmd = [
             'ncclimo',
@@ -168,6 +174,7 @@ class Climo(Job):
             data_type='climo_regrid',
             file_list=new_files,
             super_type='derived')
+        
         if not config['data_types'].get('climo_regrid'):
             config['data_types']['climo_regrid'] = {'monthly': True}
 
