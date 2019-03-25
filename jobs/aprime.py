@@ -34,8 +34,12 @@ class Aprime(Diag):
             if config['global'].get('host'):
                 self._host_path = os.path.join(
                     config['img_hosting']['host_directory'],
-                    self.case,
-                    'aprime')
+                    self.short_name,
+                    'aprime',
+                    '{start:04d}_{end:04d}_vs_{comp}'.format(
+                        start=self.start_year,
+                        end=self.end_year,
+                        comp=self._short_comp_name))
             custom_args = config['diags'][self.job_type].get(
                 'custom_args')
             if custom_args:
@@ -141,7 +145,7 @@ class Aprime(Diag):
 
         num_missing = self._check_links(config)
         if num_missing is None:
-            return True
+            return False
         elif num_missing == 0:
             return True
         else:
