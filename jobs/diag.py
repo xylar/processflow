@@ -11,10 +11,11 @@ from distutils.dir_util import copy_tree
 from subprocess import call
 
 from lib.jobstatus import JobStatus
-from lib.util import print_line, create_symlink_dir, render
+from lib.util import print_line, create_symlink_dir, render, print_message
 from jobs.job import Job
 from lib.slurm import Slurm
 from lib.pbs import PBS
+
 
 class Diag(Job):
     def __init__(self, *args, **kwargs):
@@ -29,6 +30,7 @@ class Diag(Job):
         else:
             self._short_comp_name = kwargs['config']['simulations'][self.comparison]['short_name']
     # -----------------------------------------------
+
     @property
     def comparison(self):
         return self._comparison
@@ -50,11 +52,11 @@ class Diag(Job):
 
     def msg_prefix(self):
         return '{type}-{start:04d}-{end:04d}-{case}-vs-{comp}'.format(
-                type=self.job_type,
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name,
-                comp=self._short_comp_name)
+            type=self.job_type,
+            start=self.start_year,
+            end=self.end_year,
+            case=self.short_name,
+            comp=self._short_comp_name)
     # -----------------------------------------------
 
     def setup_hosting(self, always_copy, img_source, host_path, event_list):
@@ -76,6 +78,7 @@ class Diag(Job):
                 rmtree(host_path)
                 msg = '... complete'
                 print msg
+
         if not os.path.exists(host_path):
             msg = '{prefix}: Moving files for web hosting'.format(
                 prefix=self.msg_prefix())
@@ -100,13 +103,17 @@ class Diag(Job):
             msg = '{prefix}: Files already present at host location, skipping'.format(
                 prefix=self.msg_prefix())
             print_line(msg, event_list)
-        
+
     # -----------------------------------------------
 
     def get_report_string(self):
         """
         Returns a nice report string of job status information
         """
+        if self._dryrun:
+            return '{prefix} :: {status} :: Dry run mode, no output generated'.format(
+                prefix=self.msg_prefix(),
+                status=self.status.name)
 
         # if the job failed or img hosting is turned off, report the status and a path to the jobs console output
         if self.status != JobStatus.COMPLETED or not self._host_url:
@@ -145,15 +152,7 @@ class Diag(Job):
             end=self.end_year,
             case=self.short_name,
             comp=self._short_comp_name)
-    # -----------------------------------------------
 
-    def msg_prefix(self):
-        return '{type}-{start:04d}-{end:04d}-{case}-vs-{comp}'.format(
-                type=self.job_type,
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name,
-                comp=self._short_comp_name)
     # -----------------------------------------------
 
     def setup_data(self, config, filemanager, case):
@@ -300,8 +299,13 @@ class Diag(Job):
             msg = '{}: dryrun is set, completing without running'.format(
                 self.msg_prefix())
             logging.info(msg)
+            print_message(msg, 'ok')
             self.status = JobStatus.COMPLETED
             return False
+
+        msg = '{}: Job ready, submitting to queue'.format(
+            self.msg_prefix())
+        print_message(msg, 'ok')
 
         # submit the run script to the resource controller
         self._job_id = self._manager.batch(run_script)
