@@ -31,7 +31,6 @@ requirements:
     - peewee
     - configobj
     - beautifulsoup4
-    - lxml
     - paramiko
     - jinja2
     - globus-sdk ==1.1.1
