@@ -40,6 +40,13 @@ class AMWG(Diag):
                         start=self.start_year,
                         end=self.end_year,
                         comp=self._short_comp_name))
+                self._host_url = 'https://{server}/{prefix}/{case}/amwg/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
+                    server=config['img_hosting']['img_host_server'],
+                    prefix=config['img_hosting']['url_prefix'],
+                    case=self.short_name,
+                    start=self.start_year,
+                    end=self.end_year,
+                    comp=self._short_comp_name)
             custom_args = config['diags'][self.job_type].get(
                 'custom_args')
             if custom_args:
@@ -389,13 +396,6 @@ class AMWG(Diag):
             host_path=self._host_path,
             event_list=event_list)
 
-        self._host_url = 'https://{server}/{prefix}/{case}/amwg/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
-            server=config['img_hosting']['img_host_server'],
-            prefix=config['img_hosting']['url_prefix'],
-            case=self.short_name,
-            start=self.start_year,
-            end=self.end_year,
-            comp=self._short_comp_name)
     # -----------------------------------------------
 
     def _check_links(self, config, img_source):

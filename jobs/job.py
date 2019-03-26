@@ -10,6 +10,7 @@ from uuid import uuid4
 from lib.util import render
 from lib.slurm import Slurm
 from lib.pbs import PBS
+from lib.serial import Serial
 from lib.jobstatus import JobStatus
 from lib.util import create_symlink_dir, print_message
 
@@ -41,6 +42,8 @@ class Job(object):
 
         if manager:
             self._manager = manager
+        else:
+            self._manager = Serial()
 
         self._manager_args = {
             'slurm': ['-t 0-10:00', '-N 1'],

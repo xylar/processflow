@@ -118,8 +118,11 @@ class Climo(Job):
                 config['data_types']['climo_regrid'] = {'monthly': True}
             if not config['data_types'].get('climo_native'):
                 config['data_types']['climo_native'] = {'monthly': True}
+            input_path = os.path.join(
+                config['global']['project_path'], 'dummpy_input_path')
+        else:
+            input_path, _ = os.path.split(self._input_file_paths[0])
 
-        input_path, _ = os.path.split(self._input_file_paths[0])
         cmd = [
             'ncclimo',
             '-c', self.case,
