@@ -557,7 +557,7 @@ class FileManager(object):
                     msg = 'Starting globus file transfer of {} files'.format(
                         len(required_files))
                     print_line(msg, event_list)
-                    msg = 'See https://www.globus.org/app/activity for transfer details'
+                    msg = 'See https://app.globus.org/activity for transfer details'
                     print_line(msg, event_list)
                     client = get_globus_client()
                     if not self.verify_remote_files(client=client, case=case):
