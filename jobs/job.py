@@ -11,7 +11,7 @@ from lib.util import render
 from lib.slurm import Slurm
 from lib.pbs import PBS
 from lib.jobstatus import JobStatus
-from lib.util import create_symlink_dir, print_line
+from lib.util import create_symlink_dir, print_message
 
 
 class Job(object):
@@ -121,10 +121,15 @@ class Job(object):
     # -----------------------------------------------
 
     def get_report_string(self):
-        return '{prefix} :: {status} :: {output}'.format(
-            prefix=self.msg_prefix(),
-            status=self.status.name,
-            output=self.get_output_path())
+        if self._dryrun:
+            return '{prefix} :: {status} :: Dry run mode, no output generated'.format(
+                prefix=self.msg_prefix(),
+                status=self.status.name)
+        else:
+            return '{prefix} :: {status} :: {output}'.format(
+                prefix=self.msg_prefix(),
+                status=self.status.name,
+                output=self.get_output_path())
     # -----------------------------------------------
 
     def setup_data(self, config, filemanager, case):
@@ -352,8 +357,13 @@ class Job(object):
             msg = '{}: dryrun is set, completing without running'.format(
                 self.msg_prefix())
             logging.info(msg)
+            print_message(msg, 'ok')
             self.status = JobStatus.COMPLETED
             return False
+
+        msg = '{}: Job ready, submitting to queue'.format(
+            self.msg_prefix())
+        print_message(msg, 'ok')
 
         # submit the run script to the resource controller
         self._job_id = self._manager.batch(run_script)
