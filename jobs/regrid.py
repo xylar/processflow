@@ -39,9 +39,8 @@ class Regrid(Job):
                 kwargs['config']['global']['project_path'],
                 'output',
                 'pp',
-                kwargs['config']['post-processing']['regrid'][self.run_type]['destination_grid_name'],
+                'regrid_' + kwargs['config']['post-processing']['regrid'][self.run_type]['destination_grid_name'],
                 self._short_name,
-                self.job_type,
                 self.run_type)
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
