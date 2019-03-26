@@ -144,6 +144,7 @@ class RunManager(object):
                         case=case['case'],
                         start=year,
                         end=job_end,
+                        dryrun=self.config['global'].get('dryrun'),
                         run_type=run_type,
                         config=self.config,
                         manager=self.manager)
@@ -172,8 +173,9 @@ class RunManager(object):
                 freq = int(freq)
                 if (year - start) % freq == 0:
 
-                    # get the comparisons from the config                    
-                    comparisons = self.config['simulations'][case_name].get('comparisons')
+                    # get the comparisons from the config
+                    comparisons = self.config['simulations'][case_name].get(
+                        'comparisons')
                     if not comparisons:
                         continue
                     if not isinstance(comparisons, list):
@@ -199,6 +201,7 @@ class RunManager(object):
                                     end=job_end,
                                     comparison=other_case,
                                     config=self.config,
+                                    dryrun=self.config['global'].get('dryrun'),
                                     manager=self.manager)
                                 if not self._duplicate_check(new_diag):
                                     case['jobs'].append(new_diag)
@@ -209,6 +212,7 @@ class RunManager(object):
                                 end=job_end,
                                 comparison='obs',
                                 config=self.config,
+                                dryrun=self.config['global'].get('dryrun'),
                                 manager=self.manager)
                             if not self._duplicate_check(new_diag):
                                 case['jobs'].append(new_diag)
@@ -218,6 +222,7 @@ class RunManager(object):
                                 case=case_name,
                                 start=year,
                                 end=job_end,
+                                dryrun=self.config['global'].get('dryrun'),
                                 comparison=item,
                                 config=self.config,
                                 manager=self.manager)
@@ -337,9 +342,9 @@ class RunManager(object):
                 if deps_ready and job.data_ready:
 
                     # if the job was finished by a previous run of the processflow
-                    valid = job.postvalidate(
-                        self.config, event_list=self.event_list)
-                    if valid:
+
+                    if job.postvalidate(
+                            self.config, event_list=self.event_list):
                         job.status = JobStatus.COMPLETED
                         self._job_complete += 1
                         job.handle_completion(
@@ -351,18 +356,6 @@ class RunManager(object):
                             job.msg_prefix())
                         print_line(msg, self.event_list)
                         continue
-
-                    # the job is ready for submission
-                    if job.run_type is not None:
-                        msg = '{}: Job ready, submitting to queue'.format(
-                            job.msg_prefix())
-                    elif isinstance(job, Diag):
-                        msg = '{}: Job ready, submitting to queue'.format(
-                            job.msg_prefix())
-                    else:
-                        msg = '{}: Job ready, submitting to queue'.format(
-                            job.msg_prefix())
-                    print_line(msg, self.event_list)
 
                     # set to pending before data setup so we dont double submit
                     job.status = JobStatus.PENDING
@@ -381,23 +374,17 @@ class RunManager(object):
                                 filemanager=self.filemanager,
                                 case=job.comparison)
 
-                    if self.config['global']['dryrun'] == True:
-                        msg = '{}: Dry run mode active, not submitting'.format(job.msg_prefix())
-                        print_line(msg, self.event_list)
-                        job.status = JobStatus.CANCELLED
+                    run_id = job.execute(
+                        config=self.config,
+                        dryrun=self.dryrun,
+                        event_list=self.event_list)
+                    if run_id == 0:
+                        job.status = JobStatus.COMPLETED
                     else:
-                        run_id = job.execute(
-                            config=self.config,
-                            dryrun=self.dryrun,
-                            event_list=self.event_list)
-                        if run_id == 0:
-                            job.status = JobStatus.COMPLETED
-                        else:
-                            self.running_jobs.append({
-                                'manager_id': run_id,
-                                'job_id': job.id
-                            })
-                        
+                        self.running_jobs.append({
+                            'manager_id': run_id,
+                            'job_id': job.id
+                        })
 
     def get_job_by_id(self, jobid):
         for case in self.cases:
@@ -433,8 +420,6 @@ class RunManager(object):
                         out_str += '\n'
             fp.write(out_str)
 
-# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
     def _precheck(self, year_set, jobtype, data_type=None):
         """
         Check that the jobtype for that given yearset isnt
@@ -457,7 +442,7 @@ class RunManager(object):
         return True
 
     def report_completed_job(self):
-        msg = '{complete}/{total} jobs complete or {percent:.2f}%'.format(
+        msg = 'Job progress: {complete}/{total} or {percent:.2f}%'.format(
             complete=self._job_complete,
             total=self._job_total,
             percent=(((self._job_complete * 1.0)/self._job_total)*100))
@@ -475,6 +460,8 @@ class RunManager(object):
         for item in self.running_jobs:
             # each item is a mapping of job UUIDs to the id given by the resource manager
             job = self.get_job_by_id(item['job_id'])
+
+            # if the job ID is 0 it means it was previously run
             if item['manager_id'] == 0:
                 self._job_complete += 1
                 for_removal.append(item)
@@ -494,9 +481,8 @@ class RunManager(object):
                 self._job_complete += 1
                 for_removal.append(item)
 
-                valid = job.postvalidate(
-                    self.config, event_list=self.event_list)
-                if valid:
+                if job.postvalidate(
+                        self.config, event_list=self.event_list):
                     job.status = JobStatus.COMPLETED
                     job.handle_completion(
                         filemanager=self.filemanager,
@@ -512,6 +498,7 @@ class RunManager(object):
                         line=line,
                         event_list=self.event_list)
                 continue
+
             status = StatusMap[job_info.state]
             if status != job.status:
                 msg = '{prefix}: Job changed from {s1} to {s2}'.format(
@@ -523,16 +510,17 @@ class RunManager(object):
 
                 if status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
                     self._job_complete += 1
-                    valid = job.postvalidate(
-                        self.config, event_list=self.event_list)
-                    if not valid:
+
+                    if not job.postvalidate(
+                            self.config, event_list=self.event_list):
                         job.status = JobStatus.FAILED
-                    job.handle_completion(
-                        filemanager=self.filemanager,
-                        event_list=self.event_list,
-                        config=self.config)
-                    for_removal.append(item)
+                    else:
+                        job.handle_completion(
+                            filemanager=self.filemanager,
+                            event_list=self.event_list,
+                            config=self.config)
                     self.report_completed_job()
+                    for_removal.append(item)
                     if status in [JobStatus.FAILED, JobStatus.CANCELLED]:
                         for depjob in self.get_jobs_that_depend(job.id):
                             depjob.status = JobStatus.FAILED
