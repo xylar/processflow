@@ -7,6 +7,7 @@ from globus_cli.commands.ls import _get_ls_res as globus_ls
 from globus_cli.commands.login import do_link_login_flow, check_logged_in
 from globus_cli.services.transfer import get_client
 
+
 def get_ls(client, path, endpoint):
     for fail_count in xrange(10):
         try:
@@ -22,10 +23,11 @@ def get_ls(client, path, endpoint):
         else:
             return res
 
+
 def transfer(client, remote_uuid, local_uuid, file_list, event=None):
     """
     Setup a file transfer between two endpoints
-    
+
     Parameters:
         remote_uuid (str): the globus uuid of the source endpoint
         local_uuid (str): the globus uuid of the destination endpoint
@@ -46,14 +48,14 @@ def transfer(client, remote_uuid, local_uuid, file_list, event=None):
         logging.error('Error creating transfer task')
         logging.error(format_debug(e))
         return
-    
+
     # add in our transfer items
     for datafile in file_list:
         transfer_task.add_item(
             source_path=datafile['remote_path'],
             destination_path=datafile['local_path'],
             recursive=False)
-    
+
     # Start the transfer
     task_id = None
     result = None
@@ -67,7 +69,7 @@ def transfer(client, remote_uuid, local_uuid, file_list, event=None):
         logging.error("Could not submit the transfer")
         logging.error(format_debug(e))
         return
-    
+
     # loop until transfer is complete
     while True:
         status = client.get_task(task_id)
@@ -79,6 +81,7 @@ def transfer(client, remote_uuid, local_uuid, file_list, event=None):
             client.cancel_task(task_id)
             return None, None
         sleep(10)
+
 
 def transfer_directory(src_uuid, dst_uuid, src_path, dst_path, event_list=None, killevent=None):
     """
@@ -103,7 +106,7 @@ def transfer_directory(src_uuid, dst_uuid, src_path, dst_path, event_list=None, 
         source_path=src_path,
         destination_path=dst_path,
         recursive=True)
-    
+
     try:
         msg = 'Starting globus directory transfer from {src} to {dst}'.format(
             src=src_path, dst=dst_path)
@@ -127,10 +130,11 @@ def transfer_directory(src_uuid, dst_uuid, src_path, dst_path, event_list=None, 
         else:
             msg = 'Unexpected globus code: {}'.format(status)
             print_line(msg, event_list)
-        if event and event.is_set():
+        if killevent and killevent.is_set():
             client.cancel_task(task_id)
             return False
         sleep(10)
+
 
 def setup_globus(endpoints, event_list):
     """
@@ -173,7 +177,7 @@ def setup_globus(endpoints, event_list):
                     return False
                 else:
                     continue
-            
+
             if r["code"] == "AutoActivationFailed":
                 activated = False
                 logging.info('endpoint autoactivation failed')
@@ -193,6 +197,7 @@ https://www.globus.org/app/endpoints/{endpoint}/activate
             raw_input('Press ENTER once endpoints have been activated\n')
 
     return True
+
 
 def check_globus(src_uuid, dst_uuid, src_path, dst_path):
     """
@@ -222,7 +227,8 @@ def check_globus(src_uuid, dst_uuid, src_path, dst_path):
                 endpoint['path'],
                 endpoint['id'],
                 False, 0, False)
-            hostname = client.endpoint_server_list(endpoint)['DATA']['hostname']
+            hostname = client.endpoint_server_list(
+                endpoint)['DATA']['hostname']
             print "Access confirmed for {}".format(hostname)
     except Exception as e:
         print_debug(e)
