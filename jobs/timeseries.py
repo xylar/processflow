@@ -165,6 +165,13 @@ class Timeseries(Job):
             event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
+        if not config['data_types'].get('ts_native'):
+            config['data_types']['ts_native'] = {'monthly': False}
+        if not config['data_types'].get('ts_regrid'):
+            config['data_types']['ts_regrid'] = {'monthly': False}
+        if self._dryrun:
+            return
+
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())
@@ -180,7 +187,9 @@ class Timeseries(Job):
         var_list = config['post-processing']['timeseries'][self._run_type]
 
         new_files = list()
-        for ts_file in get_ts_output_files(self._output_path, var_list, self.start_year, self.end_year):
+        ts_files = get_ts_output_files(
+            self._output_path, var_list, self.start_year, self.end_year)
+        for ts_file in ts_files:
             new_files.append({
                 'name': ts_file,
                 'local_path': os.path.join(self._output_path, ts_file),
@@ -193,21 +202,18 @@ class Timeseries(Job):
             data_type='ts_native',
             file_list=new_files,
             super_type='derived')
-        if not config['data_types'].get('ts_native'):
-            config['data_types']['ts_native'] = {'monthly': False}
 
         if self._regrid:
-
             new_files = list()
             ts_files = get_ts_output_files(
                 self._regrid_path,
                 var_list,
                 self.start_year,
                 self.end_year)
-            for regrid_file in ts_files:
+            for ts_file in ts_files:
                 new_files.append({
-                    'name': regrid_file,
-                    'local_path': os.path.join(self._regrid_path, regrid_file),
+                    'name': ts_file,
+                    'local_path': os.path.join(self._regrid_path, ts_file),
                     'case': self.case,
                     'year': self.start_year,
                     'month': self.end_year,
@@ -217,8 +223,6 @@ class Timeseries(Job):
                 data_type='ts_regrid',
                 file_list=new_files,
                 super_type='derived')
-            if not config['data_types'].get('ts_regrid'):
-                config['data_types']['ts_regrid'] = {'monthly': False}
 
         msg = '{prefix}: Job completion handler done'.format(
             prefix=self.msg_prefix())
