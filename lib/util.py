@@ -171,16 +171,21 @@ def render(variables, input_path, output_path):
     Renders the jinja2 template from the input_path into the output_path
     using the variables from variables
     """
-    tail, head = os.path.split(input_path)
+    try:
+        tail, head = os.path.split(input_path)
 
-    template_path = os.path.abspath(tail)
-    loader = jinja2.FileSystemLoader(searchpath=template_path)
-    env = jinja2.Environment(loader=loader)
-    template = env.get_template(head)
-    outstr = template.render(variables)
+        template_path = os.path.abspath(tail)
+        loader = jinja2.FileSystemLoader(searchpath=template_path)
+        env = jinja2.Environment(loader=loader)
+        template = env.get_template(head)
+        outstr = template.render(variables)
 
-    with open(output_path, 'a+') as outfile:
-        outfile.write(outstr)
+        with open(output_path, 'a+') as outfile:
+            outfile.write(outstr)
+    except Exception as e:
+        return False
+    else:
+        return True
 
 
 def create_symlink_dir(src_dir, src_list, dst):

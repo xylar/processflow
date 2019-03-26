@@ -5,6 +5,7 @@ from subprocess import Popen, PIPE
 from jobinfo import JobInfo
 from jobstatus import JobStatus
 
+
 class Serial(object):
     """
     A Python class for submitting one job at a time in serial
@@ -16,8 +17,7 @@ class Serial(object):
         self.status = 'idle'
         self.job_id = 0
         self.jobs = list()
-        
-    
+
     def batch(self, cmd, pargs=None):
         """
         Submit to the batch queue in non-interactive mode
@@ -32,7 +32,7 @@ class Serial(object):
         """
         if self.status != 'idle':
             return ""
-        
+
         command = "bash " + cmd
 
         self.job_id = self.job_id + 1
@@ -52,7 +52,7 @@ class Serial(object):
         if err:
             print err
         return self.job_id
-    
+
     def showjob(self, jobid):
         jobs = filter(lambda job: job.job_id == jobid, self.jobs)
         return jobs[0] if jobs else None
