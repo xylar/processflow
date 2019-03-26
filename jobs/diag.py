@@ -138,10 +138,14 @@ class Diag(Job):
             comp = 'obs'
         else:
             comp = config['simulations'][self.comparison]['short_name']
-        return os.path.join(
+
+        temp_path = os.path.join(
             config['global']['project_path'],
             'output', 'temp', self._short_name, self._job_type,
             '{:04d}_{:04d}_vs_{}'.format(self._start_year, self._end_year, comp))
+        if not os.path.exists(temp_path):
+            os.makedirs(temp_path)
+        return temp_path
     # -----------------------------------------------
 
     def get_run_name(self):
@@ -160,6 +164,11 @@ class Diag(Job):
         symlinks all data_types sepecified in the jobs _data_required field,
         and puts a copy of the path for the links into the _input_file_paths field
         """
+
+        # create the path to where we should place our temp symlinks
+        self._input_base_path = self.setup_temp_path(
+            config=config)
+
         for datatype in self._data_required:
             datainfo = config['data_types'].get(datatype)
             if not datainfo:
@@ -191,28 +200,15 @@ class Diag(Job):
                 tail, head = os.path.split(file)
                 filesnames.append(head)
 
-            # setup the temp directory to hold symlinks
-            if self._comparison == 'obs':
-                comp = 'obs'
-            else:
-                comp = config['simulations'][self.comparison]['short_name']
-            temp_path = os.path.join(
-                config['global']['project_path'],
-                'output', 'temp', self._short_name, self._job_type,
-                '{:04d}_{:04d}_vs_{}'.format(self._start_year, self._end_year, comp))
-
-            if not os.path.exists(temp_path):
-                os.makedirs(temp_path)
-
             # keep a reference to the input data for later
             self._input_file_paths.extend(
-                [os.path.join(temp_path, x) for x in filesnames])
+                [os.path.join(self._input_base_path, x) for x in filesnames])
 
             # create the symlinks
             create_symlink_dir(
                 src_dir=tail,
                 src_list=filesnames,
-                dst=temp_path)
+                dst=self._input_base_path)
 
         return
     # -----------------------------------------------

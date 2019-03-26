@@ -10,7 +10,7 @@ data_files = [(sys.prefix + '/share/processflow/resources',
                 'resources/aprime_template_vs_obs.bash'])]
 
 setup(
-    name="e3sm_processflow",
+    name="processflow",
     version="2.2.0",
     author="Sterling Baldwin",
     author_email="baldwin32@llnl.gov",

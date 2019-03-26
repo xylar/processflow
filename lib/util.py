@@ -207,7 +207,7 @@ def create_symlink_dir(src_dir, src_list, dst):
         source = os.path.join(src_dir, src_file)
         destination = os.path.join(dst, src_file)
         if os.path.lexists(destination):
-            continue
+            os.remove(destination)
         try:
             os.symlink(source, destination)
         except Exception as e:

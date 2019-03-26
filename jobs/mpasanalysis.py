@@ -29,10 +29,11 @@ class MPASAnalysis(Diag):
                                'ocn_streams', 'cice_streams',
                                'ocn_in', 'cice_in',
                                'meridionalHeatTransport']
-        
-        if kwargs['config']['global']['host']:
+
+        config = kwargs.get('config')
+        if config and config['global'].get('host'):
             self._host_path = os.path.join(
-                kwargs['config']['img_hosting']['host_directory'],
+                config['img_hosting']['host_directory'],
                 self.short_name,
                 'mpas_analysis',
                 '{start:04d}_{end:04d}_vs_{comp}'.format(
@@ -66,7 +67,7 @@ class MPASAnalysis(Diag):
                     comp=self._short_comp_name))
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
-        
+
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -203,5 +204,12 @@ class MPASAnalysis(Diag):
             event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
+        self._host_url = 'https://{server}/{prefix}/{case}/mpas_analysis/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
+            server=config['img_hosting']['img_host_server'],
+            prefix=config['img_hosting']['url_prefix'],
+            case=self.short_name,
+            start=self.start_year,
+            end=self.end_year,
+            comp=self._short_comp_name)
         pass
     # -----------------------------------------------

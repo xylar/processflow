@@ -189,7 +189,7 @@ class Aprime(Diag):
             host_path=self._host_path,
             event_list=event_list)
 
-        self._host_url = 'https://{server}/{prefix}/{short_name}/aprime/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
+        self._host_url = 'https://{server}/{prefix}/{short_name}/aprime/{start:04d}_{end:04d}_vs_{comp}/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],
             prefix=config['img_hosting']['url_prefix'],
             short_name=self.short_name,
