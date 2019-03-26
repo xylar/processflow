@@ -23,11 +23,7 @@ class TestAMWGDiagnostic(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestAMWGDiagnostic, self).__init__(*args, **kwargs)
-        self.config_path = os.path.join(
-            os.getcwd(),
-            'tests',
-            'test_configs',
-            'test_amwg_complete.cfg')
+        self.config_path = 'tests/test_configs/test_amwg_complete.cfg'
         self.config = ConfigObj(self.config_path)
         self.config['global']['run_scripts_path'] = os.path.join(
             self.config['global']['project_path'],
@@ -43,7 +39,7 @@ class TestAMWGDiagnostic(unittest.TestCase):
         _args = ['-c', self.config_path]
         config, filemanager, runmanager = initialize(
             argv=_args,
-            version="2.0.0",
+            version="2.2.0",
             branch="testing",
             event_list=self.event_list,
             kill_event=Event(),
@@ -64,7 +60,7 @@ class TestAMWGDiagnostic(unittest.TestCase):
         test that the amwg execution (in dry run mode) words correctly
         """
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        _args = ['-c', self.config_path]
+        _args = ['-c', self.config_path, '--dryrun']
         config, filemanager, runmanager = initialize(
             argv=_args,
             version="2.0.0",
@@ -76,6 +72,7 @@ class TestAMWGDiagnostic(unittest.TestCase):
         self.assertFalse(config is None)
         self.assertFalse(filemanager is None)
         self.assertFalse(runmanager is None)
+
 
     def test_amwg_execution_completed_job(self):
         """
@@ -91,8 +88,6 @@ class TestAMWGDiagnostic(unittest.TestCase):
             event_list=self.event_list,
             kill_event=Event(),
             testing=True)
-
-        config['global']['dryrun'] = True
 
         runmanager.check_data_ready()
         runmanager.start_ready_jobs()
