@@ -211,5 +211,5 @@ class MPASAnalysis(Diag):
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
-        pass
+
     # -----------------------------------------------
