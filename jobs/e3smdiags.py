@@ -127,7 +127,12 @@ class E3SMDiags(Diag):
                 case=self.short_name,
                 comp=self._short_comp_name))
         variables = dict()
-        input_path, _ = os.path.split(self._input_file_paths[0])
+
+        if dryrun:
+            input_path = os.path.join(config['global']['project_path'], 'dummpy_input_path')
+        else:
+            input_path, _ = os.path.split(self._input_file_paths[0])
+
         variables['short_test_name'] = self.short_name
         variables['test_data_path'] = input_path
         variables['test_name'] = self.case
@@ -156,7 +161,7 @@ class E3SMDiags(Diag):
             input_path=template_input_path,
             output_path=param_template_out)
 
-        cmd = ['acme_diags_driver.py', '-p', param_template_out]
+        cmd = ['e3sm_diags', '-p', param_template_out]
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
