@@ -104,7 +104,7 @@ setenv DIAG_VERSION 140804  # version number YYMMDD
 #
 # Don t forget the trailing / when setting the paths
 
-setenv NCARG_ROOT {{ NCARG_ROOT }}
+setenv NCARG_ROOT $CONDA_PREFIX
 
 set test_casename  = {{ test_casename }}
 set test_filetype = monthly_history 
