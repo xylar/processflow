@@ -1,21 +1,18 @@
-import unittest
+import inspect
 import os
 import sys
-import inspect
+import unittest
+from threading import Event
 
-from configobj import ConfigObj
-from threading import Event, Lock
+from processflow.lib.events import EventList
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import print_message
+from processflow.lib.initialize import initialize
+from processflow.jobs.aprime import Aprime
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from jobs.aprime import Aprime
-from lib.initialize import initialize
-from lib.runmanager import RunManager
-from lib.filemanager import FileManager
-from lib.util import print_message
-from lib.jobstatus import JobStatus
-from lib.events import EventList
 
 class TestAprime(unittest.TestCase):
 
@@ -33,14 +30,13 @@ class TestAprime(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         aprime = Aprime(
             short_name='testing_1pctCO2',
@@ -63,15 +59,14 @@ class TestAprime(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
 
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, filemanager, runmanager = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
-
+            kill_event=Event())
+        
         self.assertFalse(config is None)
         self.assertFalse(filemanager is None)
         self.assertFalse(runmanager is None)

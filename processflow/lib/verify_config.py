@@ -1,6 +1,7 @@
 """
-A module to varify that the user config is valid
+A module to verify that the user config is valid
 """
+
 import os
 
 

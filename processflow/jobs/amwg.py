@@ -1,16 +1,16 @@
 """
 A python wrapper around the AMWG diagnostics
 """
+import logging
 import os
 import re
-import logging
 
 from subprocess import call
 from bs4 import BeautifulSoup
 
-from jobs.diag import Diag
-from lib.util import render, print_line
-from lib.jobstatus import JobStatus
+from processflow.jobs.diag import Diag
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import render, print_line
 
 
 class AMWG(Diag):

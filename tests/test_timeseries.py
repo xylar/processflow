@@ -1,19 +1,19 @@
+import inspect
 import os
 import sys
 import unittest
-import inspect
 
 from threading import Event
-from configobj import ConfigObj
+
+from processflow.jobs.timeseries import Timeseries
+from processflow.lib.events import EventList
+from processflow.lib.initialize import initialize
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import print_message
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from lib.initialize import initialize
-from lib.util import print_message
-from lib.events import EventList
-from lib.jobstatus import JobStatus
-from jobs.timeseries import Timeseries
 
 def touch(fname):
     tail, _ = os.path.split(fname)
@@ -38,14 +38,13 @@ class TestTimeseries(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
         
         ts = Timeseries(
             short_name='piControl_testing',
@@ -64,14 +63,13 @@ class TestTimeseries(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
         
         ts = Timeseries(
             short_name='piControl_testing',
@@ -92,14 +90,13 @@ class TestTimeseries(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
         
         ts = Timeseries(
             short_name='piControl_testing',
@@ -130,6 +127,7 @@ class TestTimeseries(unittest.TestCase):
         self.assertTrue(
             ts.postvalidate(
                 config=config))
+
 
 if __name__ == '__main__':
     unittest.main()

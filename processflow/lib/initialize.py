@@ -1,25 +1,23 @@
-import sys
-import os
-import logging
-import json
-import time
-import stat
 import argparse
+import json
+import logging
+import os
+import sys
 
-from pprint import pformat
-from shutil import rmtree, copy
-from configobj import ConfigObj
+from shutil import copy
 from shutil import copyfile
 
-from filemanager import FileManager
-from runmanager import RunManager
-from mailer import Mailer
-from jobstatus import JobStatus
-from globus_interface import setup_globus
-from util import print_message
-from util import print_debug
-from util import print_line
-from verify_config import verify_config, check_config_white_space
+from configobj import ConfigObj
+
+from processflow import resources
+from processflow.lib.filemanager import FileManager
+from processflow.lib.globus_interface import setup_globus
+from processflow.lib.runmanager import RunManager
+from processflow.lib.util import print_debug
+from processflow.lib.util import print_line
+from processflow.lib.util import print_message
+from processflow.lib.verify_config import verify_config, check_config_white_space
+
 
 def parse_args(argv=None, print_help=None):
     parser = argparse.ArgumentParser()
@@ -63,6 +61,10 @@ def parse_args(argv=None, print_help=None):
         '-s', '--serial',
         help="Run in serial on systems without a resource manager",
         action='store_true')
+    parser.add_argument(
+        '--test',
+        help=argparse.SUPPRESS,
+        action='store_true')
 
     if print_help:
         parser.print_help()
@@ -81,6 +83,10 @@ def initialize(argv, **kwargs):
         __version__ (str): the current version number for processflow
         __branch__ (str): the branch this version was built from
     """
+    if argv and '--test' in argv:
+        print '=========================================='
+        print '---- Processflow running in test mode ----'
+        print '=========================================='
     # Setup the parser
     pargs = parse_args(argv=argv)
     if pargs.version:
@@ -151,11 +157,7 @@ Please add a space and run again.'''.format(num=line_index)
     if pargs.resource_path:
         config['global']['resource_path'] = os.path.abspath(pargs.resource_path)
     else:
-        config['global']['resource_path'] = os.path.join(
-            sys.prefix,
-            'share',
-            'processflow',
-            'resources')
+        config['global']['resource_path'] = os.path.dirname(resources.__file__)
 
     # setup the credential file if the user set the -d flag
     if pargs.credentail:
@@ -185,7 +187,7 @@ Please add a space and run again.'''.format(num=line_index)
     print_line(
         line='Log saved to {}'.format(log_path),
         event_list=event_list)
-    if not kwargs.get('testing'):
+    if not pargs.test:
         from imp import reload
         reload(logging)
     config['global']['log_path'] = log_path

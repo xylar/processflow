@@ -1,18 +1,19 @@
 """
-A module for the base Job class that all jobs decend from
+A module for the base Job class that all jobs descend from
 """
+
 import json
+import logging
 import os
 import sys
-import logging
+
 from uuid import uuid4
 
-from lib.util import render
-from lib.slurm import Slurm
-from lib.pbs import PBS
-from lib.serial import Serial
-from lib.jobstatus import JobStatus
-from lib.util import create_symlink_dir, print_message
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.serial import Serial
+from processflow.lib.slurm import Slurm
+from processflow.lib.util import render, create_symlink_dir, print_message
+from processflow.lib.pbs import PBS
 
 
 class Job(object):

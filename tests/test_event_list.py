@@ -1,14 +1,16 @@
-import os, sys
-import unittest
 import inspect
+import os
+import sys
+import unittest
 
 from datetime import datetime
+
+from processflow.lib.events import EventList, Event
+from processflow.lib.util import print_message
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from lib.events import EventList, Event
-from lib.util import print_message
 
 class TestEventList(unittest.TestCase):
 
@@ -46,6 +48,7 @@ class TestEventList(unittest.TestCase):
             index=0,
             message=rmessage)
         self.assertEquals(elist.list[0].message, rmessage)
+
 
 if __name__ == '__main__':
     unittest.main()

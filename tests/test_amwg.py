@@ -1,23 +1,20 @@
-
+import inspect
 import os
 import sys
 import unittest
-import shutil
-import inspect
 
-from configobj import ConfigObj
 from threading import Event
+
+from processflow.lib.events import EventList
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import print_message
+from processflow.lib.initialize import initialize
+from processflow.jobs.amwg import AMWG
+
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from jobs.amwg import AMWG
-from lib.initialize import initialize
-from lib.runmanager import RunManager
-from lib.filemanager import FileManager
-from lib.util import print_message
-from lib.jobstatus import JobStatus
-from lib.events import EventList
 
 class TestAMWGDiagnostic(unittest.TestCase):
 
@@ -30,18 +27,18 @@ class TestAMWGDiagnostic(unittest.TestCase):
         """
         Test the amwg initialization and data setup works correctly
         """
+
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
-
+            kill_event=Event())
+        
         amwg = AMWG(
             short_name='piControl_testing',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
@@ -56,19 +53,18 @@ class TestAMWGDiagnostic(unittest.TestCase):
 
     def test_amwg_prevalidate(self):
         """
-        test that the amwg prevalidate fails when ncclimo hasnt been run yet
+        test that the amwg prevalidate fails when ncclimo hasn't been run yet
         """
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        _args = ['-c', self.config_path, '--dryrun']
+        _args = ['--test', '-c', self.config_path]
         config, filemanager, _ = initialize(
             argv=_args,
             version="2.0.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
         
         self.assertFalse(config is None)
         self.assertFalse(filemanager is None)
@@ -98,14 +94,13 @@ class TestAMWGDiagnostic(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        _args = ['-c', self.config_path, '-r', 'resources/']
+        _args = ['--test', '-c', self.config_path, '-r', 'resources/']
         config, filemanager, runmanager = initialize(
             argv=_args,
             version="2.0.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         runmanager.check_data_ready()
         runmanager.start_ready_jobs()

@@ -1,22 +1,20 @@
-import os
-import sys
-import unittest
-import threading
 import inspect
+import os
 import shutil
+import sys
+import threading
+import unittest
+
+from processflow.lib.initialize import initialize, parse_args
+from processflow.lib.events import EventList
+from processflow.lib.util import print_message
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from lib.initialize import initialize, parse_args
-from lib.events import EventList
-from lib.models import DataFile
-from lib.filemanager import FileManager
-from lib.runmanager import RunManager
-from lib.util import print_message
-
 __version__ = '2.0.0'
 __branch__ = 'master'
+
 
 class TestInitialize(unittest.TestCase):
     """
@@ -72,74 +70,69 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_valid_config_simple(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/valid_config_simple.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/valid_config_simple.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
     
     def test_init_config_doesnt_exist_simple(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/this_file_doesnt_exist.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/this_file_doesnt_exist.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
         self.assertEqual(runmanager, False)
     
     def test_init_config_no_white_space_simple(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/invalid_config_no_white_space.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/invalid_config_no_white_space.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
         self.assertEqual(runmanager, False)
     
     def test_init_cant_parse_config(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/invalid_config_cant_parse.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/invalid_config_cant_parse.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
         self.assertEqual(runmanager, False)
     
     def test_init_missing_lnd(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/invalid_config_missing_lnd.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/invalid_config_missing_lnd.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
         self.assertEqual(runmanager, False)
     
     def test_init_from_scratch_config(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/valid_config_from_scratch.cfg',
+        pargv = ['--test', '-c', 'tests/test_configs/valid_config_from_scratch.cfg',
                  '-m', '1']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
         if os.path.exists(project_path):
@@ -150,8 +143,7 @@ class TestInitialize(unittest.TestCase):
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
         self.assertNotEqual(config, False)
         self.assertNotEqual(filemanager, False)
         self.assertNotEqual(runmanager, False)
@@ -162,7 +154,7 @@ class TestInitialize(unittest.TestCase):
     
     def test_init_from_scratch_config_bad_project_dir(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/valid_config_from_scratch_bad_project_path.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/valid_config_from_scratch_bad_project_path.cfg']
         project_path = '/usr/testing/'
         with self.assertRaises(SystemExit) as exitexception:
             config, filemanager, runmanager = initialize(
@@ -170,8 +162,7 @@ class TestInitialize(unittest.TestCase):
                 version=__version__,
                 branch=__branch__,
                 event_list=EventList(),
-                kill_event=threading.Event(),
-                testing=True)
+                kill_event=threading.Event())
             self.assertEqual(config, False)
             self.assertEqual(filemanager, False)
             self.assertEqual(runmanager, False)
@@ -181,7 +172,7 @@ class TestInitialize(unittest.TestCase):
     
     def test_init_from_scratch_config_globus(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/valid_config_from_scratch_globus.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/valid_config_from_scratch_globus.cfg']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
         if os.path.exists(project_path):
             shutil.rmtree(project_path)
@@ -191,8 +182,7 @@ class TestInitialize(unittest.TestCase):
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
         self.assertNotEqual(config, False)
         self.assertNotEqual(filemanager, False)
         self.assertNotEqual(runmanager, False)
@@ -203,7 +193,7 @@ class TestInitialize(unittest.TestCase):
     
     def test_init_from_scratch_config_globus_bad_uuid(self):
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['-c', 'tests/test_configs/valid_config_from_scratch_globus_bad_uuid.cfg']
+        pargv = ['--test', '-c', 'tests/test_configs/valid_config_from_scratch_globus_bad_uuid.cfg']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
         if os.path.exists(project_path):
             shutil.rmtree(project_path)
@@ -213,8 +203,7 @@ class TestInitialize(unittest.TestCase):
             version=__version__,
             branch=__branch__,
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
         self.assertEqual(runmanager, False)

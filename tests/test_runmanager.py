@@ -1,20 +1,20 @@
+import inspect
 import os
+import shutil
 import sys
 import threading
 import unittest
-import shutil
-import inspect
 
 from configobj import ConfigObj
+
+from processflow.lib.runmanager import RunManager
+from processflow.lib.filemanager import FileManager
+from processflow.lib.events import EventList
+from processflow.lib.util import print_message
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from lib.runmanager import RunManager
-from lib.filemanager import FileManager
-from lib.models import DataFile
-from lib.events import EventList
-from lib.util import print_message
 
 class TestRunManager(unittest.TestCase):
 
