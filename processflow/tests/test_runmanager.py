@@ -7,13 +7,13 @@ import unittest
 
 from configobj import ConfigObj
 
+if sys.path[0] != '.':
+    sys.path.insert(0, os.path.abspath('.'))
+
 from processflow.lib.runmanager import RunManager
 from processflow.lib.filemanager import FileManager
 from processflow.lib.events import EventList
 from processflow.lib.util import print_message
-
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
 
 
 class TestRunManager(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestRunManager(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestRunManager, self).__init__(*args, **kwargs)
 
-        config_path = 'tests/test_configs/runmanager_valid_many_jobs.cfg'
+        config_path = 'processflow/tests/test_configs/runmanager_valid_many_jobs.cfg'
         self.config = ConfigObj(config_path)
         self.project_path = '/p/user_pub/e3sm/baldwin32/testing_data/'
         if not os.path.exists(self.project_path):

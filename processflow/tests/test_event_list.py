@@ -5,11 +5,11 @@ import unittest
 
 from datetime import datetime
 
-from processflow.lib.events import EventList, Event
-from processflow.lib.util import print_message
-
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
+
+from processflow.lib.events import EventList, Event
+from processflow.lib.util import print_message
 
 
 class TestEventList(unittest.TestCase):

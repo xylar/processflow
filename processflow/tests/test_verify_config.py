@@ -5,11 +5,11 @@ import unittest
 
 from configobj import ConfigObj
 
-from processflow.lib.verify_config import verify_config
-from processflow.lib.util import print_message
-
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
+
+from processflow.lib.verify_config import verify_config
+from processflow.lib.util import print_message
 
 
 class TestVerifyConfig(unittest.TestCase):
@@ -21,7 +21,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/test_amwg_complete.cfg'
+        config_path = 'processflow/tests/test_configs/amwg_complete.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertEquals(len(messages), 0)
@@ -30,7 +30,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_missing_lnd.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_missing_lnd.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertTrue(
@@ -40,7 +40,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_missing_climo.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_missing_climo.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertTrue(
@@ -50,7 +50,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_no_global.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_no_global.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertTrue('No global section found in config' in messages)
@@ -60,7 +60,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_no_project_path.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_no_project_path.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertTrue('no project_path in global options' in messages)
@@ -70,7 +70,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_bad_transfer.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_bad_transfer.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
 
@@ -93,7 +93,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_bad_job_type.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_bad_job_type.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertTrue(
@@ -103,7 +103,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_bad_data_type.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_bad_data_type.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertTrue('atm has no file_format' in messages)
@@ -114,7 +114,7 @@ class TestVerifyConfig(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/invalid_config_bad_regrid.cfg'
+        config_path = 'processflow/tests/test_configs/invalid_config_bad_regrid.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
         self.assertTrue('no source_grid_path given for lnd regrid' in messages)

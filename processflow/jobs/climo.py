@@ -37,7 +37,6 @@ class Climo(Job):
                 'climos_native',
                 kwargs['config']['simulations'][self.case]['native_grid_name'],
                 self._short_name,
-                'climo',
                 '{length}yr'.format(length=self.end_year - self.start_year + 1))
             self._regrid_path = os.path.join(
                 kwargs['config']['global']['project_path'],

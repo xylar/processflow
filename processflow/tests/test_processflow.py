@@ -8,9 +8,6 @@ from configobj import ConfigObj
 from processflow.lib.util import print_message
 from processflow.__main__ import main
 
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
-
 
 class TestProcessflow(unittest.TestCase):
 

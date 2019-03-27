@@ -4,24 +4,42 @@ import sys
 import unittest
 
 from threading import Event
-
-from processflow.lib.events import EventList
-from processflow.lib.jobstatus import JobStatus
-from processflow.lib.util import print_message
-from processflow.lib.initialize import initialize
-from processflow.jobs.amwg import AMWG
-
+from shutil import rmtree
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
+from processflow.lib.events import EventList
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import print_message
+from processflow.lib.initialize import initialize, setup_directories
+from processflow.jobs.amwg import AMWG
+from processflow.tests.utils import mock_climos
 
-class TestAMWGDiagnostic(unittest.TestCase):
+
+
+class TestAMWG(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
-        super(TestAMWGDiagnostic, self).__init__(*args, **kwargs)
-        self.config_path = 'tests/test_configs/amwg_complete.cfg'
+        super(TestAMWG, self).__init__(*args, **kwargs)
+
         self.event_list = EventList()
+        self.config_path = 'processflow/tests/test_configs/amwg_complete.cfg'
+        self.config, self.filemanager, self.runmanager = initialize(
+            argv=['--test', '-c', self.config_path, '--dryrun'],
+            version="2.2.0",
+            branch="testing",
+            event_list=self.event_list)
+        
+        self.config['data_types']['climo_regrid'] = {}
+        self.config['data_types']['climo_regrid']['monthly'] = True
+
+        if os.path.exists(self.config['global']['project_path']):
+            rmtree(self.config['global']['project_path'])
+        setup_directories(self.config)
+
+        self.case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
+        self.short_name = 'piControl_testing'
 
     def test_amwg_setup(self):
         """
@@ -30,22 +48,15 @@ class TestAMWGDiagnostic(unittest.TestCase):
 
         print '\n'
         print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        _args = ['--test', '-c', self.config_path]
-        config, _, _ = initialize(
-            argv=_args,
-            version="2.2.0",
-            branch="testing",
-            event_list=self.event_list,
-            kill_event=Event())
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')        
         
         amwg = AMWG(
-            short_name='piControl_testing',
-            case='20180129.DECKv1b_piControl.ne30_oEC.edison',
+            short_name=self.short_name,
+            case=self.case_name,
             start=1,
             end=2,
             comparison='obs',
-            config=config)
+            config=self.config)
         
         self.assertEqual(amwg._host_url, 'https://acme-viewer.llnl.gov/baldwin32/piControl_testing/amwg/0001_0002_vs_obs/index.html')
         self.assertEqual(amwg._host_path, '/var/www/acme/acme-diags/baldwin32/piControl_testing/amwg/0001_0002_vs_obs')
@@ -58,31 +69,18 @@ class TestAMWGDiagnostic(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        _args = ['--test', '-c', self.config_path]
-        config, filemanager, _ = initialize(
-            argv=_args,
-            version="2.0.0",
-            branch="testing",
-            event_list=self.event_list,
-            kill_event=Event())
-        
-        self.assertFalse(config is None)
-        self.assertFalse(filemanager is None)
-        config['data_types']['climo_regrid'] = {}
-        config['data_types']['climo_regrid']['monthly'] = True
-
 
         amwg = AMWG(
-            short_name='piControl_testing',
-            case='20180129.DECKv1b_piControl.ne30_oEC.edison',
+            short_name=self.short_name,
+            case=self.case_name,
             start=1,
             end=2,
             comparison='obs',
-            config=config)
+            config=self.config)
         amwg.setup_data(
-            config=config,
-            filemanager=filemanager,
-            case='20180129.DECKv1b_piControl.ne30_oEC.edison')
+            config=self.config,
+            filemanager=self.filemanager,
+            case=self.case_name)
 
         self.assertFalse(amwg.prevalidate())
 
@@ -94,26 +92,25 @@ class TestAMWGDiagnostic(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        _args = ['--test', '-c', self.config_path, '-r', 'resources/']
-        config, filemanager, runmanager = initialize(
-            argv=_args,
-            version="2.0.0",
-            branch="testing",
-            event_list=self.event_list,
-            kill_event=Event())
 
-        runmanager.check_data_ready()
-        runmanager.start_ready_jobs()
+        for case in self.runmanager.cases:
+            for job in case['jobs']:
+                if job.job_type == 'climo':
+                    mock_climos(job._output_path, job._regrid_path)
+                    job.status = JobStatus.COMPLETED
 
-        for case in runmanager.cases:
+        self.runmanager.check_data_ready()
+        self.runmanager.start_ready_jobs()
+
+        for case in self.runmanager.cases:
             for job in case['jobs']:
                 if job.job_type == 'amwg':
                     job.setup_data(
-                        config=config,
-                        filemanager=filemanager,
-                        case='20180129.DECKv1b_piControl.ne30_oEC.edison')
+                        config=self.config,
+                        filemanager=self.filemanager,
+                        case=self.case_name)
                     job.execute(
-                        config=config,
+                        config=self.config,
                         event_list=self.event_list,
                         dryrun=True)
                     self.assertEquals(

@@ -101,7 +101,6 @@ def initialize(argv, **kwargs):
         print_message(msg)
         return False, False, False
     event_list = kwargs['event_list']
-    event = kwargs['kill_event']
     print_line(
         line='Entering setup',
         event_list=event_list)
@@ -143,7 +142,7 @@ Please add a space and run again.'''.format(num=line_index)
         return False, False, False
     
     try:
-        setup_directories(pargs, config)
+        setup_directories(config)
     except Exception as e:
         print_message('Failed to setup directories')
         print_debug(e)
@@ -312,7 +311,7 @@ Please add a space and run again.'''.format(num=line_index)
         'output', 'state.txt'))
     return config, filemanager, runmanager
 
-def setup_directories(_args, config):
+def setup_directories(config):
     """
     Setup the input, output, pp, and diags directories
     """

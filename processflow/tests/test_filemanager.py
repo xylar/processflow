@@ -6,13 +6,13 @@ import unittest
 
 from configobj import ConfigObj
 
+if sys.path[0] != '.':
+    sys.path.insert(0, os.path.abspath('.'))
+
 from processflow.lib.filemanager import FileManager
 from processflow.lib.events import EventList
 from processflow.lib.util import print_message
 from processflow.lib.initialize import initialize
-
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
 
 
 class TestFileManager(unittest.TestCase):
@@ -33,7 +33,7 @@ class TestFileManager(unittest.TestCase):
 
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         db = '{}.db'.format(inspect.stack()[0][3])
-        config_path = 'tests/test_configs/valid_config_from_scratch.cfg'
+        config_path = 'processflow/tests/test_configs/valid_config_from_scratch.cfg'
         config = ConfigObj(config_path)
         experiment = '20170926.FCT2.A_WCYCL1850S.ne30_oECv3.anvil'
 
@@ -52,7 +52,7 @@ class TestFileManager(unittest.TestCase):
         run the filemanager setup with sta turned on
         """
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/e3sm_diags_complete.cfg'
+        config_path = 'processflow/tests/test_configs/e3sm_diags_complete.cfg'
         config = ConfigObj(config_path)
         db = '{}.db'.format(inspect.stack()[0][3])
 
@@ -73,7 +73,7 @@ class TestFileManager(unittest.TestCase):
         run the filemanager setup with short term archive turned on
         """
         print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'tests/test_configs/filemanager_partial_data.cfg'
+        config_path = 'processflow/tests/test_configs/filemanager_partial_data.cfg'
         db = '{}.db'.format(inspect.stack()[0][3])
 
         pargv = ['--test', '-c', config_path]
@@ -81,8 +81,7 @@ class TestFileManager(unittest.TestCase):
             argv=pargv,
             version='0.0.0',
             branch='__testing__',
-            event_list=EventList(),
-            kill_event=threading.Event())
+            event_list=EventList())
 
         filemanager = FileManager(
             database=db,
