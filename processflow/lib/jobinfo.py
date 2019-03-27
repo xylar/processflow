@@ -1,5 +1,7 @@
 import json
-from jobstatus import JobStatus
+
+from processflow.lib.jobstatus import JobStatus
+
 
 class JobInfo(object):
     """

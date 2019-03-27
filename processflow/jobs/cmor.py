@@ -1,11 +1,9 @@
-import os
-import re
 import logging
+import os
 
-from jobs.job import Job
-from lib.util import render, print_line
-from lib.jobstatus import JobStatus
-from lib.filemanager import FileStatus
+from processflow.jobs.job import Job
+from processflow.lib.util import print_line
+from processflow.lib.filemanager import FileStatus
 
 
 class Cmor(Job):

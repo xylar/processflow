@@ -1,13 +1,13 @@
 """
 A wrapper for ncclimo climatology generation
 """
-import os
 import logging
+import os
 
-from jobs.job import Job
-from lib.jobstatus import JobStatus
-from lib.filemanager import FileStatus
-from lib.util import get_climo_output_files, print_line
+from processflow.jobs.job import Job
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import get_climo_output_files, print_line
+from processflow.lib.filemanager import FileStatus
 
 
 class Climo(Job):

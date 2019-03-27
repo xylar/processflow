@@ -1,21 +1,19 @@
-import unittest
+import inspect
 import os
 import sys
-import inspect
+import unittest
 
-from configobj import ConfigObj
 from threading import Event
+
+from processflow.lib.events import EventList
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import print_message
+from processflow.lib.initialize import initialize
+from processflow.jobs.e3smdiags import E3SMDiags
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from lib.events import EventList
-from lib.jobstatus import JobStatus
-from lib.util import print_message
-from lib.filemanager import FileManager
-from lib.runmanager import RunManager
-from lib.initialize import initialize
-from jobs.e3smdiags import E3SMDiags
 
 class TestE3SM(unittest.TestCase):
 
@@ -33,14 +31,13 @@ class TestE3SM(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
 
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         e3sm_diags = E3SMDiags(
             short_name='piControl_testing',
@@ -63,15 +60,14 @@ class TestE3SM(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
 
-        _args = ['-c', self.config_path, '-r', 'resources/']
+        _args = ['--test', '-c', self.config_path, '-r', 'resources/']
         config, filemanager, runmanager = initialize(
             argv=_args,
             version="2.0.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
-
+            kill_event=Event())
+        
         self.assertFalse(config is None)
         self.assertFalse(filemanager is None)
         self.assertFalse(runmanager is None)

@@ -1,13 +1,14 @@
-import unittest
-import os, sys
 import inspect
+import os
+import sys
+import unittest
+
+from processflow.lib.slurm import Slurm
+from processflow.lib.util import print_message
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-
-from lib.slurm import Slurm
-from lib.util import print_message
 
 class TestSlurm(unittest.TestCase):
 

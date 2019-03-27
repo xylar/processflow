@@ -1,14 +1,14 @@
 """
 A wrapper class around E3SM Diags
 """
-import os
 import logging
+import os
 
 from bs4 import BeautifulSoup
 
-from jobs.diag import Diag
-from lib.util import render, print_line
-from lib.jobstatus import JobStatus
+from processflow.jobs.diag import Diag
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.util import render, print_line
 
 
 class E3SMDiags(Diag):

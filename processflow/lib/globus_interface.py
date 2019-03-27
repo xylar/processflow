@@ -1,11 +1,14 @@
 import logging
-from time import sleep
-from lib.util import print_debug, format_debug, print_line, print_message
 
-from globus_sdk import TransferData
+from time import sleep
+
+from globus_cli.commands.login import check_logged_in
 from globus_cli.commands.ls import _get_ls_res as globus_ls
-from globus_cli.commands.login import do_link_login_flow, check_logged_in
 from globus_cli.services.transfer import get_client
+from globus_sdk import TransferData
+
+from processflow.lib.util import print_debug, print_line, print_message
+from processflow.lib.util import format_debug
 
 
 def get_ls(client, path, endpoint):
@@ -116,7 +119,7 @@ def transfer_directory(src_uuid, dst_uuid, src_path, dst_path, event_list=None, 
         result = client.submit_transfer(transfer)
         task_id = result['task_id']
     except:
-        msg = 'Transfer setup for {src_uuid}:{src_path} tp {dst_uuid}:{dst_pathj} failed'.format(
+        msg = 'Transfer setup for {src_uuid}:{src_path} tp {dst_uuid}:{dst_path} failed'.format(
             src_uuid=src_uuid, src_path=src_path, dst_uuid=dst_uuid, dst_path=dst_path)
         logging.error(msg)
         return False
@@ -225,8 +228,7 @@ def check_globus(src_uuid, dst_uuid, src_path, dst_path):
             _ = get_ls(
                 client,
                 endpoint['path'],
-                endpoint['id'],
-                False, 0, False)
+                endpoint['id'])
             hostname = client.endpoint_server_list(
                 endpoint)['DATA']['hostname']
             print "Access confirmed for {}".format(hostname)

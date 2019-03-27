@@ -1,19 +1,17 @@
 #!/usr/bin/env python
-import sys
-import os
-import json
-import threading
+
 import logging
+import os
+import sys
+import threading
+
 from time import sleep
 
-from lib.events import EventList
-from lib.initialize import initialize
-from lib.finalize import finalize
-from lib.filemanager import FileManager
-from lib.runmanager import RunManager
-from lib.util import print_line
-from lib.util import print_message
-from lib.util import print_debug
+from processflow.lib.events import EventList
+from processflow.lib.finalize import finalize
+from processflow.lib.initialize import initialize
+from processflow.lib.util import print_debug, print_line, print_message
+
 
 __version__ = '2.2.0'
 __branch__ = 'nightly'
@@ -25,7 +23,7 @@ os.environ['NCO_PATH_OVERRIDE'] = 'True'
 event_list = EventList()
 
 
-def main(test=False, **kwargs):
+def main(cl_args=None):
     """
     Processflow main
 
@@ -47,26 +45,22 @@ def main(test=False, **kwargs):
     all_data_remote = False
 
     # Read in parameters from config
-    if test:
-        print '=========================================='
-        print '---- Processflow running in test mode ----'
-        print '=========================================='
-        _args = kwargs['testargs']
-        config, filemanager, runmanager = initialize(
-            argv=_args,
-            version=__version__,
-            branch=__branch__,
-            event_list=event_list,
-            kill_event=thread_kill_event,
-            testing=True)
-    else:
-        config, filemanager, runmanager = initialize(
-            argv=sys.argv[1:],
-            version=__version__,
-            branch=__branch__,
-            event_list=event_list,
-            kill_event=thread_kill_event)
-    # setup returned an error code
+    if cl_args is None and len(sys.argv) > 1:
+        cl_args = sys.argv[1:]
+    elif len(sys.argv) > 1:
+        logging.debug("Both command line arguments and programmatic arguments "
+                      "are present; defaulting to programmatic arguments.\n"
+                      "    programmatic: main({})\n"
+                      "    command line: {}".format(cl_args,
+                                                    ' '.join(sys.argv[:])))
+
+    config, filemanager, runmanager = initialize(
+        argv=cl_args,
+        version=__version__,
+        branch=__branch__,
+        event_list=event_list,
+        kill_event=thread_kill_event)
+
     if isinstance(config, int):
         print "Error in setup, exiting"
         return -1
@@ -172,9 +166,7 @@ def main(test=False, **kwargs):
         runmanager.write_job_sets(state_path)
         filemanager.terminate_transfers()
 
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        ret = main(test=True, testargs=['-h'])
-    else:
-        ret = main()
-    sys.exit(ret)
+    sys.exit(main())
+

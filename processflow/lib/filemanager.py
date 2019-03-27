@@ -1,20 +1,12 @@
-import os
-import re
-import sys
-import threading
 import logging
-import random
+import os
+import threading
 
-from time import sleep
-from peewee import *
-from enum import IntEnum
 from threading import Thread
+from enum import IntEnum
 
 from models import DataFile
-from lib.jobstatus import JobStatus
-from lib.util import print_debug
-from lib.util import print_line
-from lib.util import print_message
+from processflow.lib.util import print_debug, print_line, print_message
 
 
 class FileStatus(IntEnum):
@@ -350,13 +342,13 @@ class FileManager(object):
             print_line(msg, self._event_list)
 
             if files[0].transfer_type == 'globus':
-                from lib.globus_interface import get_ls as globus_ls
+                from processflow.lib import get_ls as globus_ls
                 remote_contents = globus_ls(
                     client=client,
                     path=remote_path,
                     endpoint=self._config['simulations'][case]['remote_uuid'])
             elif files[0].transfer_type == 'sftp':
-                from lib.ssh_interface import get_ls as ssh_ls
+                from processflow.lib import get_ls as ssh_ls
                 remote_contents = ssh_ls(
                     client=client,
                     remote_path=remote_path)
@@ -551,7 +543,7 @@ class FileManager(object):
                     })
 
                 if required_files[0].transfer_type == 'globus':
-                    from lib.globus_interface import transfer as globus_transfer
+                    from processflow.lib import transfer as globus_transfer
                     from globus_cli.services.transfer import get_client as get_globus_client
 
                     msg = 'Starting globus file transfer of {} files'.format(
@@ -576,7 +568,7 @@ class FileManager(object):
                     self.thread_list.append(thread)
                     thread.start()
                 elif required_files[0].transfer_type == 'sftp':
-                    from lib.ssh_interface import get_ssh_client
+                    from processflow.lib import get_ssh_client
                     msg = 'Starting sftp file transfer of {} files'.format(
                         len(required_files))
                     print_line(msg, event_list)
@@ -604,7 +596,7 @@ class FileManager(object):
             return False
 
     def _ssh_transfer(self, target_files, client, event):
-        from lib.ssh_interface import transfer as ssh_transfer
+        from processflow.lib import transfer as ssh_transfer
 
         sftp_client = client.open_sftp()
         for file in target_files:

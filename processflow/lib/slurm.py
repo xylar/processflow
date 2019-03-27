@@ -1,9 +1,11 @@
-import os
 import logging
-from time import sleep
+import os
+
 from subprocess import Popen, PIPE
-from jobinfo import JobInfo
-from util import print_debug
+from time import sleep
+
+from processflow.lib.jobinfo import JobInfo
+from processflow.lib.util import print_debug
 
 
 class Slurm(object):

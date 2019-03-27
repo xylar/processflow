@@ -1,9 +1,9 @@
-import os
-import logging
 from time import sleep
 from subprocess import Popen, PIPE
-from jobinfo import JobInfo
-from jobstatus import JobStatus
+
+from processflow.lib.jobinfo import JobInfo
+from processflow.lib.jobstatus import JobStatus
+
 
 
 class Serial(object):

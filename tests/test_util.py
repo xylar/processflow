@@ -1,15 +1,12 @@
+import inspect
 import os
 import sys
-import shutil
 import unittest
-import threading
-import inspect
+
+from processflow.lib.util import render,  print_message
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
-
-from lib.util import print_message
-from lib.util import render
 
 
 class TestFileManager(unittest.TestCase):

@@ -2,19 +2,20 @@
 A child of Job, the Diag class is the parent for all diagnostic jobs
 """
 import json
-import os
 import logging
+import os
 import sys
 
-from shutil import rmtree
 from distutils.dir_util import copy_tree
+from shutil import rmtree
 from subprocess import call
 
-from lib.jobstatus import JobStatus
-from lib.util import print_line, create_symlink_dir, render, print_message
-from jobs.job import Job
-from lib.slurm import Slurm
-from lib.pbs import PBS
+from processflow.jobs.job import Job
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.slurm import Slurm
+from processflow.lib.util import print_line, print_message
+from processflow.lib.util import create_symlink_dir, render
+from processflow.lib.pbs import PBS
 
 
 class Diag(Job):

@@ -1,15 +1,15 @@
-import unittest
+import inspect
 import os
 import sys
-import inspect
+import unittest
 
 from configobj import ConfigObj
 
+from processflow.lib.verify_config import verify_config
+from processflow.lib.util import print_message
+
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
-
-from lib.util import print_message
-from lib.verify_config import verify_config
 
 
 class TestVerifyConfig(unittest.TestCase):

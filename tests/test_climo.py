@@ -1,22 +1,24 @@
+import inspect
 import os
 import sys
 import unittest
-import inspect
+
 from threading import Event
-from configobj import ConfigObj
+
+from processflow.lib.jobstatus import JobStatus
+from processflow.lib.initialize import initialize
+from processflow.lib.util import print_message
+from processflow.lib.events import EventList
+from processflow.jobs.climo import Climo
 
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
 
-from lib.util import print_message
-from lib.events import EventList
-from lib.jobstatus import JobStatus
-from jobs.climo import Climo
-from lib.initialize import initialize
 
 def touch(fname):
     with open(fname, 'w') as fp:
         fp.write('\n')
+
 
 class TestClimo(unittest.TestCase):
 
@@ -33,14 +35,13 @@ class TestClimo(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         climo = Climo(
             short_name='piControl_testing',
@@ -60,16 +61,14 @@ class TestClimo(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         climo = Climo(
             short_name='piControl_testing',
@@ -94,8 +93,7 @@ class TestClimo(unittest.TestCase):
 
             outpath = os.path.join(climo._regrid_path, name)
             touch(outpath)
-        
-        
+
         self.assertTrue(
             climo.postvalidate(config))
     
@@ -107,14 +105,13 @@ class TestClimo(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         climo = Climo(
             short_name='piControl_testing',
@@ -134,14 +131,13 @@ class TestClimo(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         climo = Climo(
             short_name='piControl_testing',
@@ -170,14 +166,13 @@ class TestClimo(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         
-        _args = ['-c', self.config_path]
+        _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
             version="2.2.0",
             branch="testing",
             event_list=self.event_list,
-            kill_event=Event(),
-            testing=True)
+            kill_event=Event())
 
         climo = Climo(
             short_name='piControl_testing',
@@ -196,6 +191,7 @@ class TestClimo(unittest.TestCase):
         self.assertTrue(
             climo.postvalidate(
                 config=config))
+
 
 if __name__ == '__main__':
     unittest.main()

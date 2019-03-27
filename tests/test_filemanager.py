@@ -1,20 +1,18 @@
-import os, sys
-import unittest
-import shutil
 import inspect
+import os
+import sys
 import threading
+import unittest
 
 from configobj import ConfigObj
 
+from processflow.lib.filemanager import FileManager
+from processflow.lib.events import EventList
+from processflow.lib.util import print_message
+from processflow.lib.initialize import initialize
+
 if sys.path[0] != '.':
     sys.path.insert(0, os.path.abspath('.'))
-
-from lib.filemanager import FileManager
-from lib.models import DataFile
-from lib.events import EventList
-from lib.util import print_message
-from lib.initialize import initialize
-from globus_cli.services.transfer import get_client
 
 
 class TestFileManager(unittest.TestCase):
@@ -78,14 +76,13 @@ class TestFileManager(unittest.TestCase):
         config_path = 'tests/test_configs/filemanager_partial_data.cfg'
         db = '{}.db'.format(inspect.stack()[0][3])
 
-        pargv = ['-c', config_path]
+        pargv = ['--test', '-c', config_path]
         config, _, _ = initialize(
             argv=pargv,
             version='0.0.0',
             branch='__testing__',
             event_list=EventList(),
-            kill_event=threading.Event(),
-            testing=True)
+            kill_event=threading.Event())
 
         filemanager = FileManager(
             database=db,

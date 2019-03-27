@@ -1,7 +1,9 @@
-import os
 import logging
+import os
+
 from subprocess import Popen, PIPE
-from jobinfo import JobInfo
+
+from processflow.lib.jobinfo import JobInfo
 
 
 class PBS(object):

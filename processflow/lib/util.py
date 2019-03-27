@@ -1,20 +1,12 @@
 import logging
+import os
+import re
 import sys
 import traceback
-import re
-import os
-import socket
-import jinja2
-import json
 
-from shutil import rmtree
-from time import sleep
 from datetime import datetime
-from string import Formatter
 
-from lib.jobstatus import ReverseMap, JobStatus
-from mailer import Mailer
-from models import DataFile
+import jinja2
 
 
 def print_line(line, event_list, ignore_text=False, newline=True):
