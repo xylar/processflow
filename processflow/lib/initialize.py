@@ -32,6 +32,10 @@ def parse_args(argv=None, print_help=None):
         help='Maximum number of jobs to run at any given time',
         type=int)
     parser.add_argument(
+        '-n', '--no-check',
+        help='Assume all files are where they should be',
+        action='store_true')
+    parser.add_argument(
         '--verify',
         help='Run verification for remote file paths, this process can take some time',
         action='store_true')
@@ -157,6 +161,11 @@ Please add a space and run again.'''.format(num=line_index)
         config['global']['resource_path'] = os.path.abspath(pargs.resource_path)
     else:
         config['global']['resource_path'] = os.path.dirname(resources.__file__)
+    
+    if pargs.no_check:
+        config['global']['no_check'] = True
+    else:
+        config['global']['no_check'] = False
 
     # setup the credential file if the user set the -d flag
     if pargs.credentail:
@@ -255,12 +264,18 @@ Please add a space and run again.'''.format(num=line_index)
         config=config)
     
     filemanager.populate_file_list()
-    msg = 'Starting local status update'
-    print_line(msg, event_list)
-
-    filemanager.update_local_status()
-    msg = 'Local status update complete'
-    print_line(msg, event_list)
+    
+    if config['global']['no_check']:
+        msg = 'Not running local status check'
+        print_line(msg, event_list)
+    else:
+        msg = 'Starting local status update'
+        print_line(msg, event_list)
+        
+        filemanager.update_local_status()
+        
+        msg = 'Local status update complete'
+        print_line(msg, event_list)
 
     msg = filemanager.report_files_local()
     print_line(msg, event_list)

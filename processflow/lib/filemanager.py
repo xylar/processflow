@@ -206,6 +206,11 @@ class FileManager(object):
             line=msg,
             event_list=self._event_list)
 
+        if self._config['global'].get('no_check'):
+            initial_local_state = FileStatus.PRESENT.value
+        else:
+            initial_local_state = FileStatus.NOT_PRESENT.value
+
         start_year = int(self._config['simulations']['start_year'])
         end_year = int(self._config['simulations']['end_year'])
         with DataFile._meta.database.atomic():
@@ -248,7 +253,7 @@ class FileManager(object):
                                     'name': filename,
                                     'remote_path': os.path.join(r_path, filename),
                                     'local_path': os.path.join(local_path, filename),
-                                    'local_status': FileStatus.NOT_PRESENT.value,
+                                    'local_status': initial_local_state,
                                     'case': case,
                                     'remote_status': FileStatus.NOT_PRESENT.value,
                                     'year': year,
@@ -274,7 +279,7 @@ class FileManager(object):
                             'name': filename,
                             'remote_path': os.path.join(r_path, filename),
                             'local_path': os.path.join(local_path, filename),
-                            'local_status': FileStatus.NOT_PRESENT.value,
+                            'local_status': initial_local_state,
                             'case': case,
                             'remote_status': FileStatus.NOT_PRESENT.value,
                             'year': 0,
