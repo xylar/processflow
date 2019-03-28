@@ -268,6 +268,7 @@ Please add a space and run again.'''.format(num=line_index)
     if config['global']['no_check']:
         msg = 'Not running local status check'
         print_line(msg, event_list)
+        all_data = True
     else:
         msg = 'Starting local status update'
         print_line(msg, event_list)
@@ -277,11 +278,12 @@ Please add a space and run again.'''.format(num=line_index)
         msg = 'Local status update complete'
         print_line(msg, event_list)
 
-    msg = filemanager.report_files_local()
-    print_line(msg, event_list)
+        msg = filemanager.report_files_local()
+        print_line(msg, event_list)
 
-    filemanager.write_database()
-    all_data = filemanager.all_data_local()
+        filemanager.write_database()
+        all_data = filemanager.all_data_local()
+    
     if all_data:
         msg = 'all data is local'
     else:
@@ -323,7 +325,8 @@ Please add a space and run again.'''.format(num=line_index)
     runmanager.setup_jobs()
     runmanager.write_job_sets(
         os.path.join(config['global']['project_path'],
-        'output', 'state.txt'))
+        'output', 
+        'job_state.txt'))
     return config, filemanager, runmanager
 
 def setup_directories(config):
