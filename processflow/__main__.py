@@ -41,7 +41,7 @@ def main(cl_args=None):
     thread_kill_event = threading.Event()
 
     # A flag to tell if we have all the data locally
-    all_data = False
+    all_data_local = False
     all_data_remote = False
 
     # Read in parameters from config
@@ -67,12 +67,15 @@ def main(cl_args=None):
     logging.info('Config setup complete')
     debug = True if config['global'].get('debug') else False
 
-    msg = "Updating local file status"
-    print_line(
-        line=msg,
-        event_list=event_list)
-    filemanager.update_local_status()
-    all_data_local = filemanager.all_data_local()
+    if config['global'].get('no_check'):
+        all_data_local = True
+    else:
+        msg = "Updating local file status"
+        print_line(
+            line=msg,
+            event_list=event_list)
+        filemanager.update_local_status()
+        all_data_local = filemanager.all_data_local()
 
     if not all_data_local:
         transfer_status = filemanager.transfer_needed(
