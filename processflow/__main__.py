@@ -90,7 +90,7 @@ def main(cl_args=None):
     state_path = os.path.join(
         config['global']['project_path'],
         'output',
-        'state.txt')
+        'job_state.txt')
     try:
         print "--------------------------"
         print " Entering Main Loop "

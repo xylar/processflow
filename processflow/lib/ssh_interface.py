@@ -4,7 +4,6 @@ import os
 import sys
 
 from getpass import getpass
-
 import paramiko
 
 from processflow.lib.util import print_debug
@@ -23,6 +22,7 @@ def get_ls(client, remote_path):
         return None
     return stdout.read().split('\n')
 
+
 def get_ll(client, remote_path):
     try:
         cmd = 'ls -la {}'.format(remote_path)
@@ -34,9 +34,12 @@ def get_ll(client, remote_path):
     ll = []
     for item in out:
         file_info = filter(lambda x: x != '', item.split(' '))
-        if len(file_info) < 9: continue
-        if file_info[0] == 'total': continue
-        if file_info[-1] in ['.', '..']: continue
+        if len(file_info) < 9:
+            continue
+        if file_info[0] == 'total':
+            continue
+        if file_info[-1] in ['.', '..']:
+            continue
         ll.append({
             'permissions': file_info[0],
             'num_links': file_info[1],
@@ -47,6 +50,7 @@ def get_ll(client, remote_path):
             'name': ' '.join(file_info[8:])
         })
     return ll
+
 
 def transfer(sftp_client, file):
     """
@@ -77,7 +81,8 @@ def transfer(sftp_client, file):
         logging.info(msg)
         return True
 
-def get_ssh_client(hostname, credential_path=False):    
+
+def get_ssh_client(hostname, credential_path=False):
     """
     Get user credentials and use them to log in to the remote host
 
@@ -102,7 +107,8 @@ def get_ssh_client(hostname, credential_path=False):
         if one_time:
             password = '{}{}'.format(password, one_time)
         try:
-            client.connect(hostname, port=22, username=username, password=password)
+            client.connect(hostname, port=22,
+                           username=username, password=password)
         except Exception as error:
             print_debug(error)
             connected = False
@@ -113,7 +119,8 @@ def get_ssh_client(hostname, credential_path=False):
         for _ in range(3):
             try:
                 password = getpass(prompt='Password for {}: '.format(hostname))
-                client.connect(hostname, port=22, username=username, password=password)
+                client.connect(hostname, port=22,
+                               username=username, password=password)
             except Exception as error:
                 print 'Invalid password'
             else:

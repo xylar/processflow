@@ -47,7 +47,7 @@ class Job(object):
             self._manager = Serial()
 
         self._manager_args = {
-            'slurm': ['-t 0-10:00', '-N 1'],
+            'slurm': ['-t 0-01:00', '-N 1'],
             'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
         }
         config = kwargs['config']
@@ -194,7 +194,6 @@ class Job(object):
                 src_list=filesnames,
                 dst=self._input_base_path)
 
-        return
     # -----------------------------------------------
 
     def setup_temp_path(self, config, *args, **kwards):
