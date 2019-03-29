@@ -3,8 +3,7 @@ import os
 import sys
 import unittest
 
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
+ 
 
 from processflow.lib.mailer import Mailer
 from processflow.lib.util import print_message

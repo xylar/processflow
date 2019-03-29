@@ -7,8 +7,7 @@ import unittest
 
 from configobj import ConfigObj
 
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
+ 
 
 from processflow.lib.runmanager import RunManager
 from processflow.lib.filemanager import FileManager

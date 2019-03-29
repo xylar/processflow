@@ -6,8 +6,7 @@ import unittest
 
 from configobj import ConfigObj
 
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
+ 
 
 from processflow.lib.initialize import initialize
 from processflow.lib.finalize import finalize
@@ -24,7 +23,7 @@ class TestFinalize(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestFinalize, self).__init__(*args, **kwargs)
         self.event_list = EventList()
-        self.config_path = 'processflow/tests/test_configs/e3sm_diags_complete.cfg'
+        self.config_path = 'tests/test_configs/e3sm_diags_complete.cfg'
         self.event_list = EventList()
 
     def test_finilize_complete(self):

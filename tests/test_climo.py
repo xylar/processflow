@@ -6,8 +6,7 @@ import unittest
 from threading import Event
 from shutil import rmtree
 
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
+ 
 
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.initialize import initialize, setup_directories
@@ -21,7 +20,7 @@ class TestClimo(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestClimo, self).__init__(*args, **kwargs)
-        self.config_path = 'processflow/tests/test_configs/valid_config_simple.cfg'
+        self.config_path = 'tests/test_configs/valid_config_simple.cfg'
         self.event_list = EventList()
         self.config, _, _ = initialize(
             argv=['--test', '-c', self.config_path],

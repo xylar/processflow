@@ -5,8 +5,7 @@ import sys
 import threading
 import unittest
 
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
+ 
 
 from processflow.lib.util import print_message
 from processflow.lib.events import EventList

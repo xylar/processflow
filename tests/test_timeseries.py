@@ -5,22 +5,21 @@ import unittest
 
 from threading import Event
 
-if sys.path[0] != '.':
-    sys.path.insert(0, os.path.abspath('.'))
+ 
 
 from processflow.jobs.timeseries import Timeseries
 from processflow.lib.events import EventList
 from processflow.lib.initialize import initialize
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.util import print_message
-from processflow.tests.utils import mock_ts
+from utils import mock_ts
 
 
 class TestTimeseries(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestTimeseries, self).__init__(*args, **kwargs)
-        self.config_path = 'processflow/tests/test_configs/valid_config_timeseries.cfg'
+        self.config_path = 'tests/test_configs/valid_config_timeseries.cfg'
         self.event_list = EventList()
 
         self.config, self.filemanager, self.runmanager = initialize(
