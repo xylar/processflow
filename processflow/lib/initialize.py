@@ -316,13 +316,30 @@ Please add a space and run again.'''.format(num=line_index)
                 print_line(
                     line='Globus authentication complete',
                     event_list=event_list)
+    
+    if config['global']['debug']:
+        msg = '-- starting runmanager setup --'
+        print_line(msg, event_list)
+
     # setup the runmanager
     runmanager = RunManager(
         event_list=event_list,
         config=config,
         filemanager=filemanager)
+    
+    if config['global']['debug']:
+        msg = '-- setting up cases -- '
+        print_line(msg, event_list)
     runmanager.setup_cases()
+
+    if config['global']['debug']:
+        msg = '-- setting up jobs --'
+        print_line(msg, event_list)
     runmanager.setup_jobs()
+
+    if config['global']['debug']:
+        msg = '-- writing job state out to file --'
+        print_line(msg, event_list)
     runmanager.write_job_sets(
         os.path.join(config['global']['project_path'],
         'output', 
