@@ -27,12 +27,13 @@ class TestAMWG(unittest.TestCase):
 
         config_json = 'tests/test_configs/amwg_complete.json'
         self.config_path = 'tests/test_configs/amwg_complete.cfg'
-        local_data_path = os.path.abspath('tests/test_resources/amwg_test/input')
+
+        project_path = os.path.abspath('tests/test_resources/amwg_test')
+        local_data_path = os.path.join(project_path, 'input')
         keys = {
             "global": {
                 "project_path": os.path.abspath('tests/test_resources/amwg_test'),
                 "email": "",
-                "native_grid_cleanup": "False"
             },
             "simulations": {
                 "start_year": "1",

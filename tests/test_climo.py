@@ -6,34 +6,56 @@ import unittest
 from threading import Event
 from shutil import rmtree
 
- 
-
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.initialize import initialize, setup_directories
 from processflow.lib.util import print_message
 from processflow.lib.events import EventList
 from processflow.jobs.climo import Climo
-from utils import mock_climos
+from utils import mock_climos, json_to_conf, mock_atm
 
 
 class TestClimo(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestClimo, self).__init__(*args, **kwargs)
+
+        config_json = 'tests/test_configs/valid_config_simple.json'
         self.config_path = 'tests/test_configs/valid_config_simple.cfg'
+        self.case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
+        self.short_name = 'piControl_testing'
         self.event_list = EventList()
-        self.config, _, _ = initialize(
+
+        project_path = os.path.abspath('tests/test_resources/climo_test')
+        local_data_path = os.path.join(project_path, 'input')
+        if os.path.exists(project_path):
+            rmtree(project_path, ignore_errors=True)
+        keys = {
+            "global": {
+                "project_path": project_path,
+            },
+            "simulations": {
+                "start_year": "1",
+                "end_year": "2",
+                "20180129.DECKv1b_piControl.ne30_oEC.edison": {
+                    "transfer_type": "local",
+                    "local_path": local_data_path,
+                    "short_name": "piControl",
+                    "native_grid_name": "ne30",
+                    "native_mpas_grid_name": "oEC60to30v3",
+                    "data_types": "all",
+                    "job_types": "climo"
+                }
+            }
+        }
+        json_to_conf(config_json, self.config_path, keys)
+        mock_atm(1, 2, self.case_name, local_data_path)
+
+        self.config, self.filemanager, self.runmanager = initialize(
             argv=['--test', '-c', self.config_path],
             version="2.2.0",
             branch="testing",
             event_list=self.event_list)
         
-        if os.path.exists(self.config['global']['project_path']):
-            rmtree(self.config['global']['project_path'])
-        setup_directories(self.config)
-
-        self.case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
-        self.short_name = 'piControl_testing'
 
     def test_climo_setup(self):
         """
@@ -69,11 +91,16 @@ class TestClimo(unittest.TestCase):
             end=2,
             config=self.config)
 
-        mock_climos(climo._output_path, climo._regrid_path)        
+        mock_climos(
+            climo._output_path,
+            climo._regrid_path,
+            self.config,
+            self.filemanager,
+            case=self.case_name)
 
         self.assertTrue(
             climo.postvalidate(self.config))
-    
+
     def test_climo_invalid_postvalidate(self):
         """
         Test that climo.postvalidate will return false on a case that hasnt been run
@@ -106,7 +133,7 @@ class TestClimo(unittest.TestCase):
             start=1,
             end=2,
             config=self.config)
-        
+
         self.assertEqual(
             climo.status,
             JobStatus.VALID)
@@ -133,9 +160,14 @@ class TestClimo(unittest.TestCase):
             start=1,
             end=2,
             config=self.config)
-        
-        mock_climos(climo._output_path, climo._regrid_path)
-        
+
+        mock_climos(
+            climo._output_path,
+            climo._regrid_path,
+            self.config,
+            self.filemanager,
+            self.case_name)
+
         self.assertEqual(
             climo.status,
             JobStatus.VALID)
