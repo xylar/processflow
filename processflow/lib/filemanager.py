@@ -339,10 +339,13 @@ class FileManager(object):
                      .select()
                      .where(
                          (DataFile.case == case) &
-                         (DataFile.datatype == datatype))
-                     .limit(1)).execute()
+                         (DataFile.datatype == datatype) &
+                         (DataFile.local_status != FileStatus.PRESENT.value))
+                     ).execute()
 
             remote_path, _ = os.path.split(files[0].remote_path)
+            data_files = [x.name for x in files]
+
             msg = 'Checking {} files in {}'.format(datatype, remote_path)
             print_line(msg, self._event_list)
 
@@ -360,13 +363,14 @@ class FileManager(object):
                     client=client,
                     remote_path=remote_path)
 
-            for df in files:
-                if df.name not in remote_contents:
+            for df in data_files:
+                if df not in remote_contents:
                     msg = 'Unable to find file {name} at {remote_path}'.format(
-                        name=df.name,
+                        name=df,
                         remote_path=remote_path)
                     print_message(msg, 'error')
                     found_all = False
+
         if not found_all:
             return False
         else:
