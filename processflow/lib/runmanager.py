@@ -99,8 +99,6 @@ class RunManager(object):
                     else:
                         if job.comparison and job.comparison == other_job.comparison:
                             return True
-                        if job.run_type == other_job.run_type:
-                            return True
             return False
 
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
@@ -169,7 +167,7 @@ class RunManager(object):
                     if not isinstance(comparisons, list):
                         comparisons = [comparisons]
 
-                    if job_type == 'aprime':
+                    if job_type in ['aprime', 'mpas_analysis']:
                         comparisons = ['obs']
                     job_end = year + freq - 1
                     if job_end > end:

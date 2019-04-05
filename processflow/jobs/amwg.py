@@ -230,16 +230,6 @@ class AMWG(Diag):
         # the numbet of plot sets with missing plots
         number_missing = 0
 
-        # where we expect to find output plots
-        img_source = os.path.join(
-            self._output_path,
-            '{case}-vs-{comp}'.format(
-                case=self.short_name,
-                comp=self._short_comp_name))
-        img_source_tar = img_source + '.tar'
-        if not os.path.exists(img_source):
-            return False
-
         # the minimum number of files expected from each plotset
         expected_files = {
             "set4": 60,
@@ -259,8 +249,24 @@ class AMWG(Diag):
             "set11": 10,
             "set4a": 20
         }
+        # where we expect to find output plots
+        img_source = os.path.join(
+            self._output_path,
+            '{case}-vs-{comp}'.format(
+                case=self.short_name,
+                comp=self._short_comp_name))
+        img_source_tar = img_source + '.tar'
+        if not os.path.exists(img_source):
+            if os.path.exists(img_source_tar):
+                return self._check_tar(
+                    img_source_tar, 
+                    img_source, 
+                    event_list, 
+                    config, 
+                    expected_files) == 0
+            else:
+                return False
 
-        passed = True
         sets = []
         if 'all' in config['diags']['amwg']['sets']:
             sets = [str(x) for x in range(1, 16)] + ['4a']
@@ -300,38 +306,8 @@ class AMWG(Diag):
         if number_missing > 0:
             number_missing = 0
             if os.path.exists(img_source_tar):
-                msg = '{prefix}: extracting images from tar archive'.format(
-                    prefix=self.msg_prefix())
-                print_line(msg, event_list)
-                call(['tar', '-xf', img_source_tar,
-                      '--directory', self._output_path])
-                passed = True
-                for item in config['diags']['amwg']['sets']:
-                    if item == 'all':
-                        continue
-                    setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
-                    setpath = os.path.join(
-                        img_source,
-                        setname)
-                    if not os.path.exists(setpath):
-                        number_missing += 1
-                        if self._has_been_executed:
-                            msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
-                                prefix=self.msg_prefix(),
-                                dir=setpath)
-                            logging.error(msg)
-                            print_line(msg, event_list)
-                    else:
-                        count = len(os.listdir(setpath))
-                        if count < expected_files[setname]:
-                            msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
-                                prefix=self.msg_prefix(),
-                                set=setname,
-                                numProduced=count,
-                                numExpected=expected_files[setname])
-                            logging.error(msg)
-                            print_line(msg, event_list)
-                            number_missing += 1
+                number_missing = self._check_tar(
+                    img_source_tar, img_source, event_list, config, expected_files)
 
         if number_missing == 0:
             msg = '{prefix}: all expected output images found'.format(
@@ -497,5 +473,40 @@ class AMWG(Diag):
             self._input_file_paths[input_index] = new_name
             # change the name of the file
             os.rename(input_file, new_name)
-
     # -----------------------------------------------
+
+    def _check_tar(self, img_source_tar, img_source, event_list, config, expected_files):
+        number_missing = 0
+        msg = '{prefix}: extracting images from tar archive'.format(
+            prefix=self.msg_prefix())
+        print_line(msg, event_list)
+        call(['tar', '-xf', img_source_tar,
+              '--directory', self._output_path])
+        passed = True
+        for item in config['diags']['amwg']['sets']:
+            if item == 'all':
+                continue
+            setname = 'set5_6' if item == '6' or item == '5' else 'set' + item
+            setpath = os.path.join(
+                img_source,
+                setname)
+            if not os.path.exists(setpath):
+                number_missing += 1
+                if self._has_been_executed:
+                    msg = '{prefix}: could not find output directory after inflating tar archive: {dir}'.format(
+                        prefix=self.msg_prefix(),
+                        dir=setpath)
+                    logging.error(msg)
+                    print_line(msg, event_list)
+            else:
+                count = len(os.listdir(setpath))
+                if count < expected_files[setname]:
+                    msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                        prefix=self.msg_prefix(),
+                        set=setname,
+                        numProduced=count,
+                        numExpected=expected_files[setname])
+                    logging.error(msg)
+                    print_line(msg, event_list)
+                    number_missing += 1
+        return number_missing
