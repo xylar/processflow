@@ -279,9 +279,14 @@ class Diag(Job):
             batchfile.write('#!/bin/bash\n')
             batchfile.write(script_prefix)
 
-        template_input_path = os.path.join(
-            config['global']['resource_path'],
-            'env_loader.bash')
+        if config['global'].get('native_env'):
+            template_input_path = os.path.join(
+                config['global']['resource_path'],
+                'env_loader_lite.bash')
+        else:
+            template_input_path = os.path.join(
+                config['global']['resource_path'],
+                'env_loader.bash')
         variables = {
             'user_env_path': os.environ['CONDA_PREFIX'],
             'cmd': command

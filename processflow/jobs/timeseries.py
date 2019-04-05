@@ -121,7 +121,7 @@ class Timeseries(Job):
 
         Parameters
         ----------
-            config (dict): the globus processflow config object
+            config (dict): the global processflow config object
             event_list (EventList): an event list to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
