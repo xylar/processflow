@@ -14,9 +14,9 @@ class TestFileManager(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        render_target = 'processflow/tests/test_resources/test_render_target.txt'
-        render_reference = 'processflow/tests/test_resources/test_render_reference.txt'
-        render_output = 'processflow/tests/test_resources/ender_output.txt'
+        render_target = 'tests/test_resources/test_render_target.txt'
+        render_reference = 'tests/test_resources/test_render_reference.txt'
+        render_output = 'tests/test_resources/ender_output.txt'
         reference = ''
         with open(render_reference, 'r') as fp:
             for line in fp.readlines():
@@ -37,15 +37,15 @@ class TestFileManager(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        render_target = 'processflow/tests/DOES_NOT_EXIST'
-        render_output = 'processflow/tests/test_resources/render_output.txt'
+        render_target = 'tests/DOES_NOT_EXIST'
+        render_output = 'tests/test_resources/render_output.txt'
         self.assertFalse(render({}, render_target, render_output))
 
     def test_render_bad_outout_file(self):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        render_target = 'processflow/tests/test_resources/test_render_target.txt'
+        render_target = 'tests/test_resources/test_render_target.txt'
         render_output = '/usr/local/NO_PERMISSIONS'
         self.assertFalse(render({}, render_target, render_output))
 

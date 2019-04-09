@@ -20,7 +20,7 @@ class TestRunManager(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestRunManager, self).__init__(*args, **kwargs)
 
-        config_path = 'processflow/tests/test_configs/runmanager_valid_many_jobs.cfg'
+        config_path = 'tests/test_configs/runmanager_valid_many_jobs.cfg'
         self.config = ConfigObj(config_path)
         self.project_path = '/p/user_pub/e3sm/baldwin32/testing_data/'
         if not os.path.exists(self.project_path):

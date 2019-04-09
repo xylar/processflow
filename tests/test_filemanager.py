@@ -5,36 +5,67 @@ import threading
 import unittest
 
 from configobj import ConfigObj
-
- 
+from shutil import rmtree
 
 from processflow.lib.filemanager import FileManager
 from processflow.lib.events import EventList
 from processflow.lib.util import print_message
 from processflow.lib.initialize import initialize
+from tests.utils import json_to_conf, mock_atm
 
+PROJECT_PATH = os.path.abspath('tests/test_resources/filemanager_test')
 
 class TestFileManager(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestFileManager, self).__init__(*args, **kwargs)
-        self.file_types = ['atm', 'ice', 'ocn', 'rest', 'streams.ocean', 'streams.cice', 'mpas-o_in', 'mpas-cice_in', 'meridionalHeatTransport', 'lnd']
-        self.local_path = '/p/user_pub/e3sm/baldwin32/E3SM_test_data/DECKv1b_1pctCO2_complete'
-        self.remote_endpoint = '9d6d994a-6d04-11e5-ba46-22000b92c6ec'
-        self.remote_path = '/global/cscratch1/sd/golaz/ACME_simulations/20180215.DECKv1b_1pctCO2.ne30_oEC.edison'
-        self.local_endpoint = 'a871c6de-2acd-11e7-bc7c-22000b9a448b'
-        self.experiment = '20180215.DECKv1b_1pctCO2.ne30_oEC.edison'
+        self.file_types = ['atm', 'ice', 'ocn', 'ocn_restart', 'cice_restart', 'streams.ocean',
+                           'streams.cice', 'mpas-o_in', 'mpas-cice_in', 'meridionalHeatTransport', 'lnd']
+
+        config_json = 'tests/test_configs/valid_config_all_data.json'
+        self.config_path = 'tests/test_configs/valid_config_all_data.cfg'
+        self.case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
+        self.short_name = 'piControl_testing'
+        self.event_list = EventList()
+
+        self.project_path = PROJECT_PATH
+        local_data_path = os.path.join('tests/test_resources/mock_data')
+        if os.path.exists(self.project_path):
+            rmtree(self.project_path, ignore_errors=True)
+        keys = {
+            "global": {
+                "project_path": self.project_path,
+            },
+            "simulations": {
+                "start_year": "1",
+                "end_year": "1",
+                self.case_name: {
+                    "transfer_type": "local",
+                    "local_path": local_data_path,
+                    "short_name": self.short_name,
+                    "native_grid_name": "ne30",
+                    "native_mpas_grid_name": "oEC60to30v3",
+                    "data_types": self.file_types,
+                    "job_types": "all"
+                }
+            }
+        }
+        json_to_conf(config_json, self.config_path, keys)
+    
+    def tearDownModule(self):
+        if os.path.exists(self.project_path):
+            rmtree(self.project_path, ignore_errors=True)
 
     def test_filemanager_setup_valid_from_scratch(self):
         """
         run filemansger setup from scratch
         """
 
-        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        db = '{}.db'.format(inspect.stack()[0][3])
-        config_path = 'processflow/tests/test_configs/valid_config_from_scratch.cfg'
-        config = ConfigObj(config_path)
-        experiment = '20170926.FCT2.A_WCYCL1850S.ne30_oECv3.anvil'
+        print '\n'
+        print_message(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        db = 'tests/test_resources/{}.db'.format(inspect.stack()[0][3])
+        config = ConfigObj(self.config_path)
 
         filemanager = FileManager(
             database=db,
@@ -45,15 +76,15 @@ class TestFileManager(unittest.TestCase):
         self.assertTrue(os.path.exists(db))
         os.remove(db)
 
-
     def test_filemanager_setup_valid_with_inplace_data(self):
         """
         run the filemanager setup with sta turned on
         """
-        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'processflow/tests/test_configs/e3sm_diags_complete.cfg'
-        config = ConfigObj(config_path)
-        db = '{}.db'.format(inspect.stack()[0][3])
+        print '\n'
+        print_message(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        config = ConfigObj(self.config_path)
+        db = 'tests/test_resources/{}.db'.format(inspect.stack()[0][3])
 
         filemanager = FileManager(
             database=db,
@@ -66,19 +97,20 @@ class TestFileManager(unittest.TestCase):
         self.assertTrue(os.path.exists(db))
         self.assertTrue(filemanager.all_data_local())
         os.remove(db)
-    
+
     def test_filemanager_get_file_paths(self):
         """
         run the filemanager setup with short term archive turned on
         """
-        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        config_path = 'processflow/tests/test_configs/filemanager_partial_data.cfg'
-        db = '{}.db'.format(inspect.stack()[0][3])
+        print '\n'
+        print_message(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        db = 'tests/test_resources/{}.db'.format(inspect.stack()[0][3])
 
-        pargv = ['--test', '-c', config_path]
+        pargv = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=pargv,
-            version='0.0.0',
+            version='2.2.0',
             branch='__testing__',
             event_list=EventList())
 
@@ -92,14 +124,15 @@ class TestFileManager(unittest.TestCase):
 
         filemanager.update_local_status()
         filemanager.write_database()
-        self.assertFalse(filemanager.all_data_local())
-        
+
+        self.assertTrue(filemanager.all_data_local())
+
         # test that the filemanager returns correct paths
         paths = filemanager.get_file_paths_by_year(
             datatype='atm',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
             start_year=1,
-            end_year=2)
+            end_year=1)
         for path in paths:
             self.assertTrue(os.path.exists(path))
 
@@ -110,36 +143,40 @@ class TestFileManager(unittest.TestCase):
         for path in paths:
             self.assertTrue(os.path.exists(path))
 
-        # test nothing is returned for incorrect yeras
+        # test that the filemanager returns as much data as possible
         paths = filemanager.get_file_paths_by_year(
             datatype='ocn',
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
             start_year=1,
-            end_year=100)
-        self.assertTrue(paths is None)
+            end_year=3)
+        self.assertTrue(len(paths) == 12)
 
         # test the filemanager knows when data is ready
         ready = filemanager.check_data_ready(
-            data_required=['atm'], 
+            data_required=['atm'],
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
             start_year=1,
-            end_year=2)
+            end_year=1)
         self.assertTrue(ready)
 
         # test the filemanager knows when data is NOT ready
         ready = filemanager.check_data_ready(
-            data_required=['dummy'], 
+            data_required=['dummy'],
             case='20180129.DECKv1b_piControl.ne30_oEC.edison',
             start_year=1,
-            end_year=3)
+            end_year=1)
         self.assertFalse(ready)
 
         ready = filemanager.check_data_ready(
-            data_required=['ocn'], 
+            data_required=['ocn'],
             case='20180129.DECKv1b_piControl.ne30_oEC.edison')
         self.assertTrue(ready)
 
         os.remove(db)
+
+def tearDownModule():
+    if os.path.exists(PROJECT_PATH):
+        rmtree(PROJECT_PATH, ignore_errors=True)
 
 if __name__ == '__main__':
     unittest.main()

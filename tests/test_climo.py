@@ -11,8 +11,9 @@ from processflow.lib.initialize import initialize, setup_directories
 from processflow.lib.util import print_message
 from processflow.lib.events import EventList
 from processflow.jobs.climo import Climo
-from utils import mock_climos, json_to_conf, mock_atm
+from tests.utils import mock_climos, json_to_conf, mock_atm
 
+PROJECT_PATH = os.path.abspath('tests/test_resources/climo_test')
 
 class TestClimo(unittest.TestCase):
 
@@ -25,13 +26,14 @@ class TestClimo(unittest.TestCase):
         self.short_name = 'piControl_testing'
         self.event_list = EventList()
 
-        project_path = os.path.abspath('tests/test_resources/climo_test')
-        local_data_path = os.path.join(project_path, 'input')
-        if os.path.exists(project_path):
-            rmtree(project_path, ignore_errors=True)
+        self.project_path = PROJECT_PATH
+        local_data_path = os.path.join(self.project_path, 'input')
+        if os.path.exists(self.project_path):
+            rmtree(self.project_path, ignore_errors=True)
+
         keys = {
             "global": {
-                "project_path": project_path,
+                "project_path": self.project_path,
             },
             "simulations": {
                 "start_year": "1",
@@ -55,7 +57,6 @@ class TestClimo(unittest.TestCase):
             version="2.2.0",
             branch="testing",
             event_list=self.event_list)
-        
 
     def test_climo_setup(self):
         """
@@ -179,6 +180,9 @@ class TestClimo(unittest.TestCase):
             climo.postvalidate(
                 config=self.config))
 
+def tearDownModule():
+    if os.path.exists(PROJECT_PATH):
+        rmtree(PROJECT_PATH, ignore_errors=True)
 
 if __name__ == '__main__':
     unittest.main()

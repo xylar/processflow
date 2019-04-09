@@ -16,7 +16,7 @@ class TestSlurm(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         slurm = Slurm()
-        command = 'processflow/tests/test_resources/test_slurm_batch.sh'
+        command = 'tests/test_resources/test_slurm_batch.sh'
         job_id = slurm.batch(command)
         self.assertTrue(job_id)
         self.assertTrue(isinstance(job_id, int))

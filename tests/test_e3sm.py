@@ -71,7 +71,12 @@ class TestE3SM(unittest.TestCase):
         for case in self.runmanager.cases:
             for job in case['jobs']:
                 if job.job_type == 'climo':
-                    mock_climos(job._output_path, job._regrid_path)
+                    mock_climos(
+                        job._output_path, 
+                        job._regrid_path,
+                        self.config,
+                        self.filemanager,
+                        case['case'])
                     job.status = JobStatus.COMPLETED
 
         self.runmanager.check_data_ready()

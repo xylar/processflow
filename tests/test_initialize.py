@@ -29,7 +29,7 @@ class TestInitialize(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        argv = ['-c', 'processflow/tests/test_configs/valid_config_simple.cfg',
+        argv = ['-c', 'tests/test_configs/valid_config_simple.cfg',
                 '-l', 'pflow.log',
                 '-r', 'resources/',
                 '-m', '999',
@@ -37,7 +37,7 @@ class TestInitialize(unittest.TestCase):
                 '--dryrun']
         pargs = parse_args(argv)
         self.assertEqual(
-            pargs.config, 'processflow/tests/test_configs/valid_config_simple.cfg')
+            pargs.config, 'tests/test_configs/valid_config_simple.cfg')
         self.assertEqual(pargs.resource_path, 'resources/')
         self.assertEqual(pargs.log, 'pflow.log')
         self.assertEqual(pargs.max_jobs, 999)
@@ -82,7 +82,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/valid_config_simple.cfg']
+                 'tests/test_configs/valid_config_simple.cfg']
         _, _, _ = initialize(
             argv=pargv,
             version=__version__,
@@ -94,7 +94,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/this_file_doesnt_exist.cfg']
+                 'tests/test_configs/this_file_doesnt_exist.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
@@ -110,7 +110,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/invalid_config_no_white_space.cfg']
+                 'tests/test_configs/invalid_config_no_white_space.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
@@ -126,7 +126,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/invalid_config_cant_parse.cfg']
+                 'tests/test_configs/invalid_config_cant_parse.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
@@ -142,7 +142,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/invalid_config_missing_lnd.cfg']
+                 'tests/test_configs/invalid_config_missing_lnd.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
@@ -157,7 +157,7 @@ class TestInitialize(unittest.TestCase):
         print '\n'
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        pargv = ['--test', '-c', 'processflow/tests/test_configs/valid_config_from_scratch.cfg',
+        pargv = ['--test', '-c', 'tests/test_configs/valid_config_from_scratch.cfg',
                  '-m', '1']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
         if os.path.exists(project_path):
@@ -182,7 +182,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/valid_config_from_scratch_bad_project_path.cfg']
+                 'tests/test_configs/valid_config_from_scratch_bad_project_path.cfg']
         project_path = '/usr/testing/'
         with self.assertRaises(SystemExit) as exitexception:
             config, filemanager, runmanager = initialize(
@@ -203,7 +203,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/valid_config_from_scratch_globus.cfg']
+                 'tests/test_configs/valid_config_from_scratch_globus.cfg']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
         if os.path.exists(project_path):
             shutil.rmtree(project_path)
@@ -227,7 +227,7 @@ class TestInitialize(unittest.TestCase):
         print_message(
             '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
         pargv = ['--test', '-c',
-                 'processflow/tests/test_configs/valid_config_from_scratch_globus_bad_uuid.cfg']
+                 'tests/test_configs/valid_config_from_scratch_globus_bad_uuid.cfg']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
         if os.path.exists(project_path):
             shutil.rmtree(project_path)

@@ -122,7 +122,7 @@ class FileManager(object):
         try:
             for datatype in data_required:
                 if not self._config['data_types'].get(datatype):
-                    continue
+                    return False
                 monthly = self._config['data_types'][datatype].get('monthly')
                 if start_year and end_year and monthly:
                     q = (DataFile

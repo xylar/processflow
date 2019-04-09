@@ -13,6 +13,7 @@ from processflow.lib.initialize import initialize, setup_directories
 from processflow.jobs.amwg import AMWG
 from utils import mock_climos, json_to_conf, mock_atm
 
+PROJECT_PATH = os.path.abspath('tests/test_resources/amwg_test')
 
 class TestAMWG(unittest.TestCase):
 
@@ -21,18 +22,17 @@ class TestAMWG(unittest.TestCase):
 
         self.event_list = EventList()
         
-        project_path = os.path.abspath('tests/test_resources/amwg_test')
-        if os.path.exists(project_path):
-            rmtree(project_path, ignore_errors=True)
+        self.project_path = PROJECT_PATH
+        if os.path.exists(self.project_path):
+            rmtree(self.project_path, ignore_errors=True)
 
         config_json = 'tests/test_configs/amwg_complete.json'
         self.config_path = 'tests/test_configs/amwg_complete.cfg'
 
-        project_path = os.path.abspath('tests/test_resources/amwg_test')
-        local_data_path = os.path.join(project_path, 'input')
+        local_data_path = os.path.join(self.project_path, 'input')
         keys = {
             "global": {
-                "project_path": os.path.abspath('tests/test_resources/amwg_test'),
+                "project_path": self.project_path,
                 "email": "",
             },
             "simulations": {
@@ -74,6 +74,10 @@ class TestAMWG(unittest.TestCase):
 
         self.case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
         self.short_name = 'piControl_testing'
+    
+    def tearDownModule(self):
+        if os.path.exists(self.project_path):
+            rmtree(self.project_path, ignore_errors=True)
 
     def test_amwg_setup(self):
         """
@@ -196,6 +200,9 @@ class TestAMWG(unittest.TestCase):
                         job.status,
                         JobStatus.COMPLETED)
 
+def tearDownModule():
+    if os.path.exists(PROJECT_PATH):
+        rmtree(PROJECT_PATH, ignore_errors=True)
 
 if __name__ == '__main__':
     unittest.main()
