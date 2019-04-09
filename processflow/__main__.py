@@ -14,7 +14,7 @@ from processflow.lib.util import print_debug, print_line, print_message
 
 
 __version__ = '2.2.0'
-__branch__ = 'nightly'
+__branch__ = 'master'
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
 os.environ['NCO_PATH_OVERRIDE'] = 'True'

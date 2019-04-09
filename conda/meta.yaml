@@ -27,7 +27,6 @@ requirements:
     - ncl
     - e3sm_diags >=1.6.0
     - e3sm_to_cmip
-    - sqlite
     - peewee
     - configobj
     - beautifulsoup4
@@ -36,4 +35,3 @@ requirements:
     - globus-sdk ==1.1.1
     - globus-cli ==1.1.2
     - jmespath
-    - requests
