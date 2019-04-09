@@ -19,9 +19,6 @@ __branch__ = 'nightly'
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
 os.environ['NCO_PATH_OVERRIDE'] = 'True'
 
-# create global EventList
-event_list = EventList()
-
 
 def main(cl_args=None):
     """
@@ -33,6 +30,8 @@ def main(cl_args=None):
         kwargs (dict): when running in test mode, arguments are passed directly through the kwargs
             which bypasses the argument parsing.
     """
+    # create global EventList
+    event_list = EventList()
 
     # The master configuration object
     config = {}
@@ -41,7 +40,7 @@ def main(cl_args=None):
     thread_kill_event = threading.Event()
 
     # A flag to tell if we have all the data locally
-    all_data = False
+    all_data_local = False
     all_data_remote = False
 
     # Read in parameters from config
@@ -67,20 +66,23 @@ def main(cl_args=None):
     logging.info('Config setup complete')
     debug = True if config['global'].get('debug') else False
 
-    msg = "Updating local file status"
-    print_line(
-        line=msg,
-        event_list=event_list)
-    filemanager.update_local_status()
-    all_data_local = filemanager.all_data_local()
+    if config['global'].get('no_check'):
+        all_data_local = True
+    else:
+        msg = "Updating local file status"
+        print_line(
+            line=msg,
+            event_list=event_list)
+        filemanager.update_local_status()
+        all_data_local = filemanager.all_data_local()
 
-    if not all_data_local:
-        transfer_status = filemanager.transfer_needed(
-            event_list=event_list,
-            event=thread_kill_event,
-            config=config)
-        if transfer_status == False:
-            sys.exit(1)
+        if not all_data_local:
+            transfer_status = filemanager.transfer_needed(
+                event_list=event_list,
+                event=thread_kill_event,
+                config=config)
+            if transfer_status == False:
+                sys.exit(1)
 
     # Main loop
     printed = False
@@ -88,7 +90,7 @@ def main(cl_args=None):
     state_path = os.path.join(
         config['global']['project_path'],
         'output',
-        'state.txt')
+        'job_state.txt')
     try:
         print "--------------------------"
         print " Entering Main Loop "
@@ -96,7 +98,8 @@ def main(cl_args=None):
         print "--------------------------"
         while True:
             if not all_data_local:
-                if debug: print_line(' -- Updating local status --', event_list)    
+                if debug:
+                    print_line(' -- Updating local status --', event_list)
 
                 if filemanager.update_local_status():
                     msg = filemanager.report_files_local()
@@ -104,7 +107,8 @@ def main(cl_args=None):
                     filemanager.write_database()
                 all_data_local = filemanager.all_data_local()
             if not all_data_local:
-                if debug: print_line(' -- Additional data needed --', event_list)
+                if debug:
+                    print_line(' -- Additional data needed --', event_list)
                 transfer_status = filemanager.transfer_needed(
                     event_list=event_list,
                     event=thread_kill_event,
@@ -112,16 +116,20 @@ def main(cl_args=None):
                 if transfer_status == False:
                     sys.exit(1)
 
-            if debug: print_line(' -- checking data -- ', event_list)
+            if debug:
+                print_line(' -- checking data -- ', event_list)
             runmanager.check_data_ready()
-            if debug: print_line(' -- starting ready jobs --', event_list)
+            if debug:
+                print_line(' -- starting ready jobs --', event_list)
             runmanager.start_ready_jobs()
-            if debug: print_line(' -- monitoring running jobs --', event_list)
+            if debug:
+                print_line(' -- monitoring running jobs --', event_list)
             runmanager.monitor_running_jobs()
 
-            if debug: print_line(' -- writing out state -- ', event_list)
+            if debug:
+                print_line(' -- writing out state -- ', event_list)
             runmanager.write_job_sets(state_path)
-            
+
             status = runmanager.is_all_done()
             # return -1 if still running
             # return 0 if a jobset failed
@@ -153,7 +161,8 @@ def main(cl_args=None):
                     runmanager=runmanager)
                 # SUCCESS EXIT
                 return 0
-            if debug: print_line(' -- sleeping', event_list)
+            if debug:
+                print_line(' -- sleeping', event_list)
             sleep(loop_delay)
     except KeyboardInterrupt as e:
         print_message('\n----- KEYBOARD INTERRUPT -----')
@@ -169,4 +178,3 @@ def main(cl_args=None):
 
 if __name__ == "__main__":
     sys.exit(main())
-

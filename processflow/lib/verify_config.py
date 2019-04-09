@@ -404,6 +404,7 @@ def verify_config(config):
     return messages
 # ------------------------------------------------------------------------
 
+
 def check_config_white_space(filepath):
     line_index = 0
     found = False

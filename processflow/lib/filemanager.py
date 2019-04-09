@@ -122,7 +122,7 @@ class FileManager(object):
         try:
             for datatype in data_required:
                 if not self._config['data_types'].get(datatype):
-                    continue
+                    return False
                 monthly = self._config['data_types'][datatype].get('monthly')
                 if start_year and end_year and monthly:
                     q = (DataFile
@@ -206,6 +206,11 @@ class FileManager(object):
             line=msg,
             event_list=self._event_list)
 
+        if self._config['global'].get('no_check'):
+            initial_local_state = FileStatus.PRESENT.value
+        else:
+            initial_local_state = FileStatus.NOT_PRESENT.value
+
         start_year = int(self._config['simulations']['start_year'])
         end_year = int(self._config['simulations']['end_year'])
         with DataFile._meta.database.atomic():
@@ -248,7 +253,7 @@ class FileManager(object):
                                     'name': filename,
                                     'remote_path': os.path.join(r_path, filename),
                                     'local_path': os.path.join(local_path, filename),
-                                    'local_status': FileStatus.NOT_PRESENT.value,
+                                    'local_status': initial_local_state,
                                     'case': case,
                                     'remote_status': FileStatus.NOT_PRESENT.value,
                                     'year': year,
@@ -274,7 +279,7 @@ class FileManager(object):
                             'name': filename,
                             'remote_path': os.path.join(r_path, filename),
                             'local_path': os.path.join(local_path, filename),
-                            'local_status': FileStatus.NOT_PRESENT.value,
+                            'local_status': initial_local_state,
                             'case': case,
                             'remote_status': FileStatus.NOT_PRESENT.value,
                             'year': 0,
@@ -334,35 +339,38 @@ class FileManager(object):
                      .select()
                      .where(
                          (DataFile.case == case) &
-                         (DataFile.datatype == datatype))
-                     .limit(1)).execute()
+                         (DataFile.datatype == datatype) &
+                         (DataFile.local_status != FileStatus.PRESENT.value))
+                     ).execute()
 
             remote_path, _ = os.path.split(files[0].remote_path)
+            data_files = [x.name for x in files]
+
             msg = 'Checking {} files in {}'.format(datatype, remote_path)
             print_line(msg, self._event_list)
 
             if files[0].transfer_type == 'globus':
-                from processflow.lib import get_ls as globus_ls
-                remote_contents = globus_ls(
+                from processflow.lib.globus_interface import get_ls as globus_ls
+                response = globus_ls(
                     client=client,
                     path=remote_path,
                     endpoint=self._config['simulations'][case]['remote_uuid'])
+                remote_contents = [x['name'] for x in response]
+
             elif files[0].transfer_type == 'sftp':
-                from processflow.lib import get_ls as ssh_ls
+                from processflow.lib.ssh_interface import get_ls as ssh_ls
                 remote_contents = ssh_ls(
                     client=client,
                     remote_path=remote_path)
-            if len(remote_contents) == 1 and remote_contents[0] == '':
-                msg = "No remote files found, please check file permissions and user access"
-                print_message(msg)
-                return False
-            for df in files:
-                if df.name not in remote_contents:
+
+            for df in data_files:
+                if df not in remote_contents:
                     msg = 'Unable to find file {name} at {remote_path}'.format(
-                        name=df.name,
+                        name=df,
                         remote_path=remote_path)
                     print_message(msg, 'error')
                     found_all = False
+
         if not found_all:
             return False
         else:
@@ -543,7 +551,7 @@ class FileManager(object):
                     })
 
                 if required_files[0].transfer_type == 'globus':
-                    from processflow.lib import transfer as globus_transfer
+                    from processflow.lib.globus_interface import transfer as globus_transfer
                     from globus_cli.services.transfer import get_client as get_globus_client
 
                     msg = 'Starting globus file transfer of {} files'.format(
@@ -568,7 +576,7 @@ class FileManager(object):
                     self.thread_list.append(thread)
                     thread.start()
                 elif required_files[0].transfer_type == 'sftp':
-                    from processflow.lib import get_ssh_client
+                    from processflow.lib.ssh_interface import get_ssh_client
                     msg = 'Starting sftp file transfer of {} files'.format(
                         len(required_files))
                     print_line(msg, event_list)
@@ -596,7 +604,7 @@ class FileManager(object):
             return False
 
     def _ssh_transfer(self, target_files, client, event):
-        from processflow.lib import transfer as ssh_transfer
+        from processflow.lib.ssh_interface import transfer as ssh_transfer
 
         sftp_client = client.open_sftp()
         for file in target_files:

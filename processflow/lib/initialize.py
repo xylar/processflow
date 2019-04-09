@@ -32,6 +32,10 @@ def parse_args(argv=None, print_help=None):
         help='Maximum number of jobs to run at any given time',
         type=int)
     parser.add_argument(
+        '-n', '--no-check',
+        help='Assume all files are where they should be',
+        action='store_true')
+    parser.add_argument(
         '--verify',
         help='Run verification for remote file paths, this process can take some time',
         action='store_true')
@@ -62,10 +66,13 @@ def parse_args(argv=None, print_help=None):
         help="Run in serial on systems without a resource manager",
         action='store_true')
     parser.add_argument(
+        '--native-env',
+        help='Run all jobs from the users conda environment instead of trying to source the e3sm-unified',
+        action='store_true')
+    parser.add_argument(
         '--test',
         help=argparse.SUPPRESS,
         action='store_true')
-
     if print_help:
         parser.print_help()
         return
@@ -157,6 +164,11 @@ Please add a space and run again.'''.format(num=line_index)
         config['global']['resource_path'] = os.path.abspath(pargs.resource_path)
     else:
         config['global']['resource_path'] = os.path.dirname(resources.__file__)
+    
+    if pargs.no_check:
+        config['global']['no_check'] = True
+    else:
+        config['global']['no_check'] = False
 
     # setup the credential file if the user set the -d flag
     if pargs.credentail:
@@ -174,6 +186,7 @@ Please add a space and run again.'''.format(num=line_index)
     config['global']['debug'] = True if pargs.debug else False
     config['global']['verify'] = True if pargs.verify else False
     config['global']['max_jobs'] = pargs.max_jobs if pargs.max_jobs else False
+    config['global']['native_env'] = True if pargs.native_env else False
 
      # setup logging
     if pargs.log:
@@ -255,18 +268,26 @@ Please add a space and run again.'''.format(num=line_index)
         config=config)
     
     filemanager.populate_file_list()
-    msg = 'Starting local status update'
-    print_line(msg, event_list)
+    
+    if config['global']['no_check']:
+        msg = 'Not running local status check'
+        print_line(msg, event_list)
+        all_data = True
+    else:
+        msg = 'Starting local status update'
+        print_line(msg, event_list)
+        
+        filemanager.update_local_status()
+        
+        msg = 'Local status update complete'
+        print_line(msg, event_list)
 
-    filemanager.update_local_status()
-    msg = 'Local status update complete'
-    print_line(msg, event_list)
+        msg = filemanager.report_files_local()
+        print_line(msg, event_list)
 
-    msg = filemanager.report_files_local()
-    print_line(msg, event_list)
-
-    filemanager.write_database()
-    all_data = filemanager.all_data_local()
+        filemanager.write_database()
+        all_data = filemanager.all_data_local()
+    
     if all_data:
         msg = 'all data is local'
     else:
@@ -299,16 +320,34 @@ Please add a space and run again.'''.format(num=line_index)
                 print_line(
                     line='Globus authentication complete',
                     event_list=event_list)
+    
+    if config['global']['debug']:
+        msg = '-- starting runmanager setup --'
+        print_line(msg, event_list)
+
     # setup the runmanager
     runmanager = RunManager(
         event_list=event_list,
         config=config,
         filemanager=filemanager)
+    
+    if config['global']['debug']:
+        msg = '-- setting up cases -- '
+        print_line(msg, event_list)
     runmanager.setup_cases()
+
+    if config['global']['debug']:
+        msg = '-- setting up jobs --'
+        print_line(msg, event_list)
     runmanager.setup_jobs()
+
+    if config['global']['debug']:
+        msg = '-- writing job state out to file --'
+        print_line(msg, event_list)
     runmanager.write_job_sets(
         os.path.join(config['global']['project_path'],
-        'output', 'state.txt'))
+        'output', 
+        'job_state.txt'))
     return config, filemanager, runmanager
 
 def setup_directories(config):

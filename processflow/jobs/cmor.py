@@ -73,10 +73,9 @@ class Cmor(Job):
         for root, dirs, files in os.walk(self._output_path):
             if files is not None:
                 for file in files:
-                    if file.endswith('log') or file.endswith('json'):
-                        continue
-                    found.append(file)
-        if config['post-processing']['cmor']['variable_list'] == 'all':
+                    if file.endswith('nc'):
+                        found.append(file)
+        if 'all' in config['post-processing']['cmor']['variable_list']:
             expected_file_number = 20
         else:
             expected_file_number = len(config['post-processing']['cmor']['variable_list'])

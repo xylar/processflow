@@ -47,7 +47,7 @@ class Job(object):
             self._manager = Serial()
 
         self._manager_args = {
-            'slurm': ['-t 0-10:00', '-N 1'],
+            'slurm': ['-t 0-01:00', '-N 1'],
             'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
         }
         config = kwargs['config']
@@ -194,7 +194,6 @@ class Job(object):
                 src_list=filesnames,
                 dst=self._input_base_path)
 
-        return
     # -----------------------------------------------
 
     def setup_temp_path(self, config, *args, **kwards):
@@ -339,9 +338,14 @@ class Job(object):
             batchfile.write('#!/bin/bash\n')
             batchfile.write(script_prefix)
 
-        template_input_path = os.path.join(
-            config['global']['resource_path'],
-            'env_loader.bash')
+        if config['global'].get('native_env'):
+            template_input_path = os.path.join(
+                config['global']['resource_path'],
+                'env_loader_lite.bash')
+        else:
+            template_input_path = os.path.join(
+                config['global']['resource_path'],
+                'env_loader.bash')
         variables = {
             'user_env_path': os.environ['CONDA_PREFIX'],
             'cmd': command
