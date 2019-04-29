@@ -140,10 +140,6 @@ class FileManager(object):
                                 (DataFile.datatype == datatype)))
                 datafiles = q.execute()
                 if not datafiles:
-                    msg = "ERROR: missing records for datatype {}".format(
-                        datatype)
-                    logging.error(msg)
-                    print(msg)
                     return False
                 for df in datafiles:
                     if not os.path.exists(df.local_path) and df.local_status == FileStatus.PRESENT.value:
