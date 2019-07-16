@@ -30,9 +30,16 @@ class Slurm(object):
         Returns:
             job id of the new job (int)
         """
-        out, err = self._submit('sbatch', cmd, sargs)
+        try:
+            out, err = self._submit('sbatch', cmd, sargs)
+        except Exception as e:
+            print 'Batch job submission failed'
+            print_debug(e)
+            return 0
+
         if err:
             raise Exception('SLURM ERROR: ' + err)
+
         out = out.split()
         if 'error' in out:
             return 0
@@ -41,6 +48,7 @@ class Slurm(object):
         except IndexError as e:
             print "error submitting job to slurm " + str(out) + " " + str(err)
             return 0
+        
         return job_id
     # -----------------------------------------------
     def _submit(self, subtype, cmd, sargs=None):

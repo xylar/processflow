@@ -13,10 +13,10 @@ from processflow.lib.initialize import initialize
 from processflow.lib.util import print_debug, print_line, print_message
 
 
-__version__ = '2.2.0'
+__version__ = '2.2.1'
 __branch__ = 'master'
 
-os.environ['UVCDAT_ANONYMOUS_LOG'] = 'False'
+os.environ['UVCDAT_ANONYMOUS_LOG'] = 'no'
 os.environ['NCO_PATH_OVERRIDE'] = 'True'
 
 
@@ -41,7 +41,6 @@ def main(cl_args=None):
 
     # A flag to tell if we have all the data locally
     all_data_local = False
-    all_data_remote = False
 
     # Read in parameters from config
     if cl_args is None and len(sys.argv) > 1:

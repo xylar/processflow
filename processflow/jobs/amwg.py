@@ -199,7 +199,7 @@ class AMWG(Diag):
             variables['cntl_path_climo'] = input_path + os.sep
 
         # get environment path to use as NCARG_ROOT
-        # variables['NCARG_ROOT'] = os.environ['CONDA_PREFIX']
+        variables['NCARG_ROOT'] = os.environ['NCARG_ROOT']
 
         # remove previous amwg script if it exists
         if os.path.exists(csh_template_out):

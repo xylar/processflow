@@ -116,7 +116,7 @@ def initialize(argv, **kwargs):
     globus_config = os.path.join(os.path.expanduser('~'), '.globus.cfg')
     if os.path.exists(globus_config):
         try:
-            conf = ConfigObj(globus_config)
+            ConfigObj(globus_config)
         except:
             os.remove(globus_config)
 
