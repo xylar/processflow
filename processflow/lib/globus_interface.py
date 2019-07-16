@@ -191,9 +191,9 @@ def setup_globus(endpoints, event_list):
                 message += """
 Data transfer server {server} requires manual activation.
 Please open the following URL in a browser to activate the endpoint:
-https://www.globus.org/app/endpoints/{endpoint}/activate
+https://app.globus.org/file-manager/collections/{endpoint}/
 
-""".format(endpoint=endpoint, server=server['hostname'])
+""".format(endpoint=endpoint, server=hostname)
 
         if not activated:
             print message
