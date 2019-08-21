@@ -66,10 +66,6 @@ def parse_args(argv=None, print_help=None):
         help="Run in serial on systems without a resource manager",
         action='store_true')
     parser.add_argument(
-        '--native-env',
-        help='Run all jobs from the users conda environment instead of trying to source the e3sm-unified',
-        action='store_true')
-    parser.add_argument(
         '--test',
         help=argparse.SUPPRESS,
         action='store_true')
@@ -186,7 +182,6 @@ Please add a space and run again.'''.format(num=line_index)
     config['global']['debug'] = True if pargs.debug else False
     config['global']['verify'] = True if pargs.verify else False
     config['global']['max_jobs'] = pargs.max_jobs if pargs.max_jobs else False
-    config['global']['native_env'] = True if pargs.native_env else False
 
      # setup logging
     if pargs.log:
