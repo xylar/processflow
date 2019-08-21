@@ -66,10 +66,6 @@ def parse_args(argv=None, print_help=None):
         help="Run in serial on systems without a resource manager",
         action='store_true')
     parser.add_argument(
-        '--native-env',
-        help='Run all jobs from the users conda environment instead of trying to source the e3sm-unified',
-        action='store_true')
-    parser.add_argument(
         '--test',
         help=argparse.SUPPRESS,
         action='store_true')
