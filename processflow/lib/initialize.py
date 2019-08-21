@@ -182,7 +182,6 @@ Please add a space and run again.'''.format(num=line_index)
     config['global']['debug'] = True if pargs.debug else False
     config['global']['verify'] = True if pargs.verify else False
     config['global']['max_jobs'] = pargs.max_jobs if pargs.max_jobs else False
-    config['global']['native_env'] = True if pargs.native_env else False
 
      # setup logging
     if pargs.log:
