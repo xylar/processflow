@@ -54,7 +54,6 @@ class Job(object):
         # setup the default replacement dict
         self._replace_dict = {
             'PROJECT_PATH': config['global']['project_path'],
-            'REMOTE_PATH': config['simulations'][case].get('remote_path', ''),
             'CASEID': case,
             'REST_YR': '{:04d}'.format(self.start_year + 1),
             'START_YR': '{:04d}'.format(self.start_year),

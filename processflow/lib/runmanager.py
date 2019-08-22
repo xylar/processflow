@@ -14,7 +14,6 @@ from processflow.lib.jobstatus import JobStatus, StatusMap, ReverseMap
 from processflow.lib.serial import Serial
 from processflow.lib.slurm import Slurm
 from processflow.lib.util import print_line
-from processflow.lib.pbs import PBS
 
 
 job_map = {
@@ -57,23 +56,16 @@ class RunManager(object):
             print_line(msg, event_list)
             self.manager = Serial()
         else:
-            try:
-                self.manager = Slurm()
-            except:
-                try:
-                    self.manager = PBS()
-                except:
-                    msg = "Neither Slurm nor PBS found, run with --serial for serial execution"
-                    print_line(msg, event_list)
-                    raise Exception(msg)
+            self.manager = Slurm()
 
         max_jobs = config['global'].get('max_jobs', 1)
-        self.max_running_jobs = max_jobs if max_jobs else self.manager.get_node_number() * 3
+        self.max_running_jobs = max_jobs if max_jobs else self.manager.get_node_number()
         while self.max_running_jobs == 0:
             sleep(1)
             msg = 'Unable to communication with scontrol, checking again'
             print_line(msg, event_list)
-            self.max_running_jobs = self.manager.get_node_number() * 3
+            self.max_running_jobs = self.manager.get_node_number()
+    # -----------------------------------------------
 
     def _duplicate_check(self, job):
         """
@@ -100,6 +92,7 @@ class RunManager(object):
                         if job.comparison and job.comparison == other_job.comparison:
                             return True
             return False
+    # -----------------------------------------------
 
     def add_pp_type_to_cases(self, freqs, job_type, start, end, case, run_type=None):
         """
@@ -136,6 +129,7 @@ class RunManager(object):
                         manager=self.manager)
                     if not self._duplicate_check(new_job):
                         case['jobs'].append(new_job)
+    # -----------------------------------------------
 
     def add_diag_type_to_cases(self, freqs, job_type, start, end, case):
         """
@@ -214,6 +208,7 @@ class RunManager(object):
                                 manager=self.manager)
                             if not self._duplicate_check(new_diag):
                                 case['jobs'].append(new_diag)
+    # -----------------------------------------------
 
     def setup_cases(self):
         """
@@ -278,6 +273,7 @@ class RunManager(object):
         self._job_total = 0
         for case in self.cases:
             self._job_total += len(case['jobs'])
+    # -----------------------------------------------
 
     def setup_jobs(self):
         """
@@ -294,6 +290,7 @@ class RunManager(object):
                 else:
                     job.setup_dependencies(
                         jobs=case['jobs'])
+    # -----------------------------------------------
 
     def check_data_ready(self):
         """
@@ -303,6 +300,7 @@ class RunManager(object):
         for case in self.cases:
             for job in case['jobs']:
                 job.check_data_ready(self.filemanager)
+    # -----------------------------------------------
 
     def start_ready_jobs(self):
         """
@@ -371,6 +369,7 @@ class RunManager(object):
                             'manager_id': run_id,
                             'job_id': job.id
                         })
+    # -----------------------------------------------
 
     def get_job_by_id(self, jobid):
         for case in self.cases:
@@ -378,6 +377,7 @@ class RunManager(object):
                 if job.id == jobid:
                     return job
         raise Exception("no job with id {} found".format(jobid))
+    # -----------------------------------------------
 
     def write_job_sets(self, path):
         out_str = ''
@@ -405,6 +405,7 @@ class RunManager(object):
                     else:
                         out_str += '\n'
             fp.write(out_str)
+    # -----------------------------------------------
 
     def _precheck(self, year_set, jobtype, data_type=None):
         """
@@ -426,6 +427,7 @@ class RunManager(object):
                     if job.data_type == data_type:  # but only one instance per data type
                         return False
         return True
+    # -----------------------------------------------
 
     def report_completed_job(self):
         msg = 'Job progress: {complete}/{total} or {percent:.2f}%'.format(
@@ -433,6 +435,7 @@ class RunManager(object):
             total=self._job_total,
             percent=(((self._job_complete * 1.0)/self._job_total)*100))
         print_line(msg, self.event_list)
+    # -----------------------------------------------
 
     def monitor_running_jobs(self):
         """
@@ -514,6 +517,7 @@ class RunManager(object):
             self.running_jobs = [
                 x for x in self.running_jobs if x not in for_removal]
         return
+    # -----------------------------------------------
 
     def get_jobs_that_depend(self, job_id):
         """
@@ -526,6 +530,7 @@ class RunManager(object):
                     if depid == job_id:
                         jobs.append(job)
         return jobs
+    # -----------------------------------------------
 
     def is_all_done(self):
         """
@@ -548,3 +553,4 @@ class RunManager(object):
         if failed:
             return 0
         return 1
+    # -----------------------------------------------

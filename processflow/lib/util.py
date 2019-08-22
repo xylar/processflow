@@ -33,6 +33,7 @@ def print_line(line, event_list, ignore_text=False, newline=True):
         else:
             print msg,
         sys.stdout.flush()
+# -----------------------------------------------
 
 
 def get_climo_output_files(input_path, start_year, end_year):
@@ -53,6 +54,7 @@ def get_climo_output_files(input_path, start_year, end_year):
         start=start_year,
         end=end_year)
     return [x for x in contents if re.search(pattern=pattern, string=x)]
+# -----------------------------------------------
 
 
 def get_ts_output_files(input_path, var_list, start_year, end_year):
@@ -81,6 +83,7 @@ def get_ts_output_files(input_path, var_list, start_year, end_year):
                 ts_list.append(item)
                 break
     return ts_list
+# -----------------------------------------------
 
 
 def get_data_output_files(input_path, case, start_year, end_year):
@@ -97,6 +100,7 @@ def get_data_output_files(input_path, case, start_year, end_year):
                     data_list.append(item)
                     break
     return data_list
+# -----------------------------------------------
 
 
 def print_debug(e):
@@ -110,6 +114,7 @@ def print_debug(e):
     print '5', traceback.tb_lineno(sys.exc_info()[2])
     _, _, tb = sys.exc_info()
     print '6', traceback.print_tb(tb)
+# -----------------------------------------------
 
 
 def format_debug(e):
@@ -131,6 +136,7 @@ def format_debug(e):
         exec_1=sys.exc_info()[1],
         lineno=traceback.tb_lineno(sys.exc_info()[2]),
         stack=traceback.print_tb(tb))
+# -----------------------------------------------
 
 
 class colors:
@@ -142,6 +148,7 @@ class colors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
+# -----------------------------------------------
 
 
 def print_message(message, status='error'):
@@ -156,6 +163,7 @@ def print_message(message, status='error'):
             colors.BOLD + str(message) + colors.ENDC
     elif status == 'ok':
         print colors.OKGREEN + '[+] ' + colors.ENDC + str(message)
+# -----------------------------------------------
 
 
 def render(variables, input_path, output_path):
@@ -178,6 +186,7 @@ def render(variables, input_path, output_path):
         return False
     else:
         return True
+# -----------------------------------------------
 
 
 def create_symlink_dir(src_dir, src_list, dst):
@@ -205,3 +214,4 @@ def create_symlink_dir(src_dir, src_list, dst):
         except Exception as e:
             msg = format_debug(e)
             logging.error(msg)
+# -----------------------------------------------

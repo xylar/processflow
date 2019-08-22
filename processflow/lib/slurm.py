@@ -12,6 +12,7 @@ class Slurm(object):
     """
     A python interface for slurm using subprocesses
     """
+
     def __init__(self):
         """
         Check if the system has Slurm installed
@@ -20,6 +21,7 @@ class Slurm(object):
             raise Exception(
                 'Unable to find slurm, is it installed on this sytem?')
     # -----------------------------------------------
+
     def batch(self, cmd, sargs=None):
         """
         Submit to the batch queue in non-interactive mode
@@ -48,9 +50,10 @@ class Slurm(object):
         except IndexError as e:
             print "error submitting job to slurm " + str(out) + " " + str(err)
             return 0
-        
+
         return job_id
     # -----------------------------------------------
+
     def _submit(self, subtype, cmd, sargs=None):
 
         cmd = [subtype, cmd, sargs] if sargs is not None else [subtype, cmd]
@@ -76,6 +79,7 @@ class Slurm(object):
             raise Exception('SLURM ERROR: Transport endpoint is not connected')
         return out, None
     # -----------------------------------------------
+
     def showjob(self, jobid):
         """
         A wrapper around scontrol show job
@@ -117,6 +121,7 @@ class Slurm(object):
                     val=j[index + 1:])
         return job_info
     # -----------------------------------------------
+
     def slurm_to_jobinfo(self, attr):
         if attr == 'Partition':
             return 'PARTITION'
@@ -135,6 +140,7 @@ class Slurm(object):
         else:
             return None
     # -----------------------------------------------
+
     def get_node_number(self):
         """
         Use sinfo to return the number of nodes in the cluster
@@ -148,6 +154,7 @@ class Slurm(object):
             err, out = p.communicate()
         return int(out)
     # -----------------------------------------------
+
     def queue(self):
         """
         Get job queue status
@@ -200,5 +207,4 @@ class Slurm(object):
                 print_debug(e)
                 sleep(1)
         return False
-    
     # -----------------------------------------------

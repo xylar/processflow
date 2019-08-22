@@ -5,7 +5,6 @@ from processflow.lib.jobinfo import JobInfo
 from processflow.lib.jobstatus import JobStatus
 
 
-
 class Serial(object):
     """
     A Python class for submitting one job at a time in serial
@@ -17,6 +16,7 @@ class Serial(object):
         self.status = 'idle'
         self.job_id = 0
         self.jobs = list()
+    # -----------------------------------------------
 
     def batch(self, cmd, pargs=None):
         """
@@ -52,10 +52,13 @@ class Serial(object):
         if err:
             print err
         return self.job_id
+    # -----------------------------------------------
 
     def showjob(self, jobid):
         jobs = filter(lambda job: job.job_id == jobid, self.jobs)
         return jobs[0] if jobs else None
+    # -----------------------------------------------
 
     def get_node_number(self, queue='acme'):
         return 1
+    # -----------------------------------------------

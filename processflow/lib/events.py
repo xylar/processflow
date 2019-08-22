@@ -15,32 +15,39 @@ class Event(object):
         self._time = kwargs.get('time')
         self._message = kwargs.get('message')
         self._data = kwargs.get('data')
+    # -----------------------------------------------
 
     @property
     def time(self):
         return self._time
+    # -----------------------------------------------
 
     @time.setter
     def time(self, ntime):
         if not isinstance(ntime, datetime):
             raise ValueError("time must be a datetime object")
         self._time = ntime
+    # -----------------------------------------------
 
     @property
     def message(self):
         return self._message
+    # -----------------------------------------------
 
     @message.setter
     def message(self, nmessage):
         self._message = nmessage
+    # -----------------------------------------------
 
     @property
     def data(self):
         return self._data
+    # -----------------------------------------------
 
     @data.setter
     def data(self, ndata):
         self._data = ndata
+    # -----------------------------------------------
 
 
 class EventList(object):
@@ -53,6 +60,7 @@ class EventList(object):
 
     def __init__(self):
         self._list = []
+    # -----------------------------------------------
 
     def push(self, message, **kwargs):
         """
@@ -68,10 +76,12 @@ class EventList(object):
             message=message,
             data=data)
         self._list.append(event)
+    # -----------------------------------------------
 
     @property
     def list(self):
         return self._list
+    # -----------------------------------------------
 
     def replace(self, index, message):
         if index == 0 and len(self._list) == 0:
@@ -81,3 +91,4 @@ class EventList(object):
             raise ValueError('Index {0} out of range {1}'.format(
                 index, len(self._list)))
         self._list[index].message = message
+    # -----------------------------------------------

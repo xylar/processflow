@@ -51,31 +51,6 @@ def verify_config(config):
             if not isinstance(config['simulations'][sim]['comparisons'], list):
                 config['simulations'][sim]['comparisons'] = [
                     config['simulations'][sim]['comparisons']]
-        if not config['simulations'][sim].get('transfer_type'):
-            msg = '{} is missing trasfer_type, if the data is local, set transfer_type to \'local\''.format(
-                sim)
-            messages.append(msg)
-        else:
-            if config['simulations'][sim]['transfer_type'] == 'globus' and not config['simulations'][sim].get('remote_uuid'):
-                msg = 'case {} has transfer_type of globus, but is missing remote_uuid'.format(
-                    sim)
-                messages.append(msg)
-            elif config['simulations'][sim]['transfer_type'] == 'sftp' and not config['simulations'][sim].get('remote_hostname'):
-                msg = 'case {} has transfer_type of sftp, but is missing remote_hostname'.format(
-                    sim)
-                messages.append(msg)
-            if config['simulations'][sim]['transfer_type'] == 'globus' and not config['global'].get('local_globus_uuid'):
-                msg = 'case {} is set to use globus, but no local_globus_uuid was set in the global options'.format(
-                    sim)
-                messages.append(msg)
-            if config['simulations'][sim]['transfer_type'] != 'local' and not config['simulations'][sim].get('remote_path'):
-                msg = 'case {} has non-local data, but no remote_path given'.format(
-                    sim)
-                messages.append(msg)
-            if config['simulations'][sim]['transfer_type'] == 'local' and not config['simulations'][sim].get('local_path'):
-                msg = 'case {} is set for local data, but no local_path is set'.format(
-                    sim)
-                messages.append(msg)
         if not config['simulations'][sim].get('local_path'):
             config['simulations'][sim]['local_path'] = os.path.join(
                 config['global']['project_path'],
@@ -119,19 +94,6 @@ def verify_config(config):
         if not config['data_types'][ftype].get('file_format'):
             msg = '{} has no file_format'.format(ftype)
             messages.append(msg)
-
-        if not config['data_types'][ftype].get('remote_path'):
-            all_local = True
-            for sim in config['simulations']:
-                if sim in ['start_year', 'end_year']:
-                    continue
-                if config['simulations'][sim]['transfer_type'] != 'local':
-                    all_local = False
-                    break
-            if not all_local:
-                msg = '{} has no remote_path'.format(ftype)
-                messages.append(msg)
-            config['data_types'][ftype]['remote_path'] = ''
 
         if not config['data_types'][ftype].get('local_path'):
             msg = '{} has no local_path'.format(ftype)

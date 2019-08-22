@@ -21,6 +21,7 @@ class Mailer(object):
         self.smtp = None
         self.default_message = 'Your post processsing job has completed successfully'
         self.default_status = 'SUCCEESS'
+    # -----------------------------------------------
 
     def send(self, status=None, msg=None):
         """
@@ -49,3 +50,4 @@ class Mailer(object):
             return False
         else:
             return True
+    # -----------------------------------------------
