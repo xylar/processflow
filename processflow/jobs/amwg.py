@@ -1,6 +1,7 @@
 """
 A python wrapper around the AMWG diagnostics
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
 import re
@@ -108,14 +109,13 @@ class AMWG(Diag):
         if self.comparison != 'obs':
             other_jobs = kwargs['comparison_jobs']
             try:
-                self_climo, = filter(lambda job: self._dep_filter(job), jobs)
+                self_climo, = [job for job in jobs if self._dep_filter(job)]
             except ValueError:
                 msg = 'Unable to find climo for {}, is this case set to generate climos?'.format(
                     self.msg_prefix())
                 raise Exception(msg)
             try:
-                comparison_climo, = filter(
-                    lambda job: self._dep_filter(job), other_jobs)
+                comparison_climo, = [job for job in other_jobs if self._dep_filter(job)]
             except ValueError:
                 msg = 'Unable to find climo for {}, is that case set to generates climos?'.format(
                     self.comparison)
@@ -123,7 +123,7 @@ class AMWG(Diag):
             self.depends_on.extend((self_climo.id, comparison_climo.id))
         else:
             try:
-                self_climo, = filter(lambda job: self._dep_filter(job), jobs)
+                self_climo, = [job for job in jobs if self._dep_filter(job)]
             except ValueError:
                 msg = 'Unable to find climo for {}, is this case set to generate climos?'.format(
                     self.msg_prefix())
@@ -199,7 +199,7 @@ class AMWG(Diag):
             variables['cntl_path_climo'] = input_path + os.sep
 
         # get environment path to use as NCARG_ROOT
-        # variables['NCARG_ROOT'] = os.environ['CONDA_PREFIX']
+        variables['NCARG_ROOT'] = os.environ['NCARG_ROOT']
 
         # remove previous amwg script if it exists
         if os.path.exists(csh_template_out):
@@ -295,7 +295,7 @@ class AMWG(Diag):
             else:
                 count = len(os.listdir(setpath))
                 if count < expected_files[setname]:
-                    msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                    msg = '{prefix}: set {set} only produced {numProduced} when at least {numExpected} were expected'.format(
                         prefix=self.msg_prefix(),
                         set=setname,
                         numProduced=count,
@@ -501,7 +501,7 @@ class AMWG(Diag):
             else:
                 count = len(os.listdir(setpath))
                 if count < expected_files[setname]:
-                    msg = '{prefix}: set {set} only produced {numProduced} when {numExpected} were expected'.format(
+                    msg = '{prefix}: set {set} only produced {numProduced} when at least {numExpected} were expected'.format(
                         prefix=self.msg_prefix(),
                         set=setname,
                         numProduced=count,

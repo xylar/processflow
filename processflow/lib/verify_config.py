@@ -1,7 +1,7 @@
 """
 A module to verify that the user config is valid
 """
-
+from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 
 
@@ -51,31 +51,6 @@ def verify_config(config):
             if not isinstance(config['simulations'][sim]['comparisons'], list):
                 config['simulations'][sim]['comparisons'] = [
                     config['simulations'][sim]['comparisons']]
-        if not config['simulations'][sim].get('transfer_type'):
-            msg = '{} is missing trasfer_type, if the data is local, set transfer_type to \'local\''.format(
-                sim)
-            messages.append(msg)
-        else:
-            if config['simulations'][sim]['transfer_type'] == 'globus' and not config['simulations'][sim].get('remote_uuid'):
-                msg = 'case {} has transfer_type of globus, but is missing remote_uuid'.format(
-                    sim)
-                messages.append(msg)
-            elif config['simulations'][sim]['transfer_type'] == 'sftp' and not config['simulations'][sim].get('remote_hostname'):
-                msg = 'case {} has transfer_type of sftp, but is missing remote_hostname'.format(
-                    sim)
-                messages.append(msg)
-            if config['simulations'][sim]['transfer_type'] == 'globus' and not config['global'].get('local_globus_uuid'):
-                msg = 'case {} is set to use globus, but no local_globus_uuid was set in the global options'.format(
-                    sim)
-                messages.append(msg)
-            if config['simulations'][sim]['transfer_type'] != 'local' and not config['simulations'][sim].get('remote_path'):
-                msg = 'case {} has non-local data, but no remote_path given'.format(
-                    sim)
-                messages.append(msg)
-            if config['simulations'][sim]['transfer_type'] == 'local' and not config['simulations'][sim].get('local_path'):
-                msg = 'case {} is set for local data, but no local_path is set'.format(
-                    sim)
-                messages.append(msg)
         if not config['simulations'][sim].get('local_path'):
             config['simulations'][sim]['local_path'] = os.path.join(
                 config['global']['project_path'],
@@ -119,19 +94,6 @@ def verify_config(config):
         if not config['data_types'][ftype].get('file_format'):
             msg = '{} has no file_format'.format(ftype)
             messages.append(msg)
-
-        if not config['data_types'][ftype].get('remote_path'):
-            all_local = True
-            for sim in config['simulations']:
-                if sim in ['start_year', 'end_year']:
-                    continue
-                if config['simulations'][sim]['transfer_type'] != 'local':
-                    all_local = False
-                    break
-            if not all_local:
-                msg = '{} has no remote_path'.format(ftype)
-                messages.append(msg)
-            config['data_types'][ftype]['remote_path'] = ''
 
         if not config['data_types'][ftype].get('local_path'):
             msg = '{} has no local_path'.format(ftype)
@@ -340,12 +302,15 @@ def verify_config(config):
                 if not isinstance(config['diags']['amwg'].get('run_frequency'), list):
                     config['diags']['amwg']['run_frequency'] = [
                         config['diags']['amwg']['run_frequency']]
-                if 'amwg' in config['simulations'][sim].get('job_types') \
-                        and 'climo' not in config['simulations'][sim].get('job_types'):
-                    msg = 'amwg is set to run for case {case} but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
-                        case=sim,
-                        freq=freq)
-                    messages.append(msg)
+                for sim in config['simulations']:
+                    if sim in ['start_year', 'end_year']:
+                        continue
+                    if 'amwg' in config['simulations'][sim].get('job_types') \
+                            and 'climo' not in config['simulations'][sim].get('job_types'):
+                        msg = 'amwg is set to run for case {case} but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                            case=sim,
+                            freq=freq)
+                        messages.append(msg)
                 for freq in config['diags']['amwg']['run_frequency']:
                     if not config.get('post-processing') \
                             or not config['post-processing'].get('climo') \
@@ -385,13 +350,13 @@ def verify_config(config):
         # ------------------------------------------------------------------------
         if config['diags'].get('mpas_analysis'):
             if not config['diags']['mpas_analysis'].get('run_frequency'):
-                msg = 'no run_frequency given for aprime'
+                msg = 'no run_frequency given for mpas_analysis'
                 messages.append(msg)
             else:
                 if not isinstance(config['diags']['mpas_analysis']['run_frequency'], list):
                     config['diags']['mpas_analysis']['run_frequency'] = [
                         config['diags']['mpas_analysis']['run_frequency']]
-            required_parameters = ['mapping_directory', 'generate_plots', 'start_year_offset',
+            required_parameters = ['diagnostics_path', 'generate_plots', 'start_year_offset',
                                    'ocn_obs_data_path', 'seaice_obs_data_path', 'region_mask_path', 'run_MOC']
             for param in required_parameters:
                 if not config['diags']['mpas_analysis'].get(param):
@@ -401,6 +366,19 @@ def verify_config(config):
             if not isinstance(config['diags']['mpas_analysis'].get('generate_plots', ''), list):
                 config['diags']['mpas_analysis']['generate_plots'] = [
                     config['diags']['mpas_analysis'].get('generate_plots', '')]
+
+            required_datatypes = ['ocn', 'cice', 'ocn_restart', 'cice_restart',
+                                  'ocn_streams', 'cice_streams', 'ocn_in', 'cice_in', 'meridionalHeatTransport']
+            for reqtype in required_datatypes:
+                for sim in config['simulations']:
+                    if sim in ['start_year', 'end_year']:
+                        continue
+                    if 'mpas_analysis' in config['simulations'][sim].get('job_types') \
+                            and reqtype not in config['simulations'][sim].get('data_types'):
+                        msg = 'mpas_analysis is set to run for case {case}, but {reqtype} is not in the cases data_types'.format(
+                            case=sim,
+                            reqtype=reqtype)
+                        messages.append(msg)
     return messages
 # ------------------------------------------------------------------------
 

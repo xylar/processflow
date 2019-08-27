@@ -1,6 +1,7 @@
 """
 A child of Job, the Diag class is the parent for all diagnostic jobs
 """
+from __future__ import absolute_import, division, print_function, unicode_literals
 import json
 import logging
 import os
@@ -15,7 +16,6 @@ from processflow.lib.jobstatus import JobStatus
 from processflow.lib.slurm import Slurm
 from processflow.lib.util import print_line, print_message
 from processflow.lib.util import create_symlink_dir, render
-from processflow.lib.pbs import PBS
 
 
 class Diag(Job):
@@ -78,7 +78,7 @@ class Diag(Job):
                 print_line(msg, event_list, newline=False)
                 rmtree(host_path)
                 msg = '... complete'
-                print msg
+                print(msg)
 
         if not os.path.exists(host_path):
             msg = '{prefix}: Moving files for web hosting'.format(
@@ -88,7 +88,7 @@ class Diag(Job):
                 src=img_source,
                 dst=host_path)
             msg = '... complete'
-            print msg
+            print(msg)
             # fix permissions for apache
             msg = '{prefix}: Fixing permissions'.format(
                 prefix=self.msg_prefix())
@@ -99,7 +99,7 @@ class Diag(Job):
                 call(['chmod', 'go+rx', tail])
                 tail, _ = os.path.split(tail)
             msg = '... complete'
-            print msg
+            print(msg)
         else:
             msg = '{prefix}: Files already present at host location, skipping'.format(
                 prefix=self.msg_prefix())
@@ -173,8 +173,8 @@ class Diag(Job):
         for datatype in self._data_required:
             datainfo = config['data_types'].get(datatype)
             if not datainfo:
-                print "ERROR: Unable to find config information for {}".format(
-                    datatype)
+                print("ERROR: Unable to find config information for {}".format(
+                    datatype))
                 sys.exit(1)
             monthly = datainfo.get('monthly')
             # first get the list of file paths to the data
@@ -263,30 +263,15 @@ class Diag(Job):
                 script_prefix += '{prefix} {value}\n'.format(
                     prefix=manager_prefix,
                     value=item)
-        elif isinstance(self._manager, PBS):
-            margs = self._manager_args['pbs']
-            margs.append(
-                '-o {}'.format(self._console_output_path))
-            margs.append(
-                '-e {}'.format(self._console_output_path.replace('.out', '.err')))
-            manager_prefix = '#PBS'
-            for item in margs:
-                script_prefix += '{prefix} {value}\n'.format(
-                    prefix=manager_prefix,
-                    value=item)
 
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
             batchfile.write(script_prefix)
 
-        if config['global'].get('native_env'):
-            template_input_path = os.path.join(
-                config['global']['resource_path'],
-                'env_loader_lite.bash')
-        else:
-            template_input_path = os.path.join(
-                config['global']['resource_path'],
-                'env_loader.bash')
+        template_input_path = os.path.join(
+            config['global']['resource_path'],
+            'env_loader_lite.bash')
+
         variables = {
             'user_env_path': os.environ['CONDA_PREFIX'],
             'cmd': command

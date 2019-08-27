@@ -23,17 +23,12 @@ requirements:
     - pip
     - python
     - setuptools
-    - nco
+    - mpas-analysis
     - ncl
+    - nco
     - e3sm_diags >=1.6.0
     - e3sm_to_cmip
-    - sqlite
-    - peewee
+    - peewee >= 3.10.0
     - configobj
     - beautifulsoup4
-    - paramiko
     - jinja2
-    - globus-sdk ==1.1.1
-    - globus-cli ==1.1.2
-    - jmespath
-    - requests

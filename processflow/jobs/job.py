@@ -1,7 +1,7 @@
 """
 A module for the base Job class that all jobs descend from
 """
-
+from __future__ import absolute_import, division, print_function, unicode_literals
 import json
 import logging
 import os
@@ -13,7 +13,6 @@ from processflow.lib.jobstatus import JobStatus
 from processflow.lib.serial import Serial
 from processflow.lib.slurm import Slurm
 from processflow.lib.util import render, create_symlink_dir, print_message
-from processflow.lib.pbs import PBS
 
 
 class Job(object):
@@ -48,13 +47,11 @@ class Job(object):
 
         self._manager_args = {
             'slurm': ['-t 0-01:00', '-N 1'],
-            'pbs': ['-l nodes=1:ppn=1', '-q acme', '-l walltime=02:00:00']
         }
         config = kwargs['config']
         # setup the default replacement dict
         self._replace_dict = {
             'PROJECT_PATH': config['global']['project_path'],
-            'REMOTE_PATH': config['simulations'][case].get('remote_path', ''),
             'CASEID': case,
             'REST_YR': '{:04d}'.format(self.start_year + 1),
             'START_YR': '{:04d}'.format(self.start_year),
@@ -111,9 +108,9 @@ class Job(object):
         ----------
             custom_args (dict): a mapping of args to the arg values
         """
-        for arg, val in custom_args.items():
+        for arg, val in list(custom_args.items()):
             new_arg = '{} {}'.format(arg, val)
-            for manager, manager_args in self._manager_args.items():
+            for manager, manager_args in list(self._manager_args.items()):
                 found = False
                 for idx, marg in enumerate(manager_args):
                     if arg in marg:
@@ -153,8 +150,8 @@ class Job(object):
 
             # this should never be hit if the config validator did its job
             if not datainfo:
-                print "ERROR: Unable to find config information for {}".format(
-                    datatype)
+                print("ERROR: Unable to find config information for {}".format(
+                    datatype))
                 sys.exit(1)
 
             # are these history files?
@@ -322,30 +319,15 @@ class Job(object):
                 script_prefix += '{prefix} {value}\n'.format(
                     prefix=manager_prefix,
                     value=item)
-        elif isinstance(self._manager, PBS):
-            margs = self._manager_args['pbs']
-            margs.append(
-                '-o {}'.format(self._console_output_path))
-            margs.append(
-                '-e {}'.format(self._console_output_path.replace('.out', '.err')))
-            manager_prefix = '#PBS'
-            for item in margs:
-                script_prefix += '{prefix} {value}\n'.format(
-                    prefix=manager_prefix,
-                    value=item)
 
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
             batchfile.write(script_prefix)
 
-        if config['global'].get('native_env'):
-            template_input_path = os.path.join(
-                config['global']['resource_path'],
-                'env_loader_lite.bash')
-        else:
-            template_input_path = os.path.join(
-                config['global']['resource_path'],
-                'env_loader.bash')
+        template_input_path = os.path.join(
+            config['global']['resource_path'],
+            'env_loader_lite.bash')
+
         variables = {
             'user_env_path': os.environ['CONDA_PREFIX'],
             'cmd': command
