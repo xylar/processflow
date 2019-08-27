@@ -167,6 +167,7 @@ class Timeseries(Job):
             event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
+
         if not config['data_types'].get('ts_native'):
             config['data_types']['ts_native'] = {'monthly': False}
         if not config['data_types'].get('ts_regrid'):
@@ -226,6 +227,7 @@ class Timeseries(Job):
                 file_list=new_files,
                 super_type='derived')
 
+        filemanager.write_database()
         msg = '{prefix}: Job completion handler done'.format(
             prefix=self.msg_prefix())
         print_line(msg, event_list)

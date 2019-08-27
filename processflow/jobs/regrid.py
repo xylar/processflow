@@ -162,6 +162,12 @@ class Regrid(Job):
             super_type='derived')
         if not config['data_types'].get('regrid'):
             config['data_types']['regrid'] = {'monthly': True}
+        
+        filemanager.write_database()
+        msg = '{prefix}: Job completion handler done'.format(
+            prefix=self.msg_prefix())
+        print_line(msg, event_list)
+        logging.info(msg)
     # -----------------------------------------------
 
     @property

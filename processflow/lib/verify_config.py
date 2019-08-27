@@ -302,12 +302,15 @@ def verify_config(config):
                 if not isinstance(config['diags']['amwg'].get('run_frequency'), list):
                     config['diags']['amwg']['run_frequency'] = [
                         config['diags']['amwg']['run_frequency']]
-                if 'amwg' in config['simulations'][sim].get('job_types') \
-                        and 'climo' not in config['simulations'][sim].get('job_types'):
-                    msg = 'amwg is set to run for case {case} but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
-                        case=sim,
-                        freq=freq)
-                    messages.append(msg)
+                for sim in config['simulations']:
+                    if sim in ['start_year', 'end_year']:
+                        continue
+                    if 'amwg' in config['simulations'][sim].get('job_types') \
+                            and 'climo' not in config['simulations'][sim].get('job_types'):
+                        msg = 'amwg is set to run for case {case} but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                            case=sim,
+                            freq=freq)
+                        messages.append(msg)
                 for freq in config['diags']['amwg']['run_frequency']:
                     if not config.get('post-processing') \
                             or not config['post-processing'].get('climo') \
@@ -353,7 +356,7 @@ def verify_config(config):
                 if not isinstance(config['diags']['mpas_analysis']['run_frequency'], list):
                     config['diags']['mpas_analysis']['run_frequency'] = [
                         config['diags']['mpas_analysis']['run_frequency']]
-            required_parameters = ['mapping_directory', 'generate_plots', 'start_year_offset',
+            required_parameters = ['diagnostics_path', 'generate_plots', 'start_year_offset',
                                    'ocn_obs_data_path', 'seaice_obs_data_path', 'region_mask_path', 'run_MOC']
             for param in required_parameters:
                 if not config['diags']['mpas_analysis'].get(param):
@@ -363,6 +366,19 @@ def verify_config(config):
             if not isinstance(config['diags']['mpas_analysis'].get('generate_plots', ''), list):
                 config['diags']['mpas_analysis']['generate_plots'] = [
                     config['diags']['mpas_analysis'].get('generate_plots', '')]
+
+            required_datatypes = ['ocn', 'cice', 'ocn_restart', 'cice_restart',
+                                  'ocn_streams', 'cice_streams', 'ocn_in', 'cice_in', 'meridionalHeatTransport']
+            for reqtype in required_datatypes:
+                for sim in config['simulations']:
+                    if sim in ['start_year', 'end_year']:
+                        continue
+                    if 'mpas_analysis' in config['simulations'][sim].get('job_types') \
+                            and reqtype not in config['simulations'][sim].get('data_types'):
+                        msg = 'mpas_analysis is set to run for case {case}, but {reqtype} is not in the cases data_types'.format(
+                            case=sim,
+                            reqtype=reqtype)
+                        messages.append(msg)
     return messages
 # ------------------------------------------------------------------------
 

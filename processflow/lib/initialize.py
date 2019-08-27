@@ -126,7 +126,7 @@ Please add a space and run again.'''.format(num=line_index))
     if messages:
         for message in messages:
             print_message(message)
-        return False, False, False
+        return False, False
 
     try:
         setup_directories(config)
