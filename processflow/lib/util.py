@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
 import re
@@ -29,9 +30,9 @@ def print_line(line, event_list, ignore_text=False, newline=True):
             time=timestr,
             line=line)
         if newline:
-            print msg
+            print(msg)
         else:
-            print msg,
+            print(msg, end=' ')
         sys.stdout.flush()
 # -----------------------------------------------
 
@@ -107,13 +108,12 @@ def print_debug(e):
     """
     Print an exceptions relavent information
     """
-    print '1', e.__doc__
-    print '2', sys.exc_info()
-    print '3', sys.exc_info()[0]
-    print '4', sys.exc_info()[1]
-    print '5', traceback.tb_lineno(sys.exc_info()[2])
+    print('1', e.__doc__)
+    print('2', sys.exc_info())
+    print('3', sys.exc_info()[0])
+    print('4', sys.exc_info()[1])
     _, _, tb = sys.exc_info()
-    print '6', traceback.print_tb(tb)
+    print('5', traceback.print_tb(tb))
 # -----------------------------------------------
 
 
@@ -159,10 +159,10 @@ def print_message(message, status='error'):
         message (str): the message to print
         status (str): th"""
     if status == 'error':
-        print colors.FAIL + '[-] ' + colors.ENDC + \
-            colors.BOLD + str(message) + colors.ENDC
+        print(colors.FAIL + '[-] ' + colors.ENDC + \
+            colors.BOLD + str(message) + colors.ENDC)
     elif status == 'ok':
-        print colors.OKGREEN + '[+] ' + colors.ENDC + str(message)
+        print(colors.OKGREEN + '[+] ' + colors.ENDC + str(message))
 # -----------------------------------------------
 
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import absolute_import, division, print_function, unicode_literals
 
 import logging
 import os
@@ -47,7 +48,7 @@ def main(cl_args=None):
         event_list=event_list)
 
     if isinstance(config, int):
-        print "Error in setup, exiting"
+        print("Error in setup, exiting")
         return -1
     logging.info('Config setup complete')
     debug = True if config['global'].get('debug') else False
@@ -59,10 +60,10 @@ def main(cl_args=None):
         'output',
         'job_state.txt')
     try:
-        print "--------------------------"
-        print " Entering Main Loop "
-        print " Status file: {}".format(state_path)
-        print "--------------------------"
+        print("--------------------------")
+        print(" Entering Main Loop ")
+        print(" Status file: {}".format(state_path))
+        print("--------------------------")
         while True:
 
             if debug:
@@ -75,7 +76,7 @@ def main(cl_args=None):
 
             if debug:
                 print_line(' -- monitoring running jobs --', event_list)
-            runmanager.monitor_running_jobs()
+            runmanager.monitor_running_jobs(debug=debug)
 
             if debug:
                 print_line(' -- writing out state -- ', event_list)

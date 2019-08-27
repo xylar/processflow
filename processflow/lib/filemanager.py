@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
 import threading
@@ -7,7 +8,7 @@ from tqdm import tqdm
 from threading import Thread
 from enum import IntEnum
 
-from models import DataFile
+from .models import DataFile
 from processflow.lib.util import print_debug, print_line, print_message
 
 
@@ -162,7 +163,7 @@ class FileManager(object):
         if not instring:
             return ""
 
-        for string, val in replace.items():
+        for string, val in list(replace.items()):
             if string in instring:
                 instring = instring.replace(string, val)
         return instring
@@ -242,7 +243,7 @@ class FileManager(object):
                         os.makedirs(tail)
                     step = 500
                     for idx in range(0, len(new_files), step):
-                        with DataFile.database.atomic():
+                        with DataFile._meta.database.atomic():
                             DataFile.insert_many(
                                 new_files[idx: idx + step]).execute()
 
@@ -252,12 +253,12 @@ class FileManager(object):
 
     def print_db(self):
         for df in DataFile.select():
-            print {
+            print({
                 'case': df.case,
                 'type': df.datatype,
                 'name': df.name,
                 'local_path': df.local_path
-            }
+            })
     # -----------------------------------------------
 
     def add_files(self, data_type, file_list, super_type="raw_output"):
@@ -289,7 +290,7 @@ class FileManager(object):
                 })
             step = 500
             for idx in range(0, len(new_files), step):
-                with DataFile.database.atomic():
+                with DataFile._meta.database.atomic():
                     DataFile.insert_many(
                         new_files[idx: idx + step]).execute()
         except Exception as e:
@@ -318,7 +319,7 @@ class FileManager(object):
                     logging.error(msg)
                     print_line(msg, self._event_list)
 
-            with DataFile.database.atomic():
+            with DataFile._meta.database.atomic():
                 DataFile.bulk_update(to_update, fields=[
                                      'local_status'], batch_size=100)
         except Exception as e:

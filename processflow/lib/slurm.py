@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
 
@@ -35,7 +36,7 @@ class Slurm(object):
         try:
             out, err = self._submit('sbatch', cmd, sargs)
         except Exception as e:
-            print 'Batch job submission failed'
+            print('Batch job submission failed')
             print_debug(e)
             return 0
 
@@ -48,7 +49,7 @@ class Slurm(object):
         try:
             job_id = int(out[-1])
         except IndexError as e:
-            print "error submitting job to slurm " + str(out) + " " + str(err)
+            print("error submitting job to slurm " + str(out) + " " + str(err))
             return 0
 
         return job_id
@@ -65,14 +66,13 @@ class Slurm(object):
                 logging.error(err)
                 tries += 1
                 sleep(tries * 2)
-            if 'Transport endpoint is not connected' in err or 'Socket timed out on send/recv operation' in err:
+            if err:
+                print(err)
                 qinfo = self.queue()
                 for job in qinfo:
                     if job.get('COMMAND') == cmd[1]:
                         return 'Submitted batch job {}'.format(job['JOBID']), None
-                print 'Unable to submit job, trying again'
-            elif 'Batch job submission failed' in out:
-                raise Exception(out)
+                print('Unable to submit job, trying again')
             else:
                 break
         if tries >= 10:
@@ -97,7 +97,7 @@ class Slurm(object):
                 proc = Popen(['scontrol', 'show', 'job', jobid],
                              shell=False, stderr=PIPE, stdout=PIPE)
                 out, err = proc.communicate()
-                if 'Transport endpoint is not connected' in err:
+                if err:
                     sleep(1)
                 else:
                     success = True
@@ -105,12 +105,12 @@ class Slurm(object):
                 success = False
                 sleep(1)
 
-        if 'Invalid job id specified' in err:
+        if err:
             raise Exception('SLURM ERROR: ' + err)
         job_info = JobInfo()
-        for item in out.split('\n'):
-            for j in item.split(' '):
-                index = j.find('=')
+        for item in out.split(b'\n'):
+            for j in item.split(b' '):
+                index = j.find(b'=')
                 if index <= 0:
                     continue
                 attribute = self.slurm_to_jobinfo(j[:index])
@@ -118,24 +118,24 @@ class Slurm(object):
                     continue
                 job_info.set_attr(
                     attr=attribute,
-                    val=j[index + 1:])
+                    val=j[index + 1:].decode("utf-8"))
         return job_info
     # -----------------------------------------------
 
     def slurm_to_jobinfo(self, attr):
-        if attr == 'Partition':
+        if attr == b'Partition':
             return 'PARTITION'
-        elif attr == 'Command':
+        elif attr == b'Command':
             return 'COMMAND'
-        elif attr == 'UserId':
+        elif attr == b'UserId':
             return 'USER'
-        elif attr == 'JobName':
+        elif attr == b'JobName':
             return 'NAME'
-        elif attr == 'JobState':
+        elif attr == b'JobState':
             return 'STATE'
-        elif attr == 'JobId':
+        elif attr == b'JobId':
             return 'JOBID'
-        elif attr == 'RunTime':
+        elif attr == b'RunTime':
             return 'RUNTIME'
         else:
             return None
@@ -148,11 +148,11 @@ class Slurm(object):
         cmd = 'sinfo show nodes | grep up | wc -l'
         p = Popen([cmd], stderr=PIPE, stdout=PIPE, shell=True)
         out, err = p.communicate()
-        while 'Transport endpoint is not connected' in out and not err:
-            sleep(1)
-            p = Popen([cmd], stderr=PIPE, stdout=PIPE, shell=True)
-            err, out = p.communicate()
-        return int(out)
+        try:
+            num_nodes = int(out)
+        except:
+            num_nodes = 1
+        return num_nodes
     # -----------------------------------------------
 
     def queue(self):
@@ -167,7 +167,7 @@ class Slurm(object):
                 cmd = ['squeue', '-u', os.environ['USER'], '-o', '%i|%j|%o|%t']
                 proc = Popen(cmd, shell=False, stderr=PIPE, stdout=PIPE)
                 out, err = proc.communicate()
-                if 'Transport endpoint is not connected' in err:
+                if err:
                     tries += 1
                     sleep(tries)
                 else:
@@ -178,10 +178,10 @@ class Slurm(object):
             raise Exception('SLURM ERROR: Transport endpoint is not connected')
 
         queueinfo = []
-        for item in out.split('\n')[1:]:
+        for item in out.split(b'\n')[1:]:
             if not item:
                 break
-            line = [x for x in item.split('|') if x]
+            line = [x for x in item.split(b'|') if x]
             queueinfo.append({
                 'JOBID': line[0],
                 'NAME': line[1],

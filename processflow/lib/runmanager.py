@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 from time import sleep
 
 from processflow.jobs.aprime import Aprime
@@ -227,7 +228,7 @@ class RunManager(object):
 
         pp = self.config.get('post-processing')
         if pp:
-            for key, val in pp.items():
+            for key, val in list(pp.items()):
                 cases_to_add = list()
                 for case in self.cases:
                     if not self.config['simulations'][case['case']].get('job_types'):
@@ -257,7 +258,7 @@ class RunManager(object):
                             case=case)
         diags = self.config.get('diags')
         if diags:
-            for key, val in diags.items():
+            for key, val in list(diags.items()):
                 # cases_to_add = list()
                 for case in self.cases:
                     if not self.config['simulations'][case['case']].get('job_types'):
@@ -282,8 +283,7 @@ class RunManager(object):
         for case in self.cases:
             for job in case['jobs']:
                 if job.comparison != 'obs':
-                    other_case, = filter(
-                        lambda case: case['case'] == job.comparison, self.cases)
+                    other_case, = [case for case in self.cases if case['case'] == job.comparison]
                     job.setup_dependencies(
                         jobs=case['jobs'],
                         comparison_jobs=other_case['jobs'])
@@ -437,7 +437,7 @@ class RunManager(object):
         print_line(msg, self.event_list)
     # -----------------------------------------------
 
-    def monitor_running_jobs(self):
+    def monitor_running_jobs(self, debug=False):
         """
         Lookup job status for all current jobs, 
         start jobs that are ready, 
@@ -489,6 +489,8 @@ class RunManager(object):
                 continue
 
             status = StatusMap[job_info.state]
+            if debug:
+                print(str(job_info))
             if status != job.status:
                 msg = '{prefix}: Job changed from {s1} to {s2}'.format(
                     prefix=job.msg_prefix(),

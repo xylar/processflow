@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import argparse
 import json
 import logging
@@ -16,13 +17,15 @@ from processflow.lib.util import print_debug
 from processflow.lib.util import print_line
 from processflow.lib.util import print_message
 from processflow.lib.verify_config import verify_config, check_config_white_space
-from processflow.version import __version__, __branch__
+from processflow.lib.version import __version__, __branch__
+import importlib
 
 
 def parse_args(argv=None, print_help=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         'config',
+        nargs='?',
         help='Path to configuration file.')
     parser.add_argument(
         '-m', '--max-jobs',
@@ -76,13 +79,14 @@ def initialize(argv, **kwargs):
         __branch__ (str): the branch this version was built from
     """
     if argv and '--test' in argv:
-        print '=========================================='
-        print '---- Processflow running in test mode ----'
-        print '=========================================='
+        print('==========================================')
+        print('---- Processflow running in test mode ----')
+        print('==========================================')
     # Setup the parser
     pargs = parse_args(argv=argv)
     if pargs.version:
-        print('Processflow version {}'.format(__version__))
+        print(('Processflow version {} from branch {}'.format(
+            __version__, __branch__)))
         sys.exit(0)
     if not pargs.config:
         parse_args(print_help=True)
@@ -97,15 +101,15 @@ def initialize(argv, **kwargs):
         event_list=event_list)
 
     if not os.path.exists(pargs.config):
-        print "Invalid config, {} does not exist".format(pargs.config)
+        print("Invalid config, {} does not exist".format(pargs.config))
         return False, False, False
 
     # Check that there are no white space errors in the config file
     line_index = check_config_white_space(pargs.config)
     if line_index != 0:
-        print '''
+        print('''
 ERROR: line {num} does not have a space after the \'=\', white space is required.
-Please add a space and run again.'''.format(num=line_index)
+Please add a space and run again.'''.format(num=line_index))
         return False, False, False
 
     # read the config file and setup the config dict
@@ -113,7 +117,7 @@ Please add a space and run again.'''.format(num=line_index)
         config = ConfigObj(pargs.config)
     except Exception as e:
         print_debug(e)
-        print "Error parsing config file {}".format(pargs.config)
+        print("Error parsing config file {}".format(pargs.config))
         parse_args(print_help=True)
         return False, False, False
 
@@ -158,7 +162,7 @@ Please add a space and run again.'''.format(num=line_index)
         event_list=event_list)
     if not pargs.test:
         from imp import reload
-        reload(logging)
+        importlib.reload(logging)
     config['global']['log_path'] = log_path
     if os.path.exists(log_path):
         logbak = log_path + '.bak'
@@ -172,8 +176,6 @@ Please add a space and run again.'''.format(num=line_index)
         filename=log_path,
         filemode='w',
         level=log_level)
-    logging.getLogger('globus_sdk').setLevel(logging.ERROR)
-    logging.getLogger('globus_cli').setLevel(logging.ERROR)
 
     logging.info("Running with config:")
     msg = json.dumps(config, sort_keys=False, indent=4)
@@ -195,11 +197,16 @@ Please add a space and run again.'''.format(num=line_index)
     logging.info(msg)
 
     # Copy the config into the input directory for safe keeping
+    # if there's already a version there, then remove it and 
+    # copy in the new version
     input_config_path = os.path.join(
         config['global']['project_path'],
-        'input',
         'run.cfg')
-    copy(pargs.config, input_config_path)
+    # if we're using the config in the project directory no need to copy
+    if pargs.config != input_config_path:
+        if os.path.exists(input_config_path):
+            os.remove(input_config_path)
+        copy(pargs.config, input_config_path)
 
     if config['global']['always_copy']:
         msg = 'Running in forced-copy mode, previously hosted diagnostic output will be replaced'
