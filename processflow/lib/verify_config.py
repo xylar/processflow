@@ -1,7 +1,7 @@
 """
 A module to verify that the user config is valid
 """
-
+from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 
 
@@ -347,7 +347,7 @@ def verify_config(config):
         # ------------------------------------------------------------------------
         if config['diags'].get('mpas_analysis'):
             if not config['diags']['mpas_analysis'].get('run_frequency'):
-                msg = 'no run_frequency given for aprime'
+                msg = 'no run_frequency given for mpas_analysis'
                 messages.append(msg)
             else:
                 if not isinstance(config['diags']['mpas_analysis']['run_frequency'], list):
