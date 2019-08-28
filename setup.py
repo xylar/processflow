@@ -1,5 +1,5 @@
 from setuptools import find_packages, setup
-from processflow.lib.version import __version__
+from processflow.version import __version__
 
 setup(
     name="processflow",
