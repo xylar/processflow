@@ -7,7 +7,7 @@ source:
   git_tag: {{ environ['TAG'] }}
 
 build:
-  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+  script: python setup.py install
   string: {{ environ['BUILD_NAME'] }}
   noarch: python
 
