@@ -160,9 +160,7 @@ Please add a space and run again.'''.format(num=line_index))
     print_line(
         line='Log saved to {}'.format(log_path),
         event_list=event_list)
-    if not pargs.test:
-        from imp import reload
-        importlib.reload(logging)
+
     config['global']['log_path'] = log_path
     if os.path.exists(log_path):
         logbak = log_path + '.bak'

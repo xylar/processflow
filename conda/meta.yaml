@@ -7,22 +7,22 @@ source:
   git_tag: {{ environ['TAG'] }}
 
 build:
-  script: python setup.py install
+  script: {{ python }} -m pip install . --no-deps -vv
   string: {{ environ['BUILD_NAME'] }}
+  noarch: python
 
 about:
     home: https://github.com/E3SM-Project/processflow
     summary: Automated post processing for E3SM model data
 
 requirements:
-  build:
+  host:
     - python
     - setuptools
+    - pip
   
   run:
-    - pip
     - python
-    - setuptools
     - mpas-analysis
     - ncl
     - nco
