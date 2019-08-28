@@ -21,7 +21,9 @@ requirements:
     - pip
   
   run:
+    - pip
     - python
+    - setuptools
     - mpas-analysis
     - ncl
     - nco
