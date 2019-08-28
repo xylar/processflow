@@ -28,7 +28,7 @@ requirements:
     - nco
     - e3sm_diags >=1.6.0
     - e3sm_to_cmip
-    - peewee >= 3.10.0
+    - peewee >=3.10.0
     - configobj
     - beautifulsoup4
     - jinja2
