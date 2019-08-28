@@ -7,9 +7,8 @@ source:
   git_tag: {{ environ['TAG'] }}
 
 build:
-  script: python setup.py install
-  string: {{ environ['BUILD_NAME'] }}
-  noarch: python
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
+  number: {{ environ['BUILD_NAME'] }}
 
 about:
     home: https://github.com/E3SM-Project/processflow

@@ -3,7 +3,7 @@ export VERSION="2.2.3"
 export BUILD_NAME="3"
 export CONDA_BLD_PATH=~/conda-bld
 USER="e3sm"
-PLATFORM="noarch"
+PLATFORM="linux-64"
 PKG="processflow"
 
 if [ -d $CONDA_BLD_PATH ]; then
