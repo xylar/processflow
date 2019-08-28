@@ -18,7 +18,6 @@ from processflow.lib.util import print_line
 from processflow.lib.util import print_message
 from processflow.lib.verify_config import verify_config, check_config_white_space
 from processflow.version import __version__, __branch__
-import importlib
 
 
 def parse_args(argv=None, print_help=None):
