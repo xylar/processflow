@@ -7,7 +7,7 @@ source:
   git_tag: {{ environ['TAG'] }}
 
 build:
-  script: {{ python }} -m pip install . --no-deps -vv
+  script: python -m pip install . --no-deps -vv
   string: {{ environ['BUILD_NAME'] }}
   noarch: python
 
@@ -16,7 +16,7 @@ about:
     summary: Automated post processing for E3SM model data
 
 requirements:
-  host:
+  build:
     - python
     - setuptools
     - pip
@@ -26,7 +26,7 @@ requirements:
     - mpas-analysis
     - ncl
     - nco
-    - e3sm_diags >=1.6.0
+    - e3sm_diags >=1.7.1
     - e3sm_to_cmip
     - peewee >=3.10.0
     - configobj
