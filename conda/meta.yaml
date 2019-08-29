@@ -16,15 +16,12 @@ about:
     summary: Automated post processing for E3SM model data
 
 requirements:
-  build:
+  host:
     - python
-    - setuptools
     - pip
   
   run:
-    - pip
     - python
-    - setuptools
     - mpas-analysis
     - ncl
     - nco
