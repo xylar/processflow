@@ -32,3 +32,9 @@ requirements:
     - beautifulsoup4
     - jinja2
     - tqdm
+
+test:
+  imports:
+    - processflow
+  commands:
+    - export CDAT_ANONYMOUS_LOG=no; processflow -h
