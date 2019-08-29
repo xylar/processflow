@@ -23,10 +23,9 @@ requirements:
   run:
     - python
     - mpas-analysis
-    - ncl
     - nco
     - e3sm_diags >=1.7.1
-    - e3sm_to_cmip
+    - e3sm_to_cmip >=1.2.2
     - peewee >=3.10.0
     - configobj
     - beautifulsoup4
