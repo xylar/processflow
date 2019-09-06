@@ -22,7 +22,7 @@ requirements:
   
   run:
     - python {{ python }}
-    - mpas-analysis
+    - mpas-analysis >=1.2.5
     - nco
     - e3sm_diags >=1.7.1
     - e3sm_to_cmip >=1.2.2
@@ -30,7 +30,6 @@ requirements:
     - configobj
     - beautifulsoup4
     - jinja2
-    - tqdm
 
 test:
   imports:
