@@ -375,6 +375,8 @@ def verify_config(config):
                         continue
                     if 'mpas_analysis' in config['simulations'][sim].get('job_types') \
                             and reqtype not in config['simulations'][sim].get('data_types'):
+                        if 'all' in config['simulations'][sim].get('data_types') and reqtype in config['data_types'].keys():
+                            continue
                         msg = 'mpas_analysis is set to run for case {case}, but {reqtype} is not in the cases data_types'.format(
                             case=sim,
                             reqtype=reqtype)
