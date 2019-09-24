@@ -60,7 +60,7 @@ def main(cl_args=None):
         kill_event=thread_kill_event)
 
     if isinstance(config, int):
-        print "Error in setup, exiting"
+        print("Error in setup, exiting")
         return -1
     logging.info('Config setup complete')
     debug = True if config['global'].get('debug') else False
