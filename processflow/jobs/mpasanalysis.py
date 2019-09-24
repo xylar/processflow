@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import os
 
 from subprocess import Popen, PIPE
@@ -120,7 +121,7 @@ class MPASAnalysis(Diag):
             'ocnHistSubPath': self._input_base_path,
             'iceHistSubPath': self._input_base_path,
             'meshName': config['simulations'][self.case].get('native_mpas_grid_name', ''),
-            'mappingPath': mpas_config.get('mapping_directory', ''),
+            'diagnosticsPath': mpas_config.get('diagnostics_path', ''),
             'ocnNamelistName': mpas_config.get('ocean_namelist_name', 'mpaso_in'),
             'ocnStreamsName': mpas_config.get('ocean_streams_name', 'streams.ocean'),
             'iceNamelistName': mpas_config.get('seaice_namelist_name', 'mpassi_in'),

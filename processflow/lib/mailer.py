@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import smtplib
 
 from email.mime.text import MIMEText
@@ -21,6 +22,7 @@ class Mailer(object):
         self.smtp = None
         self.default_message = 'Your post processsing job has completed successfully'
         self.default_status = 'SUCCEESS'
+    # -----------------------------------------------
 
     def send(self, status=None, msg=None):
         """
@@ -49,3 +51,4 @@ class Mailer(object):
             return False
         else:
             return True
+    # -----------------------------------------------

@@ -1,9 +1,9 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 from time import sleep
 from subprocess import Popen, PIPE
 
 from processflow.lib.jobinfo import JobInfo
 from processflow.lib.jobstatus import JobStatus
-
 
 
 class Serial(object):
@@ -17,6 +17,7 @@ class Serial(object):
         self.status = 'idle'
         self.job_id = 0
         self.jobs = list()
+    # -----------------------------------------------
 
     def batch(self, cmd, pargs=None):
         """
@@ -50,12 +51,15 @@ class Serial(object):
         self.status = 'idle'
         out, err = proc.communicate()
         if err:
-            print err
+            print(err)
         return self.job_id
+    # -----------------------------------------------
 
     def showjob(self, jobid):
-        jobs = filter(lambda job: job.job_id == jobid, self.jobs)
+        jobs = [job for job in self.jobs if job.job_id == jobid]
         return jobs[0] if jobs else None
+    # -----------------------------------------------
 
     def get_node_number(self, queue='acme'):
         return 1
+    # -----------------------------------------------

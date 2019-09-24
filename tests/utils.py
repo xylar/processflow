@@ -109,7 +109,7 @@ def json_to_conf(input, output, variables):
     with open(input, 'r') as infile:
         data = json.load(infile)
     
-    for key, value in variables.items():
+    for key, value in list(variables.items()):
         data[key] = value
 
     conf = ConfigObj(data)
