@@ -7,30 +7,32 @@ source:
   git_tag: {{ environ['TAG'] }}
 
 build:
-  script: python setup.py install
+  script: "{{ PYTHON }} -m pip install . --no-deps -vv"
   string: {{ environ['BUILD_NAME'] }}
+  noarch: python
 
 about:
     home: https://github.com/E3SM-Project/processflow
     summary: Automated post processing for E3SM model data
 
 requirements:
-  build:
-    - python
-    - setuptools
+  host:
+    - python {{ python }}
+    - pip
   
   run:
-    - pip
-    - python
-    - setuptools
-    - nco
-    - e3sm_diags >=1.6.0
-    - e3sm_to_cmip
-    - peewee
+    - python {{ python }}
+    - mpas-analysis >=1.2.5
+    - nco >=4.8.1
+    - e3sm_diags >=1.7.1
+    - e3sm_to_cmip >=1.2.2
+    - peewee >=3.10.0
     - configobj
     - beautifulsoup4
-    - paramiko
     - jinja2
-    - globus-sdk ==1.1.1
-    - globus-cli ==1.1.2
-    - jmespath
+
+test:
+  imports:
+    - processflow
+  commands:
+    - export CDAT_ANONYMOUS_LOG=no; processflow -h

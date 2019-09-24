@@ -1,3 +1,4 @@
+from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
 
@@ -70,7 +71,7 @@ class Cmor(Job):
             False otherwise
         """
         found = list()
-        for root, dirs, files in os.walk(self._output_path):
+        for _, _, files in os.walk(self._output_path):
             if files is not None:
                 for file in files:
                     if file.endswith('nc'):
