@@ -100,7 +100,7 @@ def initialize(argv, **kwargs):
         event_list=event_list)
 
     if not os.path.exists(pargs.config):
-        print("Invalid config, {} does not exist".format(pargs.config))
+        print("{} does not exist".format(pargs.config))
         return False, False, False
 
     # Check that there are no white space errors in the config file
@@ -201,9 +201,8 @@ Please add a space and run again.'''.format(num=line_index))
         'run.cfg')
     # if we're using the config in the project directory no need to copy
     if pargs.config != input_config_path:
-        if os.path.exists(input_config_path):
-            os.remove(input_config_path)
-        copy(pargs.config, input_config_path)
+        if not os.path.exists(input_config_path):            
+            copy(pargs.config, input_config_path)
 
     if config['global']['always_copy']:
         msg = 'Running in forced-copy mode, previously hosted diagnostic output will be replaced'
