@@ -17,11 +17,11 @@ about:
 
 requirements:
   host:
-    - python {{ python }}
+    - python>=3
     - pip
   
   run:
-    - python {{ python }}
+    - python>=3
     - mpas-analysis >=1.2.5
     - nco >=4.8.1
     - e3sm_diags >=1.7.1
