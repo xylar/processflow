@@ -149,7 +149,6 @@ class MPASAnalysis(Diag):
             output_path=template_out)
 
         cmd = ['mpas_analysis', template_out]
-        self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 

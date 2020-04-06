@@ -67,25 +67,25 @@ def main(cl_args=None):
         while True:
 
             if debug:
-                print_line(' -- checking data -- ', event_list)
+                print_line(' -- checking data -- ')
             runmanager.check_data_ready()
 
             if debug:
-                print_line(' -- starting ready jobs --', event_list)
+                print_line(' -- starting ready jobs --')
             runmanager.start_ready_jobs()
 
             if debug:
-                print_line(' -- monitoring running jobs --', event_list)
+                print_line(' -- monitoring running jobs --')
             runmanager.monitor_running_jobs(debug=debug)
 
             if debug:
-                print_line(' -- writing out state -- ', event_list)
+                print_line(' -- writing out state -- ')
             runmanager.write_job_sets(state_path)
 
             status = runmanager.is_all_done()
             if status >= 0:
                 msg = "Finishing up run"
-                print_line(msg, event_list)
+                print_line(msg)
                 finalize(
                     config=config,
                     event_list=event_list,
@@ -95,7 +95,7 @@ def main(cl_args=None):
                 return 0
 
             if debug:
-                print_line(' -- sleeping', event_list)
+                print_line(' -- sleeping')
             sleep(loop_delay)
     except KeyboardInterrupt as e:
         print_message('\n----- KEYBOARD INTERRUPT -----')

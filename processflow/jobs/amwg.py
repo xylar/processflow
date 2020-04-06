@@ -25,7 +25,7 @@ class AMWG(Diag):
         """
         super(AMWG, self).__init__(*args, **kwargs)
         self._job_type = 'amwg'
-        self._requires = 'climo'
+        self._requires = ['climo']
         self._data_required = ['climo_regrid']
 
         config = kwargs.get('config')
@@ -210,7 +210,6 @@ class AMWG(Diag):
             output_path=csh_template_out)
 
         # create the run command and submit it
-        self._has_been_executed = True
         cmd = ['csh', csh_template_out]
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
@@ -312,14 +311,14 @@ class AMWG(Diag):
         if number_missing == 0:
             msg = '{prefix}: all expected output images found'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
             self._check_links(config, img_source)
             return True
         elif number_missing > 0 and number_missing <= 2:
             msg = '{prefix}: this job was found to be missing plots, please check the console output for additional information'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
             self._check_links(config, img_source)
             return True
         else:
@@ -341,7 +340,7 @@ class AMWG(Diag):
         else:
             msg = '{prefix}: Job failed'.format(
                 prefix=self.msg_prefix())
-        print_line(msg, event_list)
+        print_line(msg)
         logging.info(msg)
 
         # if hosting is turned off, simply return
@@ -361,7 +360,7 @@ class AMWG(Diag):
             else:
                 msg = '{prefix}: Unable to find output directory or tar archive'.format(
                     prefix=self.msg_prefix())
-                print_line(msg, event_list)
+                print_line(msg)
                 self.status = JobStatus.FAILED
                 logging.info(msg)
                 return
@@ -479,7 +478,7 @@ class AMWG(Diag):
         number_missing = 0
         msg = '{prefix}: extracting images from tar archive'.format(
             prefix=self.msg_prefix())
-        print_line(msg, event_list)
+        print_line(msg)
         call(['tar', '-xf', img_source_tar,
               '--directory', self._output_path])
         passed = True
@@ -497,7 +496,7 @@ class AMWG(Diag):
                         prefix=self.msg_prefix(),
                         dir=setpath)
                     logging.error(msg)
-                    print_line(msg, event_list)
+                    print_line(msg)
             else:
                 count = len(os.listdir(setpath))
                 if count < expected_files[setname]:
@@ -507,6 +506,71 @@ class AMWG(Diag):
                         numProduced=count,
                         numExpected=expected_files[setname])
                     logging.error(msg)
-                    print_line(msg, event_list)
+                    print_line(msg)
                     number_missing += 1
         return number_missing
+    
+    def validate(self, config):
+        messages = []
+        if 'job_options' in config.keys():
+            amwg_global_config = config['job_options'].get('amwg')
+            if amwg_global_config:
+                if 'diag_home' not in amwg_global_config.keys():
+                    msg = "Global job_options does not contain the amwg code path"
+                    messages.append(msg)
+                if not amwg_global_config.get('frequency'):
+                    config['job_options']['amwg']['frequency'] = set()
+                if not isinstance(amwg_global_config['frequency'], set):
+                    amwg_global_config['frequency']  = set(amwg_global_config['frequency'])
+                amwg_sets = amwg_global_config.get('plot_sets')
+                if amwg_sets:
+                    if not isinstance(amwg_sets, set):
+                        amwg_sets = set(amwg_sets)
+                    allowed_sets = set([str(x) for x in range(1, 17)] + ['all', '4a'])
+                    for s in amwg_sets:
+                        if s not in allowed_sets:
+                            msg = "{} is not an allowed AMWG set".format(s)
+                            messages.append(msg)
+
+        for case in config['simulations']:
+            if "amwg" not in case['jobs']:
+                continue
+            case_options = case['jobs']['amwg']
+
+            freqs = case_options.get('frequency')
+            if freqs:
+                if not isinstance(freqs, set):
+                    freqs = set(freqs)
+                freqs.update(amwg_global_config['frequency'])
+
+            case_sets = case_options.get('plot_sets')
+            if case_sets:
+                if not isinstance(case_sets, set):
+                    case_sets = set(case_sets)
+                allowed_sets = set([str(x) for x in range(1, 17)] + ['all', '4a'])
+                for s in case_sets:
+                    if s not in allowed_sets:
+                        msg = "case {case} contains invalid AMWG set {set}".format(
+                            case=case_options['shortname'], set=s)
+                        messages.append(msg)
+                case_sets.update(amwg_sets)
+            
+            if not amwg_global_config.get('output_grid_name') and not case_options.get('output_grid_name'):
+                msg = 'Please specify a name for the climo output_grid_name in either the global job_options under amwg, or under the job entry in each simulation\'s config'
+                messages.append(msg)
+            else:
+                if not case_options.get('output_grid_name'):
+                    case_options['output_grid_name'] = amwg_global_config.get('output_grid_name')
+            if not amwg_global_config.get('atm_map_path') and not case_options.get('atm_map_path'):
+                msg = 'Please specify a atm_map_path in either the global job_options under amwg, or under the job entry in each simulation\'s config'
+                messages.append(msg)
+            else:
+                if not case_options.get('atm_map_path'):
+                    case_options['atm_map_path'] = amwg_global_config.get('atm_map_path')
+        
+        if messages:
+            return messages
+        return None
+
+            
+            

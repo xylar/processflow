@@ -126,7 +126,6 @@ class Aprime(Diag):
         cmd = [
             'cd {}\n'.format(aprime_code_path),
             'bash', template_out]
-        self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
@@ -170,13 +169,13 @@ class Aprime(Diag):
             msg = '{prefix}: Job failed'.format(
                 prefix=self.msg_prefix(),
                 case=self._short_name)
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
         else:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix(),
                 case=self._short_name)
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
 
         # if hosting is turned off, simply return

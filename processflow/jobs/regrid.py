@@ -105,7 +105,6 @@ class Regrid(Job):
             '-O', self._output_path,
         ])
 
-        self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
@@ -136,13 +135,13 @@ class Regrid(Job):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
             return
         else:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
 
         new_files = list()
@@ -166,7 +165,7 @@ class Regrid(Job):
         filemanager.write_database()
         msg = '{prefix}: Job completion handler done'.format(
             prefix=self.msg_prefix())
-        print_line(msg, event_list)
+        print_line(msg)
         logging.info(msg)
     # -----------------------------------------------
 

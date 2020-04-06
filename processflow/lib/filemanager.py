@@ -7,7 +7,7 @@ from threading import Thread
 from enum import IntEnum
 
 from .models import DataFile
-from processflow.lib.util import print_debug, print_line, print_message
+from processflow.lib.util import print_debug, print_line
 
 
 class FileStatus(IntEnum):
@@ -172,9 +172,7 @@ class FileManager(object):
         Populate the database with the required DataFile entries
         """
         msg = 'Creating file table'
-        print_line(
-            line=msg,
-            event_list=self._event_list)
+        print_line(msg)
 
         start_year = int(self._config['simulations']['start_year'])
         end_year = int(self._config['simulations']['end_year'])
@@ -211,7 +209,7 @@ class FileManager(object):
                                 new_files.append({
                                     'name': filename,
                                     'local_path': os.path.join(local_path, filename),
-                                    'local_status': FileStatus.NOT_PRESENT.value,
+                                    'local_status': FileStatus.PRESENT.value,
                                     'case': case,
                                     'year': year,
                                     'month': month,
@@ -228,7 +226,7 @@ class FileManager(object):
                         new_files.append({
                             'name': filename,
                             'local_path': os.path.join(local_path, filename),
-                            'local_status': FileStatus.NOT_PRESENT.value,
+                            'local_status': FileStatus.PRESENT.value,
                             'case': case,
                             'year': 0,
                             'month': 0,
@@ -246,7 +244,7 @@ class FileManager(object):
                                 new_files[idx: idx + step]).execute()
 
             msg = 'Database update complete'
-            print_line(msg, self._event_list)
+            print_line(msg)
     # -----------------------------------------------
 
     def print_db(self):
@@ -315,7 +313,7 @@ class FileManager(object):
                     msg = '{filename} is not present at {path}'.format(
                         filename=datafile.name, path=datafile.local_path)
                     logging.error(msg)
-                    print_line(msg, self._event_list)
+                    print_line(msg)
 
             with DataFile._meta.database.atomic():
                 DataFile.bulk_update(to_update, fields=[

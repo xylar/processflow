@@ -14,7 +14,7 @@ from subprocess import call
 from processflow.jobs.job import Job
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.slurm import Slurm
-from processflow.lib.util import print_line, print_message
+from processflow.lib.util import print_line
 from processflow.lib.util import create_symlink_dir, render
 
 
@@ -75,7 +75,7 @@ class Diag(Job):
             if os.path.exists(host_path):
                 msg = '{prefix}: Removing previous output from host location'.format(
                     prefix=self.msg_prefix())
-                print_line(msg, event_list, newline=False)
+                print_line(msg, newline=False)
                 rmtree(host_path)
                 msg = '... complete'
                 print(msg)
@@ -83,7 +83,7 @@ class Diag(Job):
         if not os.path.exists(host_path):
             msg = '{prefix}: Moving files for web hosting'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list, newline=False)
+            print_line(msg, newline=False)
             copy_tree(
                 src=img_source,
                 dst=host_path)
@@ -92,7 +92,7 @@ class Diag(Job):
             # fix permissions for apache
             msg = '{prefix}: Fixing permissions'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list, newline=False)
+            print_line(msg, newline=False)
             call(['chmod', '-R', 'go+rx', host_path])
             tail, _ = os.path.split(host_path)
             for _ in range(2):
@@ -103,7 +103,7 @@ class Diag(Job):
         else:
             msg = '{prefix}: Files already present at host location, skipping'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
 
     # -----------------------------------------------
 
@@ -286,13 +286,13 @@ class Diag(Job):
             msg = '{}: dryrun is set, completing without running'.format(
                 self.msg_prefix())
             logging.info(msg)
-            print_message(msg, 'ok')
+            print_line(msg)
             self.status = JobStatus.COMPLETED
             return False
 
         msg = '{}: Job ready, submitting to queue'.format(
             self.msg_prefix())
-        print_message(msg, 'ok')
+        print_line(msg)
 
         # submit the run script to the resource controller
         self._job_id = self._manager.batch(run_script)

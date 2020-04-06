@@ -10,22 +10,27 @@ from datetime import datetime
 import jinja2
 
 
-def print_line(line, event_list, ignore_text=False, newline=True):
+def print_line(line, ignore_text=False, newline=True, status='ok'):
     """
     Prints a message to either the console, the event_list, or the current event
 
     Parameters:
         line (str): The message to print
-        event_list (EventList): the event list
         ignore_text (bool): should this be printed to the console if in text mode
     """
     logging.info(line)
     if not ignore_text:
         now = datetime.now()
-        timestr = '{hour}:{min}:{sec}'.format(
+        if status == 'ok':
+            start_color = colors.OKGREEN
+        else:
+            start_color = colors.FAIL
+        timestr = '{color_start}[+]{color_end} {hour}:{min}:{sec}'.format(
             hour=now.strftime('%H'),
             min=now.strftime('%M'),
-            sec=now.strftime('%S'))
+            sec=now.strftime('%S'),
+            color_start=start_color,
+            color_end=colors.ENDC)
         msg = '{time}: {line}'.format(
             time=timestr,
             line=line)

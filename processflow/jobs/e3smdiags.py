@@ -162,7 +162,6 @@ class E3SMDiags(Diag):
             output_path=param_template_out)
 
         cmd = ['e3sm_diags', '-p', param_template_out]
-        self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
@@ -193,12 +192,12 @@ class E3SMDiags(Diag):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
         else:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
 
         # if hosting is turned off, simply return

@@ -12,7 +12,7 @@ from uuid import uuid4
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.serial import Serial
 from processflow.lib.slurm import Slurm
-from processflow.lib.util import render, create_symlink_dir, print_message
+from processflow.lib.util import render, create_symlink_dir, print_line
 
 
 class Job(object):
@@ -342,13 +342,13 @@ class Job(object):
             msg = '{}: dryrun is set, completing without running'.format(
                 self.msg_prefix())
             logging.info(msg)
-            print_message(msg, 'ok')
+            print_line(msg)
             self.status = JobStatus.COMPLETED
             return False
 
         msg = '{}: Job ready, submitting to queue'.format(
             self.msg_prefix())
-        print_message(msg, 'ok')
+        print_line(msg)
 
         # submit the run script to the resource controller
         self._job_id = self._manager.batch(run_script)
