@@ -57,6 +57,11 @@ def parse_args(argv=None, print_help=None):
         help="Run in serial on systems without a resource manager",
         action='store_true')
     parser.add_argument(
+        '--skip-db',
+        dest='skip_db',
+        help="If processflow has been run before with this config, dont run the database file check again",
+        action='store_true')
+    parser.add_argument(
         '--test',
         help=argparse.SUPPRESS,
         action='store_true')
@@ -95,9 +100,7 @@ def initialize(argv, **kwargs):
         print_message(msg)
         return False, False, False
     event_list = kwargs['event_list']
-    print_line(
-        line='Entering setup',
-        event_list=event_list)
+    print_line('Entering setup')
 
     if not os.path.exists(pargs.config):
         print("Invalid config, {} does not exist".format(pargs.config))
@@ -156,9 +159,7 @@ Please add a space and run again.'''.format(num=line_index))
             config['global']['project_path'],
             'output',
             'processflow.log')
-    print_line(
-        line='Log saved to {}'.format(log_path),
-        event_list=event_list)
+    print_line('Log saved to {}'.format(log_path))
 
     config['global']['log_path'] = log_path
     if os.path.exists(log_path):
@@ -179,14 +180,10 @@ Please add a space and run again.'''.format(num=line_index))
     logging.info(msg)
 
     if pargs.max_jobs:
-        print_line(
-            line="running with maximum {} jobs".format(pargs.max_jobs),
-            event_list=event_list)
+        print_line("running with maximum {} jobs".format(pargs.max_jobs))
 
     if not config['global']['host'] or not config.get('img_hosting'):
-        print_line(
-            line='Not hosting img output',
-            event_list=event_list)
+        print_line('Not hosting img output')
 
     msg = 'processflow version {} branch {}'.format(
         __version__,
@@ -209,9 +206,7 @@ Please add a space and run again.'''.format(num=line_index))
         msg = 'Running in forced-copy mode, previously hosted diagnostic output will be replaced'
     else:
         msg = 'Running without forced-copy, previous hosted output will be preserved'
-    print_line(
-        line=msg,
-        event_list=event_list)
+    print_line(msg)
 
     # initialize the filemanager
     db = os.path.join(
@@ -219,7 +214,7 @@ Please add a space and run again.'''.format(num=line_index))
         'output',
         'processflow.db')
     msg = 'Initializing file manager'
-    print_line(msg, event_list)
+    print_line(msg)
     filemanager = FileManager(
         database=db,
         event_list=event_list,
@@ -227,21 +222,25 @@ Please add a space and run again.'''.format(num=line_index))
 
     filemanager.populate_file_list()
 
-    msg = 'Starting local status update'
-    print_line(msg, event_list)
 
-    filemanager.file_status_check()
-    msg = 'Local status update complete'
-    print_line(msg, event_list)
+    if pargs.skip_db:
+        msg = 'Skipping local status update'
+        print_line(msg)
+    else:
+        msg = 'Starting local status update'
+        print_line(msg)
+        filemanager.file_status_check()
+        msg = 'Local status update complete'
+        print_line(msg)
 
     all_data = filemanager.all_data_local()
 
     if all_data:
         msg = 'all data is local'
-        print_line(msg, event_list)
+        print_line(msg)
     else:
         msg = 'Additional data needed'
-        print_message(msg, 'error')
+        print_message(msg)
         sys.exit(1)
 
     logging.info("FileManager setup complete")
@@ -255,17 +254,17 @@ Please add a space and run again.'''.format(num=line_index))
 
     if pargs.debug:
         msg = '-- setting up cases -- '
-        print_line(msg, event_list)
+        print_line(msg)
     runmanager.setup_cases()
 
     if pargs.debug:
         msg = '-- setting up jobs --'
-        print_line(msg, event_list)
+        print_line(msg)
     runmanager.setup_jobs()
 
     if pargs.debug:
         msg = '-- writing job state out to file --'
-        print_line(msg, event_list)
+        print_line(msg)
     runmanager.write_job_sets(
         os.path.join(config['global']['project_path'],
                      'output',

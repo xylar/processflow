@@ -54,7 +54,7 @@ class RunManager(object):
 
         if config['global'].get('serial'):
             msg = '\n\n=== Running in Serial Mode ===\n'
-            print_line(msg, event_list)
+            print_line(msg)
             self.manager = Serial()
         else:
             self.manager = Slurm()
@@ -64,7 +64,7 @@ class RunManager(object):
         while self.max_running_jobs == 0:
             sleep(1)
             msg = 'Unable to communication with scontrol, checking again'
-            print_line(msg, event_list)
+            print_line(msg)
             self.max_running_jobs = self.manager.get_node_number()
     # -----------------------------------------------
 
@@ -315,7 +315,7 @@ class RunManager(object):
                     msg = 'running {} of {} jobs, waiting for queue to shrink'.format(
                         len(self.running_jobs), self.max_running_jobs)
                     if self.debug:
-                        print_line(msg, self.event_list)
+                        print_line(msg)
                     return
                 deps_ready = True
                 for depjobid in job.depends_on:
@@ -338,7 +338,7 @@ class RunManager(object):
                         self.report_completed_job()
                         msg = '{}: Job previously computed, skipping'.format(
                             job.msg_prefix())
-                        print_line(msg, self.event_list)
+                        print_line(msg)
                         continue
 
                     # set to pending before data setup so we dont double submit
@@ -434,7 +434,7 @@ class RunManager(object):
             complete=self._job_complete,
             total=self._job_total,
             percent=(((self._job_complete * 1.0)/self._job_total)*100))
-        print_line(msg, self.event_list)
+        print_line(msg)
     # -----------------------------------------------
 
     def monitor_running_jobs(self, debug=False):
@@ -483,9 +483,7 @@ class RunManager(object):
                     line = "{job}: resource manager lookup error for jobid {id}. The job may have failed, check the error output".format(
                         job=job.msg_prefix(),
                         id=item['manager_id'])
-                    print_line(
-                        line=line,
-                        event_list=self.event_list)
+                    print_line(line)
                 continue
 
             status = StatusMap[job_info.state]
@@ -496,8 +494,13 @@ class RunManager(object):
                     prefix=job.msg_prefix(),
                     s1=ReverseMap[job.status],
                     s2=ReverseMap[status])
-                print_line(msg, self.event_list)
+                print_line(msg)
                 job.status = status
+
+                if job.status == JobStatus.FAILED:
+                    msg = 'Job has failed, check the job output here: {}'.format(
+                        job.get_output_path())
+                    print_line(msg, status='error')
 
                 if status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
                     self._job_complete += 1
