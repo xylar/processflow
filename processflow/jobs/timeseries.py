@@ -1,6 +1,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
+import xarray as xr
+from tqdm import tqdm
 
 from processflow.jobs.job import Job
 from processflow.lib.jobstatus import JobStatus
@@ -19,12 +21,19 @@ class Timeseries(Job):
         self._data_required = [self._run_type]
         self._regrid = False
         self._regrid_path = ''
-
+        
         config = kwargs['config']
         custom_args = config['post-processing'][self.job_type].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
+        
+        self._var_list = config['post-processing']['timeseries'][self._run_type]
+        if isinstance(self._var_list, list) and ' ' in self._var_list[0]:
+            self._var_list = self._var_list[0].split(' ')
+        elif isinstance(self._var_list, list) and ',' in self._var_list[0]:
+            self._var_list = self._var_list[0].split(',')
+        self._var_list = list(filter(lambda x: x != '', self._var_list))
 
         # setup the output directory, creating it if it doesnt already exist
         custom_output_path = config['post-processing'][self.job_type].get(
@@ -80,8 +89,16 @@ class Timeseries(Job):
         """
         if self._dryrun:
             return True
+        if not self._input_base_path or not self._input_file_paths:
+            return False
 
-        for var in config['post-processing']['timeseries'][self._run_type]:
+        # if the check removes all the variables, then they are all
+        # in the output location
+        self.check_all_variables_present(config)
+        if not self._var_list:
+            return True
+
+        for var in self._var_list:
             file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
                 var=var,
                 start=self.start_year,
@@ -98,7 +115,7 @@ class Timeseries(Job):
         # next, if regridding is turned on check that all regrid ts files were created
         if self._regrid:
 
-            for var in config['post-processing']['timeseries'][self._run_type]:
+            for var in self._var_list:
                 file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
                     var=var,
                     start=self.start_year,
@@ -116,6 +133,72 @@ class Timeseries(Job):
         return True
     # -----------------------------------------------
 
+    def check_all_variables_present(self, config):
+        
+        # Load the first file as an xarray dataset
+        path = self._input_file_paths[0]
+        if not os.path.exists(path):
+            msg = "Unable to find input file: {}".format(path)
+            print_line(msg)
+
+        ds = xr.open_dataset(path)
+        if self._regrid:
+            files_in_output = os.listdir(self._regrid_path)
+        else:
+            files_in_output = os.listdir(self._output_path)
+        
+        to_remove = list()
+        # Check that each of the variables we're trying to extract is present
+        for variable in self._var_list:
+            if variable and variable not in ds.data_vars:
+                self._var_list.remove(variable)
+                msg = "Variable not found in dataset: {}".format(variable)
+                print_line(msg)
+            else:
+                for f in files_in_output:
+                    if variable + '_' in f or variable + '.nc' == f:
+                        to_remove.append(variable)
+                        msg = "Time series variable already exists: {}".format(os.path.join(self._output_path, f))
+                        print_line(msg)
+                        break
+
+        self._var_list = list(filter(lambda x: x not in to_remove, self._var_list))
+        ds.close()
+        return
+    # -----------------------------------------------
+
+    def extract_scalar(self):
+
+        msg = 'Checking for scalar variables'
+        print_line(msg)
+        # Load the first file as an xarray dataset
+        path = self._input_file_paths[0]
+        if not os.path.exists(path):
+            msg = "Unable to find input file: {}".format(path)
+            print_line(msg)
+
+        ds = xr.open_dataset(path)
+        to_remove = list()
+        for variable in self._var_list:
+            if 'time' not in ds[variable].coords:
+                if 'ncol' not in ds[variable].coords:
+                    msg = 'Found scalar variable {}, extracting'.format(variable)
+                    print_line(msg)
+                    to_remove.append(variable)
+                    outpath = os.path.join(self._output_path, variable + '.nc')
+                    os.popen('ncks -v {variable} {inpath} {outpath}'.format(
+                        variable=variable,
+                        inpath=self._input_file_paths[0],
+                        outpath=outpath))
+                    if self._regrid:
+                        os.popen('cp {} {}'.format(outpath, self._regrid_path))
+                else:
+                    msg = 'No time axis for variable {}, removing from variable list'.format(variable)
+                    print_line(msg)
+                    to_remove.append(variable)
+        ds.close()
+        self._var_list = list(filter(lambda x: x not in to_remove, self._var_list))
+
     def execute(self, config, event_list, dryrun=False):
         """
         Generates and submits a run script for e3sm_diags
@@ -130,16 +213,24 @@ class Timeseries(Job):
         self._dryrun = dryrun
 
         # sort the input files
-        self._input_file_paths.sort()
-        list_string = ' '.join(self._input_file_paths)
+        self._input_file_paths = sorted(self._input_file_paths)
+        input_path, _ = os.path.split(self._input_file_paths[0])
+
+        self.check_all_variables_present(config)
+        self.extract_scalar()
 
         # create the ncclimo command string
-        var_list = config['post-processing']['timeseries'][self._run_type]
         cmd = [
             'ncclimo',
-            '-a', 'sdd',
-            '-c', self.case,
-            '-v', ','.join(var_list),
+            '-7',
+            '--d2f',
+            '--dfl_lvl=1',
+            '-j', '8',
+            '--no_cll_msr',
+            '--no_frm_trm',
+            '--no_stg_grd',
+            '--input={}'.format(input_path),
+            '-v', ','.join(self._var_list),
             '-s', str(self.start_year),
             '-e', str(self.end_year),
             '--ypf={}'.format(self.end_year - self.start_year + 1),
@@ -151,8 +242,13 @@ class Timeseries(Job):
                 '--map={}'.format(config['post-processing']['timeseries'].get(
                     'regrid_map_path')),
             ])
-        cmd.append(list_string)
-
+        if self._run_type == 'land' or self._run_type == 'lnd':
+            cmd.extend(['--sgs_frc={}/landfrac'.format(self._input_file_paths[0])])
+        elif self._run_type == 'ocn' or self._run_type == 'ocean':
+            cmd.extend(['-m', 'mpas'])
+        elif self._run_type == 'ice' or self._run_type == 'sea-ice':
+            cmd.extend('-m', 'mpas', '--sgs_frc={}/timeMonthly_avg_iceAreaCell'.format(self._input_file_paths[0]))
+ 
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
@@ -178,20 +274,26 @@ class Timeseries(Job):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
             return
         else:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
-
-        var_list = config['post-processing']['timeseries'][self._run_type]
+            print_line(msg)
 
         new_files = list()
         ts_files = get_ts_output_files(
-            self._output_path, var_list, self.start_year, self.end_year)
+            self._output_path, 
+            self._var_list, 
+            self.start_year, 
+            self.end_year)
+        if not ts_files:
+            self.status = JobStatus.FAILED
+            msg = '{prefix}: Job failed, not running completion handler'.format(
+                prefix=self.msg_prefix())
+            print_line(msg)
+            return
         for ts_file in ts_files:
             new_files.append({
                 'name': ts_file,
@@ -210,9 +312,15 @@ class Timeseries(Job):
             new_files = list()
             ts_files = get_ts_output_files(
                 self._regrid_path,
-                var_list,
+                self._var_list,
                 self.start_year,
                 self.end_year)
+            if not ts_files:
+                self.status = JobStatus.FAILED
+                msg = '{prefix}: Job failed, not running completion handler'.format(
+                    prefix=self.msg_prefix())
+                print_line(msg)
+                return
             for ts_file in ts_files:
                 new_files.append({
                     'name': ts_file,
@@ -230,8 +338,7 @@ class Timeseries(Job):
         filemanager.write_database()
         msg = '{prefix}: Job completion handler done'.format(
             prefix=self.msg_prefix())
-        print_line(msg, event_list)
-        logging.info(msg)
+        print_line(msg)
     # -----------------------------------------------
 
     def setup_temp_path(self, config, *args, **kwards):
