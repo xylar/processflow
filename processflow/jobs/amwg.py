@@ -77,6 +77,7 @@ class AMWG(Diag):
             self._host_path = ''
             self._output_path = ''
 
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_data(self, config, filemanager, case):

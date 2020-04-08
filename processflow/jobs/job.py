@@ -39,7 +39,7 @@ class Job(object):
         self._console_output_path = None
         self._output_path = ''
         self._dryrun = dryrun
-
+        self._job_args = list()
         if manager:
             self._manager = manager
         else:
@@ -58,6 +58,7 @@ class Job(object):
             'END_YR': '{:04d}'.format(self.end_year),
             'LOCAL_PATH': config['simulations'][case].get('local_path', ''),
         }
+
     # -----------------------------------------------
 
     def setup_output_directory(self, custom_output_string):
@@ -66,6 +67,12 @@ class Job(object):
                 custom_output_string = custom_output_string.replace(
                     string, val)
         return custom_output_string
+    # -----------------------------------------------
+
+    def setup_job_args(self, config):
+        if config['post-processing'][self._job_type].get('job_args'):
+            for _, val in config['post-processing'][self._job_type]['job_args'].items():
+                self._job_args.append(val)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):

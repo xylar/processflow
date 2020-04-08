@@ -24,7 +24,8 @@ class Regrid(Job):
         self._job_type = 'regrid'
         self._data_required = [self._run_type]
 
-        custom_args = kwargs['config']['post-processing'][self.job_type].get(
+        config = kwargs.get('config')
+        custom_args = config['post-processing'][self.job_type].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
@@ -36,14 +37,15 @@ class Regrid(Job):
             self._output_path = self.setup_output_directory(custom_output_path)
         else:
             self._output_path = os.path.join(
-                kwargs['config']['global']['project_path'],
+                config['global']['project_path'],
                 'output',
                 'pp',
-                'regrid_' + kwargs['config']['post-processing']['regrid'][self.run_type]['destination_grid_name'],
+                'regrid_' + config['post-processing']['regrid'][self.run_type]['destination_grid_name'],
                 self._short_name,
                 self.run_type)
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -68,9 +70,9 @@ class Regrid(Job):
 
         input_path, _ = os.path.split(self._input_file_paths[0])
         # setups the ncremap run command
-        cmd = ['ncks --version\n',
-               'ncremap --version\n',
-               'ncremap -I {}'.format(input_path)]
+        cmd = ['ncremap -I {}'.format(input_path)]
+        if self._job_args:
+            cmd.extend(self._job_args)
 
         if self.run_type == 'lnd':
             cmd.extend([

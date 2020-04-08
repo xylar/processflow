@@ -31,20 +31,21 @@ class E3SMDiags(Diag):
         else:
             self._host_path = ''
 
-        custom_args = kwargs['config']['diags']['e3sm_diags'].get(
+        config = kwargs['config']
+        custom_args = config['diags']['e3sm_diags'].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
         
         # setup the output directory, creating it if it doesnt already exist
-        custom_output_path = kwargs['config']['diags'][self.job_type].get(
+        custom_output_path = config['diags'][self.job_type].get(
             'custom_output_path')
         if custom_output_path:
             self._replace_dict['COMPARISON'] = self._short_comp_name
             self._output_path = self.setup_output_directory(custom_output_path)
         else:
             self._output_path = os.path.join(
-                kwargs['config']['global']['project_path'],
+                config['global']['project_path'],
                 'output',
                 'diags',
                 self.short_name,
@@ -55,6 +56,7 @@ class E3SMDiags(Diag):
                     comp=self._short_comp_name))
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def _dep_filter(self, job):

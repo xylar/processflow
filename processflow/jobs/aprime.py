@@ -67,6 +67,7 @@ class Aprime(Diag):
         else:
             self._host_path = ''
             self._output_path = ''
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):

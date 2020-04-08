@@ -19,37 +19,39 @@ class Climo(Job):
         self._dryrun = True if kwargs.get('dryrun') == True else False
         self._regrid_path = ""
 
-        custom_args = kwargs['config']['post-processing'][self.job_type].get(
+        config = kwargs['config']
+        custom_args = config['post-processing'][self.job_type].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
 
         # setup the output directory, creating it if it doesnt already exist
-        custom_output_path = kwargs['config']['post-processing'][self.job_type].get(
+        custom_output_path = config['post-processing'][self.job_type].get(
             'custom_output_path')
         if custom_output_path:
             self._output_path = self.setup_output_directory(custom_output_path)
             self._regrid_path = self._output_path
         else:
             self._output_path = os.path.join(
-                kwargs['config']['global']['project_path'],
+                config['global']['project_path'],
                 'output',
                 'pp',
                 'climos_native',
-                kwargs['config']['simulations'][self.case]['native_grid_name'],
+                config['simulations'][self.case]['native_grid_name'],
                 self._short_name,
                 '{length}yr'.format(length=self.end_year - self.start_year + 1))
             self._regrid_path = os.path.join(
-                kwargs['config']['global']['project_path'],
+                config['global']['project_path'],
                 'output',
                 'pp',
                 'climos_regrid',
-                kwargs['config']['post-processing']['climo']['destination_grid_name'],
+                config['post-processing']['climo']['destination_grid_name'],
                 self._short_name,
                 '{length}yr'.format(length=self.end_year - self.start_year + 1))
         for path in [self._output_path, self._regrid_path]:
             if not os.path.exists(path):
                 os.makedirs(path)
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -123,8 +125,10 @@ class Climo(Job):
         else:
             input_path, _ = os.path.split(self._input_file_paths[0])
 
-        cmd = [
-            'ncclimo',
+        cmd = ['ncclimo']
+        if self._job_args:
+            cmd.extend(self._job_args)
+        cmd.extend([
             '-c', self.case,
             '-a', 'sdd',
             '-s', str(self.start_year),
@@ -133,8 +137,8 @@ class Climo(Job):
             '-r', config['post-processing']['climo']['regrid_map_path'],
             '-o', self._output_path,
             '-O', self._regrid_path,
-            '--no_amwg_links',
-        ]
+            '--no_amwg_links'
+        ])
 
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
@@ -176,7 +180,7 @@ class Climo(Job):
             data_type='climo_regrid',
             file_list=new_files,
             super_type='derived')
-        
+
         if not config['data_types'].get('climo_regrid'):
             config['data_types']['climo_regrid'] = {'monthly': True}
 

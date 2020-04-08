@@ -65,7 +65,7 @@ class MPASAnalysis(Diag):
                     comp=self._short_comp_name))
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
-
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):

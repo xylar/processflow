@@ -299,3 +299,9 @@ class Diag(Job):
         self._has_been_executed = True
         return self._job_id
     # -----------------------------------------------
+
+    def setup_job_args(self, config):
+        if config['diags'][self._job_type].get('job_args'):
+            for _, val in config['diags'][self._job_type]['job_args'].items():
+                self._job_args.append(val)
+    # -----------------------------------------------
