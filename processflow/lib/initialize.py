@@ -94,17 +94,17 @@ def initialize(argv, **kwargs):
         sys.exit(0)
     if not pargs.config:
         parse_args(print_help=True)
-        return False, False, False
+        return False, False
     if not os.path.isfile(pargs.config):
         msg = "The referenced config is not a regular file, please select a config file"
         print_message(msg)
-        return False, False, False
+        return False, False
     event_list = kwargs['event_list']
     print_line('Entering setup')
 
     if not os.path.exists(pargs.config):
         print("Invalid config, {} does not exist".format(pargs.config))
-        return False, False, False
+        return False, False
 
     # Check that there are no white space errors in the config file
     line_index = check_config_white_space(pargs.config)
@@ -112,7 +112,7 @@ def initialize(argv, **kwargs):
         print('''
 ERROR: line {num} does not have a space after the \'=\', white space is required.
 Please add a space and run again.'''.format(num=line_index))
-        return False, False, False
+        return False, False
 
     # read the config file and setup the config dict
     try:
@@ -121,7 +121,7 @@ Please add a space and run again.'''.format(num=line_index))
         print_debug(e)
         print("Error parsing config file {}".format(pargs.config))
         parse_args(print_help=True)
-        return False, False, False
+        return False, False
 
     # run validator for config file
     messages = verify_config(config)
