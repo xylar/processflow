@@ -263,6 +263,7 @@ class RunManager(object):
                 for case in self.cases:
                     if not self.config['simulations'][case['case']].get('job_types'):
                         continue
+
                     if 'all' in self.config['simulations'][case['case']]['job_types'] or key in self.config['simulations'][case['case']]['job_types']:
                         self.add_diag_type_to_cases(
                             freqs=diags[key]['run_frequency'],
@@ -350,18 +351,20 @@ class RunManager(object):
                         filemanager=self.filemanager,
                         case=job.case)
                     # if this job needs data from another case, set that up too
-
                     if isinstance(job, Diag):
                         if job.comparison != 'obs':
                             job.setup_data(
                                 config=self.config,
                                 filemanager=self.filemanager,
                                 case=job.comparison)
-
+                    
+                    # get the instances of jobs this job is dependent on
+                    dep_jobs = [self.get_job_by_id(job_id) for job_id in job._depends_on]
                     run_id = job.execute(
                         config=self.config,
                         dryrun=self.dryrun,
-                        event_list=self.event_list)
+                        event_list=self.event_list,
+                        depends_jobs=dep_jobs)
                     if run_id == 0:
                         job.status = JobStatus.COMPLETED
                     else:
