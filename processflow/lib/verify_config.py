@@ -3,7 +3,7 @@ A module to verify that the user config is valid
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
-
+import socket
 
 def verify_config(config):
     messages = list()
@@ -258,36 +258,58 @@ def verify_config(config):
         # check e3sm_diags
         # ------------------------------------------------------------------------
         if config['diags'].get('e3sm_diags'):
-            if not config['diags']['e3sm_diags'].get('backend'):
-                msg = 'no backend given for e3sm_diags'
+
+            sets = config['diags']['e3sm_diags'].get('sets_to_run')
+            if sets:
+                if 'area_mean_time_series' in sets:
+                    if 'timeseries' not in config['post-processing'].keys():
+                        msg = 'e3sm_diags is set to run area_mean_time_series but no timeseries job speficied'
+                        messages.append(msg)
+            else:
+                msg = 'please specify which plot sets to run for e3sm_diags using the sets_to_run config option (lon_lat is the most common set).'
                 messages.append(msg)
-            if not config['diags']['e3sm_diags'].get('reference_data_path'):
-                msg = 'no reference_data_path given for e3sm_diags'
-                messages.append(msg)
-            if not config['diags']['e3sm_diags'].get('run_frequency'):
-                msg = 'no run_frequency given for e3sm_diags'
+
+            if not config['diags']['e3sm_diags'].get('machine_path_prefix'):
+                hostname = socket.gethostname()
+                if hostname == 'acme1.llnl.gov':
+                    config['diags']['e3sm_diags']['machine_path_prefix'] = '/p/user_pub/e3sm/e3sm_diags_data/'
+                elif 'cori' in hostname:
+                    config['diags']['e3sm_diags']['machine_path_prefix'] = '/global/cfs/cdirs/e3sm/acme_diags/obs_for_e3sm_diags/'
+                elif 'compy' in hostname:
+                    config['diags']['e3sm_diags']['machine_path_prefix'] = '/compyfs/e3sm_diags_data/obs_for_e3sm_diags/'
+                else:
+                    msg = 'e3sm_diags requires the mechine_path_prefix for obs data'
+                    messages.append(msg)
+
+            frequency = config['diags']['e3sm_diags'].get('run_frequency')
+            if not frequency:
+                msg = 'No run frequency specified for e3sm_diags'
                 messages.append(msg)
             else:
-                if not isinstance(config['diags']['e3sm_diags'].get('run_frequency'), list):
-                    config['diags']['e3sm_diags']['run_frequency'] = [
-                        config['diags']['e3sm_diags']['run_frequency']]
+                if not isinstance(frequency, list):
+                    config['diags']['e3sm_diags']['run_frequency'] = [frequency]
 
-                for freq in config['diags']['e3sm_diags']['run_frequency']:
+                for freq in frequency:
                     for sim in config['simulations']:
                         if sim in ['start_year', 'end_year']:
                             continue
                         if 'e3sm_diags' in config['simulations'][sim].get('job_types') \
-                                and 'climo' not in config['simulations'][sim].get('job_types'):
-                            msg = 'e3sm_diags is set to run for case {case} at {freq}yr frequency, but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                                and 'lat_lon' in config['diags']['e3sm_diags']['sets_to_run'] \
+                                and 'climo' not in config['simulations'][sim].get('job_types') \
+                                and ('climo' in config['post-processing'].keys() and 'all' not in config['simulations'][sim].get('job_types')):
+                            msg = 'e3sm_diags is set to run lon_lat for case {case} at {freq}yr frequency, but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
                                 case=sim,
                                 freq=freq)
                             messages.append(msg)
-                    if not config.get('post-processing') \
-                            or not config['post-processing'].get('climo') \
-                            or not freq in config['post-processing']['climo']['run_frequency']:
-                        msg = 'e3sm_diags is set to run at frequency {} but no climo job for this frequency is set'.format(
-                            freq)
-                        messages.append(msg)
+                        if 'e3sm_diags' in config['simulations'][sim].get('job_types') \
+                                and 'area_mean_time_series' in config['diags']['e3sm_diags']['sets_to_run'] \
+                                and 'timeseries' not in config['simulations'][sim].get('job_types') \
+                                and ('timeseries' in config['post-processing'].keys() and 'all' not in config['simulations'][sim].get('job_types')):
+                            msg = 'e3sm_diags is set to run timeseries for case {case} at {freq}yr frequency, but no timeseries job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                                case=sim,
+                                freq=freq)
+                            messages.append(msg)
+
         # ------------------------------------------------------------------------
         # check amwg
         # ------------------------------------------------------------------------

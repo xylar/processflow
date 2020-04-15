@@ -186,7 +186,7 @@ def render(variables, input_path, output_path):
 
         with open(output_path, 'a+') as outfile:
             outfile.write(outstr)
-    except Exception as e:
+    except Exception:
         return False
     else:
         return True
