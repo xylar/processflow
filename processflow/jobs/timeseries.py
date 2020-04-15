@@ -23,7 +23,7 @@ class Timeseries(Job):
         self._regrid_path = ''
 
         config = kwargs['config']
-        custom_args = config['post-processing'][self.job_type].get(
+        custom_args = config['post-processing']['timeseries'].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
@@ -49,7 +49,8 @@ class Timeseries(Job):
                 'ts',
                 self._short_name,
                 config['simulations'][self.case]['native_grid_name'],
-                '{length}yr'.format(length=self.end_year - self.start_year + 1))
+                '{length}yr'.format(length=self.end_year - self.start_year + 1),
+                self._run_type)
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
@@ -64,10 +65,18 @@ class Timeseries(Job):
                 'ts',
                 self._short_name,
                 config['post-processing']['timeseries']['destination_grid_name'],
-                '{length}yr'.format(length=self.end_year - self.start_year + 1))
+                '{length}yr'.format(length=self.end_year - self.start_year + 1),
+                self._run_type)
         else:
             self._regrid = False
         self.setup_job_args(config)
+
+    @property
+    def output_path(self):
+        if self._regrid:
+            return self._regrid_path
+        else:
+            return self._output_path
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -193,7 +202,7 @@ class Timeseries(Job):
         self._var_list = list(
             filter(lambda x: x not in to_remove, self._var_list))
 
-    def execute(self, config, event_list, dryrun=False):
+    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for e3sm_diags
 
@@ -259,10 +268,12 @@ class Timeseries(Job):
             config (dict): the global config object
         """
 
-        if not config['data_types'].get('ts_native'):
-            config['data_types']['ts_native'] = {'monthly': False}
-        if not config['data_types'].get('ts_regrid'):
-            config['data_types']['ts_regrid'] = {'monthly': False}
+        if not config['data_types'].get('ts_native_' + self._run_type):
+            config['data_types']['ts_native_' + self._run_type] = {'monthly': False}
+        
+        if not config['data_types'].get('ts_regrid_' + self._run_type):
+            config['data_types']['ts_regrid_' + self._run_type] = {'monthly': False}
+        
         if self._dryrun:
             return
 
@@ -300,7 +311,7 @@ class Timeseries(Job):
                 'local_status': FileStatus.PRESENT.value
             })
         filemanager.add_files(
-            data_type='ts_native',
+            data_type='ts_native_' + self._run_type,
             file_list=new_files,
             super_type='derived')
 
@@ -327,7 +338,7 @@ class Timeseries(Job):
                     'local_status': FileStatus.PRESENT.value
                 })
             filemanager.add_files(
-                data_type='ts_regrid',
+                data_type='ts_regrid_' + self._run_type,
                 file_list=new_files,
                 super_type='derived')
 
