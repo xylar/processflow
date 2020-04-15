@@ -55,7 +55,7 @@ class Regrid(Job):
         return True
     # -----------------------------------------------
 
-    def execute(self, config, event_list, dryrun=False):
+    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for ncremap to regrid model output
 

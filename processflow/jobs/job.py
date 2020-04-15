@@ -465,6 +465,11 @@ class Job(object):
             raise Exception(msg)
         self._job_id = new_id
     # -----------------------------------------------
+    
+    @property
+    def output_path(self):
+        return self._output_path
+    # -----------------------------------------------
 
     def __str__(self):
         return json.dumps({

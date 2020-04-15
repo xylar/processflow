@@ -103,7 +103,7 @@ class Cmor(Job):
             raise Exception(msg)
     # -----------------------------------------------
 
-    def execute(self, config, event_list, dryrun=False):
+    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
         """
         Execute the CMOR job
 

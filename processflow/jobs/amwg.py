@@ -132,7 +132,7 @@ class AMWG(Diag):
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
 
-    def execute(self, config, event_list, custom_args=None, dryrun=False):
+    def execute(self, config, event_list, *args, custom_args=None, dryrun=False, **kwargs):
         """
         Execute the AMWG job
 

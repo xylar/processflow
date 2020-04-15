@@ -11,15 +11,28 @@ from processflow.jobs.diag import Diag
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.util import render, print_line
 
-
 class E3SMDiags(Diag):
     def __init__(self, *args, **kwargs):
         super(E3SMDiags, self).__init__(*args, **kwargs)
         self._job_type = 'e3sm_diags'
-        self._requires = 'climo'
-        self._data_required = ['climo_regrid']
+        self._requires = []
+        self._data_required = []
 
-        if kwargs['config']['global']['host']:
+        config = kwargs['config']
+        custom_args = config['diags']['e3sm_diags'].get(
+            'custom_args')
+        if custom_args:
+            self.set_custom_args(custom_args)
+        
+        if 'area_mean_time_series' in config['diags']['e3sm_diags']['sets_to_run']:
+            self._requires.append('timeseries')
+            self._data_required.append('ts_regrid_atm')
+        else:
+        # if config['diags']['e3sm_diags']['sets_to_run'] != ['area_mean_time_series']:
+            self._requires.append('climo')
+            self._data_required.append('climo_regrid')
+
+        if config['global']['host']:
             self._host_path = os.path.join(
                 kwargs['config']['img_hosting']['host_directory'],
                 self.short_name,
@@ -31,12 +44,6 @@ class E3SMDiags(Diag):
         else:
             self._host_path = ''
 
-        config = kwargs['config']
-        custom_args = config['diags']['e3sm_diags'].get(
-            'custom_args')
-        if custom_args:
-            self.set_custom_args(custom_args)
-        
         # setup the output directory, creating it if it doesnt already exist
         custom_output_path = config['diags'][self.job_type].get(
             'custom_output_path')
@@ -57,19 +64,23 @@ class E3SMDiags(Diag):
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
         self.setup_job_args(config)
+        self.setup_job_params(config)
     # -----------------------------------------------
 
     def _dep_filter(self, job):
         """
-        find the climo job we're waiting for, assuming there's only
-        one climo job in this case with the same start and end years
+        find the climo/ts job we're waiting for, assuming there's only
+        one climo/ts job in this case with the same start and end years
         """
-        if job.job_type != self._requires:
+        if job.job_type not in self._requires:
             return False
         if job.start_year != self.start_year:
             return False
         if job.end_year != self.end_year:
             return False
+        if job.job_type == 'timeseries':
+            if job.run_type != 'atm': # we dont care about lnd/ocn/sea-ice ts jobs
+                return False
         return True
     # -----------------------------------------------
 
@@ -84,6 +95,7 @@ class E3SMDiags(Diag):
                 another case, the climos for that other case have to be done already too
         """
         if self.comparison != 'obs':
+            # TODO: get model-vs-model to work for ts
             other_jobs = kwargs['comparison_jobs']
             try:
                 self_climo, = [job for job in jobs if self._dep_filter(job)]
@@ -99,16 +111,14 @@ class E3SMDiags(Diag):
                 raise Exception(msg)
             self.depends_on.extend((self_climo.id, comparison_climo.id))
         else:
-            try:
-                self_climo, = [job for job in jobs if self._dep_filter(job)]
-            except ValueError:
-                msg = 'Unable to find climo for {}, is this case set to generate climos?'.format(
-                    self.msg_prefix())
-                raise Exception(msg)
-            self.depends_on.append(self_climo.id)
+            for job in jobs:
+                if self._dep_filter(job):
+                    self.depends_on.append(job.id)
+            if not self.depends_on:
+                raise ValueError('Unable to find job dependencies for {}'.format(str(self)))
     # -----------------------------------------------
 
-    def execute(self, config, event_list, slurm_args=None, dryrun=False):
+    def execute(self, config, event_list, *args, slurm_args=None, dryrun=False, **kwargs):
         """
         Generates and submits a run script for e3sm_diags
 
@@ -119,15 +129,6 @@ class E3SMDiags(Diag):
                 and the scripts generated, but not actually submitted
         """
         self._dryrun = dryrun
-
-        # render the parameter file from the template
-        param_template_out = os.path.join(
-            config['global']['run_scripts_path'],
-            'e3sm_diags_{start:04d}_{end:04d}_{case}_vs_{comp}_params.py'.format(
-                start=self.start_year,
-                end=self.end_year,
-                case=self.short_name,
-                comp=self._short_comp_name))
         variables = dict()
 
         if dryrun:
@@ -138,15 +139,27 @@ class E3SMDiags(Diag):
         variables['short_test_name'] = self.short_name
         variables['test_data_path'] = input_path
         variables['test_name'] = self.case
-        variables['backend'] = config['diags']['e3sm_diags']['backend']
         variables['results_dir'] = self._output_path
         variables['num_workers'] = config['diags']['e3sm_diags'].get('num_workers', 24)
+        variables['machine_path_prefix'] = config['diags']['e3sm_diags']['machine_path_prefix']
+
+        if isinstance(config['diags']['e3sm_diags']['sets_to_run'], list):
+            variables['sets_to_run'] = "' , '".join(config['diags']['e3sm_diags']['sets_to_run'])
+        else:
+            variables['sets_to_run'] = config['diags']['e3sm_diags']['sets_to_run']
 
         if self.comparison == 'obs':
-            template_input_path = os.path.join(
-                config['global']['resource_path'],
-                'e3sm_diags_template_vs_obs.py')
-            variables['reference_data_path'] = config['diags']['e3sm_diags']['reference_data_path']
+            if 'area_mean_time_series' in config['diags']['e3sm_diags']['sets_to_run']:
+                template_input_path = os.path.join(
+                    config['global']['resource_path'],
+                    'e3sm_diags_template_ts_vs_obs.py')
+                variables['ts_start'] = self.start_year
+                variables['ts_end'] = self.end_year
+                variables['ts_test_data_path'] = [x for x in kwargs['depends_jobs'] if x.job_type == 'timeseries'].pop().output_path
+            else:
+                template_input_path = os.path.join(
+                    config['global']['resource_path'],
+                    'e3sm_diags_template_vs_obs.py')
         else:
             template_input_path = os.path.join(
                 config['global']['resource_path'],
@@ -155,6 +168,22 @@ class E3SMDiags(Diag):
             variables['reference_data_path'] = input_path
             variables['ref_name'] = self.comparison
             variables['reference_name'] = config['simulations'][self.comparison]['short_name']
+    
+        if self._job_params:
+            variables['custom_params'] = ''
+            for p in self._job_params:
+                variables['custom_params'] += '{} = "{}"\n'.format(p, self._job_params[p])
+
+        # render the parameter file from the template
+        param_template_out = os.path.join(
+            config['global']['run_scripts_path'],
+            'e3sm_diags_{start:04d}_{end:04d}_{case}_vs_{comp}_params.py'.format(
+                start=self.start_year,
+                end=self.end_year,
+                case=self.short_name,
+                comp=self._short_comp_name))
+
+
         # remove previous run script if it exists
         if os.path.exists(param_template_out):
             os.remove(param_template_out)
@@ -162,8 +191,8 @@ class E3SMDiags(Diag):
             variables=variables,
             input_path=template_input_path,
             output_path=param_template_out)
-
-        cmd = ['e3sm_diags', '-p', param_template_out]
+        
+        cmd = ['python', param_template_out]
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------
 
@@ -225,10 +254,12 @@ class E3SMDiags(Diag):
 
         viewer_path = os.path.join(self._output_path, 'viewer', 'index.html')
         if not os.path.exists(viewer_path):
-            msg = '{}: could not find page index at {}'.format(
-                self.msg_prefix(), viewer_path)
-            logging.error(msg)
+            if self._has_been_executed:
+                msg = '{}: could not find page index at {}'.format(
+                    self.msg_prefix(), viewer_path)
+                logging.error(msg)
             return False
+
         viewer_head = os.path.join(self._output_path, 'viewer')
         if not os.path.exists(viewer_head):
             msg = '{}: could not find output viewer at {}'.format(

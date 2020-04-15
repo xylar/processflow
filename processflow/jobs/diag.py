@@ -24,7 +24,7 @@ class Diag(Job):
         self._host_url = ''
         self._short_comp_name = ""
         self._comparison = kwargs.get('comparison', 'obs')
-
+        self._job_params = {}
         # setup the comparison name
         if self._comparison == 'obs':
             self._short_comp_name = 'obs'
@@ -304,4 +304,10 @@ class Diag(Job):
         if config['diags'][self._job_type].get('job_args'):
             for _, val in config['diags'][self._job_type]['job_args'].items():
                 self._job_args.append(val)
+    # -----------------------------------------------
+        
+    def setup_job_params(self, config):
+        if config['diags'][self._job_type].get('job_params'):
+            for key, val in config['diags'][self._job_type]['job_params'].items():
+                self._job_params[key] = val
     # -----------------------------------------------
