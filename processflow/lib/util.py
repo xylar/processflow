@@ -63,6 +63,29 @@ def get_climo_output_files(input_path, start_year, end_year):
 # -----------------------------------------------
 
 
+def get_cmip_output_files(input_path):
+    """
+    From a CMIP6 filename, return the variable name as well as the start and end year
+    """
+
+    if not input_path[-3:] != '.nc':
+        return False, False, False
+    
+    idx = input_path.find('_')
+    var = input_path[:idx]
+
+    pattern = r'\d{6}_\d{6}'
+    idx = re.search(pattern, input_path)
+    if not idx:
+        return False, False, False
+    idx = idx.start()
+    start = int(input_path[idx: idx + 4])
+    end = int(input_path[idx + 7: idx + 11])
+
+    return var, start, end
+# -----------------------------------------------
+
+
 def get_ts_output_files(input_path, var_list, start_year, end_year):
     """
     Return a list of ncclimo timeseries files from a list of variables, start_year to end_year

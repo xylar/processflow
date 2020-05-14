@@ -248,6 +248,16 @@ class RunManager(object):
                                     end=end,
                                     run_type=dtype,
                                     case=case)
+                elif key == 'cmor':
+                    for table in ['Amon', 'Lmon', 'SImon', 'Omon']:
+                        if self.config['post-processing']['cmor'].get(table):
+                            self.add_pp_type_to_cases(
+                                freqs=val.get('run_frequency'),
+                                job_type=key,
+                                start=start,
+                                end=end,
+                                run_type=table,
+                                case=case)
                 else:
                     for case in cases_to_add:
                         self.add_pp_type_to_cases(
@@ -284,7 +294,8 @@ class RunManager(object):
         for case in self.cases:
             for job in case['jobs']:
                 if job.comparison != 'obs':
-                    other_case, = [case for case in self.cases if case['case'] == job.comparison]
+                    other_case, = [
+                        case for case in self.cases if case['case'] == job.comparison]
                     job.setup_dependencies(
                         jobs=case['jobs'],
                         comparison_jobs=other_case['jobs'])
@@ -357,9 +368,10 @@ class RunManager(object):
                                 config=self.config,
                                 filemanager=self.filemanager,
                                 case=job.comparison)
-                    
+
                     # get the instances of jobs this job is dependent on
-                    dep_jobs = [self.get_job_by_id(job_id) for job_id in job._depends_on]
+                    dep_jobs = [self.get_job_by_id(
+                        job_id) for job_id in job._depends_on]
                     run_id = job.execute(
                         config=self.config,
                         dryrun=self.dryrun,

@@ -48,7 +48,7 @@ def main(cl_args=None):
         event_list=event_list)
 
     if isinstance(config, int):
-        print("Error in setup, exiting")
+        print_message("Error in setup, exiting", 'error')
         return -1
     logging.info('Config setup complete')
     debug = True if config['global'].get('debug') else False
@@ -67,7 +67,7 @@ def main(cl_args=None):
         while True:
 
             if debug:
-                print_line(' -- checking data -- ')
+                print_line(' -- checking data --')
             runmanager.check_data_ready()
 
             if debug:
@@ -79,7 +79,7 @@ def main(cl_args=None):
             runmanager.monitor_running_jobs(debug=debug)
 
             if debug:
-                print_line(' -- writing out state -- ')
+                print_line(' -- writing out state --')
             runmanager.write_job_sets(state_path)
 
             status = runmanager.is_all_done()
@@ -98,12 +98,13 @@ def main(cl_args=None):
                 print_line(' -- sleeping')
             sleep(loop_delay)
     except KeyboardInterrupt as e:
-        print_message('\n----- KEYBOARD INTERRUPT -----')
-        runmanager.write_job_sets(state_path)
-        print_message('-----  cleanup complete  -----', 'ok')
+        print_message('----- KEYBOARD INTERRUPT -----')
+        if debug:
+            import ipdb; ipdb.set_trace()
     except Exception as e:
         print_message('----- AN UNEXPECTED EXCEPTION OCCURED -----')
         print_debug(e)
+    finally:
         runmanager.write_job_sets(state_path)
 # -----------------------------------------------
 
