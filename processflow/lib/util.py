@@ -68,13 +68,13 @@ def get_cmip_output_files(input_path):
     From a CMIP6 filename, return the variable name as well as the start and end year
     """
 
-    if not input_path[-3:] != '.nc':
+    if input_path[-3:] != '.nc':
         return False, False, False
     
     idx = input_path.find('_')
     var = input_path[:idx]
 
-    pattern = r'\d{6}_\d{6}'
+    pattern = r'\d{6}-\d{6}'
     idx = re.search(pattern, input_path)
     if not idx:
         return False, False, False

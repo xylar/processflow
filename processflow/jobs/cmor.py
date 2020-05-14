@@ -108,11 +108,11 @@ class Cmor(Job):
             if files is None:
                 continue
             for f in files:
-                if f.endswith('nc'):
+                if f[-3:] == '.nc' and self._table in f:
                     found.append(f)
         
         found_vars = []
-        for filename in files:
+        for filename in found:
             var, start, end = get_cmip_output_files(filename)
             if not var or not start or not end:
                 continue
@@ -168,14 +168,21 @@ class Cmor(Job):
         self._dryrun = dryrun
 
         input_path, _ = os.path.split(self._input_file_paths[0])
+        additional_files = []
+        if self._run_type in ['ocn', 'cice']:
+            additional_files.append(config['post-processing']['cmor']['mpas_map_path'])
+            _, map_path = os.path.split(config['post-processing']['cmor']['mpas_map_path'])
+            additional_files.append(config['post-processing']['cmor']['regions_path'])
+            additional_files.append(config['post-processing']['cmor']['mpas_mesh_path'])
         if self._run_type == 'atm':
-            mode = 'atm'
-        elif self._run_type == 'lnd':
-            mode = 'lnd'
-        elif self._run_type == 'cice':
-            mode = 'ice'
-        elif self._run_type == 'ocn':
-            mode = 'ocn'
+            additional_files.append(config['post-processing']['cmor']['vertical_map_path'])
+        
+        for path in additional_files:
+            _, filename = os.path.split(path)
+            dest = os.path.join(input_path, filename)
+            if not os.path.lexists(dest):
+                os.symlink(path, dest)
+
         cmd = [
             'e3sm_to_cmip',
             '--input', input_path,
@@ -184,9 +191,20 @@ class Cmor(Job):
                                    ['cmor'][self._table]['variables']),
             '-u', config['simulations'][self.case]['user_input_json_path'],
             '--tables', config['post-processing']['cmor']['cmor_tables_path'],
-            '--num-proc', '24',
-            '--mode', mode        
+            '--num-proc', '24'
         ]
+        if self._run_type == 'atm':
+            mode = 'atm'
+        elif self._run_type == 'lnd':
+            mode = 'lnd'
+        elif self._run_type == 'cice':
+            mode = 'ice'
+            cmd.extend(['--map', os.path.join(input_path, map_path)])
+        elif self._run_type == 'ocn':
+            mode = 'ocn'
+            cmd.extend(['--map', os.path.join(input_path, map_path)])
+        cmd.extend(['--mode', mode])
+
         custom_handlers = config['post-processing']['cmor'].get(
             'custom_handlers_path')
         if custom_handlers is not None:
@@ -224,7 +242,7 @@ class Cmor(Job):
                         'local_status': FileStatus.PRESENT.value
                     })
             filemanager.add_files(
-                data_type='cmorized',
+                data_type=f'cmorized-{self._run_type}',
                 file_list=new_files,
                 super_type='derived')
             filemanager.write_database()
