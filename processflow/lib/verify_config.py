@@ -211,39 +211,34 @@ def verify_config(config):
         # check cmor
         # ------------------------------------------------------------------------
         if config['post-processing'].get('cmor'):
+            # check that a valid run_frequency is set
             if not config['post-processing']['cmor'].get('run_frequency'):
                 msg = 'no run_frequency given for cmor, make sure this matches the frequency for timeseries'
                 messages.append(msg)
             else:
+                # if its not a list, package it inside one
                 if not isinstance(config['post-processing']['cmor'].get('run_frequency'), list):
                     config['post-processing']['cmor']['run_frequency'] = [
                         config['post-processing']['cmor']['run_frequency']]
-            if not config['post-processing']['cmor'].get('variable_list'):
-                msg = 'no variable list given for cmor, please provide a list of E3SM variables to convert to CMIP6 format'
+
+            any_tables = False
+            for table in ["Amon", "Lmon", "Omon", "SImon"]:
+                if config['post-processing']['cmor'].get(table):
+                    any_tables = True
+                
+                    # make sure the var list is packed inside a list
+                    if not isinstance(config['post-processing']['cmor'][table]['variables'], list):
+                        config['post-processing']['cmor'][table]['variables'] = [
+                            config['post-processing']['cmor'][table]['variables']]
+            if not any_tables:
+                msg = "Please specify which tables to produce variables for"
                 messages.append(msg)
-            elif not config['post-processing'].get('timeseries'):
-                msg = "the cmor job requires timeseries file generation, add a timeseries job to enable cmor"
-                messages.append(msg)
-            else:
-                if not isinstance(config['post-processing']['cmor']['variable_list'], list):
-                    config['post-processing']['cmor']['variable_list'] = [
-                        config['post-processing']['cmor']['variable_list']]
-                for variable in config['post-processing']['cmor']['variable_list']:
-                    if variable not in config['post-processing']['timeseries'].get('atm', list()) and variable not in config['post-processing']['timeseries'].get('lnd', list()) and variable not in config['post-processing']['timeseries'].get('ocn', list()) and variable != 'all':
-                        msg = 'variable {} is in the cmor variable_list but not present in the timeseries list, all cmor input variables must first be extracted as timeseries varibles'.format(
-                            variable)
-                        messages.append(msg)
-            for sim in config['post-processing']['cmor']:
-                if sim not in config['simulations']:
-                    continue
-                if not config['post-processing']['cmor'][sim].get('user_input_json_path'):
-                    msg = 'simulation case {} is set to be cmorized, but no user_input json file path provided'.format(
-                        sim)
+
+            for extra in ['mpas_mesh_path', 'mpas_map_path', 'regions_path', 'vertical_map_path']:
+                if config['post-processing']['cmor'].get(extra) and not os.path.exists(config['post-processing']['cmor'][extra]) and not os.path.lexists(config['post-processing']['cmor'][extra]):
+                    msg = f"{extra} was given for cmor, but the file {config['post-processing']['cmor'][extra]} doesnt appear to exist"
                     messages.append(msg)
-                else:
-                    if not os.path.exists(config['post-processing']['cmor'][sim].get('user_input_json_path')):
-                        msg = 'provided user_input_json_path {} doesnt exist.'
-                        messages.append(msg)
+
             if not config['post-processing']['cmor'].get('cmor_tables_path'):
                 msg = 'please provide a path to where to find the master cmor tables. A copy of the tables can be found here: https://github.com/PCMDI/cmor'
                 messages.append(msg)
@@ -403,6 +398,42 @@ def verify_config(config):
                             case=sim,
                             reqtype=reqtype)
                         messages.append(msg)
+
+        # ------------------------------------------------------------------------
+        # check ILAMB
+        # ------------------------------------------------------------------------                        
+        if config['diags'].get('ilamb'):
+            # make sure there's a run_frequency and its packed inside a list
+            if not config['diags']['ilamb'].get('run_frequency'):
+                msg = 'no run_frequency given for ilamb'
+                messages.append(msg)
+            else:
+                if not isinstance(config['diags']['ilamb']['run_frequency'], list):
+                    config['diags']['ilamb']['run_frequency'] = [
+                        config['diags']['ilamb']['run_frequency']]
+            # make sure there's a cmor job
+            if not config['post-processing'].get('cmor'):
+                msg = f"ILAMB requires that variables be provided in the CMIP6 format, please configure a CMOR job"
+                messages.append(msg)
+            else:
+                # make sure all the variables are going to be created by CMOR
+                if not config['diags']['ilamb'].get('variables'):
+                    msg = f'Please give one or more variables for ilamb to run'
+                    messages.append(msg)
+                else:
+                    for var in config['diags']['ilamb']['variables']:
+                        found_var = False
+                        for table in ["Amon", "Lmon"]:
+                            if var in config['post-processing']['cmor'][table]['variables']:
+                                found_var = True
+                                break
+                        if not found_var:
+                            msg = f"ILAMB is set to run on variable {var}, but the CMOR job isnt set to generate it"
+                            messages.append(msg)
+            # make sure there's an ILAMB data root
+            if not config['diags']['ilamb'].get('ilamb_root'):
+                msg = "Please specify the ilamb_root for the ilamb obs data"
+                messages.append(msg)
     return messages
 # ------------------------------------------------------------------------
 

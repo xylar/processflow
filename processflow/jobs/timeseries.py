@@ -98,9 +98,12 @@ class Timeseries(Job):
             True if all the files exist
             False otherwise
         """
+        msg = f'{self.msg_prefix()}: Running output check'
+        print_line(msg)
 
         if self._dryrun:
             return True
+        
         
         # filter out variables that exist
         self.filter_var_list()
@@ -110,12 +113,10 @@ class Timeseries(Job):
 
         if self._has_been_executed:
             for var in self._var_list:
-                msg = "{prefix}: Unable to find {file} after execution".format(
-                    prefix=self.msg_prefix(),
-                    file=var)
-                logging.error(msg)
+                msg = f"{self.msg_prefix()}: Unable to find {var} after execution",
+                print_line(msg, 'error')
 
-        # if anything is left in the var list then there was an error
+        # if anything is left in the var list then the job had an error or needs to run
         return False
     # -----------------------------------------------
 
@@ -150,19 +151,36 @@ class Timeseries(Job):
             file_source = self._regrid_path
         else:
             file_source = self._output_path
-            
+        
+        pbar = tqdm(total=len(self._var_list), desc=f"{self.msg_prefix()}: Checking time-series output")
         for var in self._var_list:
             file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
                 var=var,
                 start=self.start_year,
                 end=self.end_year)
-            if os.path.exists(os.path.join(file_source, file_name)):
-                to_remove.append(var)
+            file_path = os.path.join(file_source, file_name)
+            if os.path.exists(file_path):
+                try:
+                    pbar.set_description(f'{self.msg_prefix()}: Checking integrity of {file_name}')
+                    _ = xr.open_dataset(file_path)
+                except IndexError:
+                    print_line(f'Found and error in {file_name}', 'error')
+                else:
+                    to_remove.append(var)
             elif os.path.exists(os.path.join(file_source, var + '.nc')):
-                to_remove.append(var)
+                try:
+                    pbar.set_description(f'{self.msg_prefix()}: Checking integrity of {var}.nc')
+                    _ = xr.open_dataset(os.path.join(file_source, var + '.nc'))
+                except IndexError:
+                    print_line(f'Found and error in {var}.nc', 'error')
+                else:
+                    to_remove.append(var)
+            pbar.update(1)
+        pbar.close()
 
         self._var_list = list(
-            filter(lambda x: x not in to_remove, self._var_list))
+            filter(lambda x: x not in to_remove, self._var_list)
+        )
         return
     # -----------------------------------------------
 
@@ -219,7 +237,6 @@ class Timeseries(Job):
         self._input_file_paths = sorted(self._input_file_paths)
         input_path, _ = os.path.split(self._input_file_paths[0])
 
-        self.filter_var_list()
         self.check_all_variables_present(config)
         self.extract_scalar()
         if not self._var_list:
@@ -268,25 +285,21 @@ class Timeseries(Job):
             config (dict): the global config object
         """
 
-        if not config['data_types'].get('ts_native_' + self._run_type):
-            config['data_types']['ts_native_' + self._run_type] = {'monthly': False}
-        
-        if not config['data_types'].get('ts_regrid_' + self._run_type):
-            config['data_types']['ts_regrid_' + self._run_type] = {'monthly': False}
+        for dtype in [f'ts_native_{self._run_type}', f'ts_regrid_{self._run_type}']:
+            if not config['data_types'].get(dtype):
+                config['data_types'][dtype] = {'monthly': False}
         
         if self._dryrun:
             return
 
         if self.status != JobStatus.COMPLETED:
             
-            msg = '{prefix}: Job failed, not running completion handler'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
             print_line(msg)
             logging.info(msg)
             return
         else:
-            msg = '{prefix}: Job complete'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: Job complete'
             print_line(msg)
 
         new_files = list()
@@ -297,8 +310,7 @@ class Timeseries(Job):
             self.end_year)
         if not ts_files:
             self.status = JobStatus.FAILED
-            msg = '{prefix}: Job failed, not running completion handler'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
             print_line(msg)
             return
         for ts_file in ts_files:
@@ -311,7 +323,7 @@ class Timeseries(Job):
                 'local_status': FileStatus.PRESENT.value
             })
         filemanager.add_files(
-            data_type='ts_native_' + self._run_type,
+            data_type=f'ts_native_{self._run_type}',
             file_list=new_files,
             super_type='derived')
 
@@ -324,8 +336,7 @@ class Timeseries(Job):
                 self.end_year)
             if not ts_files:
                 self.status = JobStatus.FAILED
-                msg = '{prefix}: Job failed, not running completion handler'.format(
-                    prefix=self.msg_prefix())
+                msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
                 print_line(msg)
                 return
             for ts_file in ts_files:
@@ -343,8 +354,7 @@ class Timeseries(Job):
                 super_type='derived')
 
         filemanager.write_database()
-        msg = '{prefix}: Job completion handler done'.format(
-            prefix=self.msg_prefix())
+        msg = f'{self.msg_prefix()}: Job completion handler done\n'
         print_line(msg)
     # -----------------------------------------------
 

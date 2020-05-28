@@ -155,16 +155,12 @@ class Climo(Job):
             config (dict): the global configuration object
         """
         if self.status != JobStatus.COMPLETED:
-            msg = '{prefix}: Job failed, not running completion handler'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
             print_line(msg)
-            logging.info(msg)
             return
         else:
-            msg = '{prefix}: Job complete'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: Job complete'
             print_line(msg)
-            logging.info(msg)
 
         new_files = list()
         for regrid_file in get_climo_output_files(self._regrid_path, self.start_year, self.end_year):
@@ -201,8 +197,7 @@ class Climo(Job):
             config['data_types']['climo_native'] = {'monthly': True}
 
         filemanager.write_database()
-        msg = '{prefix}: Job completion handler done'.format(
-            prefix=self.msg_prefix())
+        msg = f'{self.msg_prefix()}: Job completion handler done\n'
         print_line(msg)
         logging.info(msg)
     # -----------------------------------------------

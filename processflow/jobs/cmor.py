@@ -1,9 +1,11 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
+import xarray as xr
 
+from tqdm import tqdm
 from processflow.jobs.job import Job
-from processflow.lib.util import print_line, get_cmip_output_files
+from processflow.lib.util import print_line, get_cmip_file_info
 from processflow.lib.filemanager import FileStatus
 
 
@@ -23,6 +25,7 @@ class Cmor(Job):
         self._requires = []
         self._data_required = []
         self._table = ''
+        self._completed_vars = []
 
         config = kwargs['config']
         custom_args = config['post-processing'][self.job_type].get(
@@ -59,7 +62,7 @@ class Cmor(Job):
         if not kwargs['config']['post-processing']['cmor'].get(kwargs['run_type']):
             raise ValueError(f'CMOR job must be given a set of variables to run')
 
-        self._variables = kwargs['config']['post-processing']['cmor'][kwargs['run_type']]
+        self._variables = kwargs['config']['post-processing']['cmor'][kwargs['run_type']]['variables']
         if not isinstance(self._variables, list):
             self._variables = [self._variables]
         
@@ -95,6 +98,9 @@ class Cmor(Job):
         """
         Validate that the CMOR job completed successfuly
 
+        If any variables are found with the correct start and end date, they are removed
+        from the list of variables left to be run.
+
         Parameters
         ----------
             config (dict) the global config object
@@ -104,27 +110,48 @@ class Cmor(Job):
             False otherwise
         """
         found = list()
-        for _, _, files in os.walk(self._output_path):
+        for root, _, files in os.walk(self._output_path):
             if files is None:
                 continue
             for f in files:
                 if f[-3:] == '.nc' and self._table in f:
-                    found.append(f)
+                    found.append(os.path.join(root, f))
         
         found_vars = []
+        if found:
+            pbar = tqdm(total=len(found), desc=f"{self.msg_prefix()}: Validating CMOR variables")
+        else:
+            return False
+
         for filename in found:
-            var, start, end = get_cmip_output_files(filename)
+            _, name = os.path.split(filename)
+            try:
+                pbar.set_description(f"{self.msg_prefix()}: Checking {name}")
+                _ = xr.open_dataset(filename)
+            except IndexError:
+                msg = f"{self.msg_prefix()}: Error in {filename}"
+                print_line(msg, 'error')
+                continue
+            else:
+                pbar.update(1)
+
+            var, start, end = get_cmip_file_info(name)
             if not var or not start or not end:
                 continue
-            if var in config['post-processing']['cmor'][self._table]['variables'] \
+            if var in self._variables \
                and start == self._start_year \
                and end == self._end_year:
                 found_vars.append(var)
+                # since the variable already exists, remove it from the list that needs to be generated
+                self._variables.remove(var)
+                self._completed_vars.append(var)
+
+        pbar.set_description(f"{self.msg_prefix()}: CMOR variable checking complete")
+        pbar.close()
         
-        for var in config['post-processing']['cmor'][self._table]['variables']:
-            if var in found_vars:
-                continue
+        if len(self._variables) != 0:
             return False
+        
         return True
     # -----------------------------------------------
 
@@ -143,7 +170,6 @@ class Cmor(Job):
                 and job.end_year == self.end_year:
                         self.depends_on.append(job.id)
         if not self.depends_on:
-            import ipdb; ipdb.set_trace()
             msg = f'Unable to find timeseries for {self.msg_prefix()}, does this case generate timeseries?'
             raise Exception(msg)
     # -----------------------------------------------
@@ -166,7 +192,7 @@ class Cmor(Job):
                 if the job was submitted to the resource manager
         """
         self._dryrun = dryrun
-
+        
         input_path, _ = os.path.split(self._input_file_paths[0])
         additional_files = []
         if self._run_type in ['ocn', 'cice']:
@@ -187,8 +213,7 @@ class Cmor(Job):
             'e3sm_to_cmip',
             '--input', input_path,
             '--output', self._output_path,
-            '--var-list', ' '.join(config['post-processing']
-                                   ['cmor'][self._table]['variables']),
+            '--var-list', ' '.join(self._variables),
             '-u', config['simulations'][self.case]['user_input_json_path'],
             '--tables', config['post-processing']['cmor']['cmor_tables_path'],
             '--num-proc', '24'
@@ -227,30 +252,39 @@ class Cmor(Job):
             True if files added correctly
             False if there was any error
         """
+        for dtype in [f'cmorized-{var}' for var in self._completed_vars]:
+            if not config['data_types'].get(dtype):
+                config['data_types'][dtype] = {'monthly': False}
+
         try:
-            new_files = list()
-            for _, _, files in os.walk(self._output_path):
+            for root, _, files in os.walk(self._output_path):
                 if files is None:
                     continue
                 for f in files:
-                    new_files.append({
+                    var, start, end = get_cmip_file_info(f)
+                    if not var or var not in self._completed_vars or not start == self.start_year or not end == self.end_year:
+                        continue
+                    new_file = {
                         'name': f,
-                        'local_path': os.path.abspath(f),
+                        'local_path': os.path.join(root, f),
                         'case': self.case,
                         'year': self.start_year,
                         'month': self.end_year,  # use the month to hold the end year field
                         'local_status': FileStatus.PRESENT.value
-                    })
-            filemanager.add_files(
-                data_type=f'cmorized-{self._run_type}',
-                file_list=new_files,
-                super_type='derived')
+                    }
+                    filemanager.add_files(
+                        data_type=f'cmorized-{var}',
+                        file_list=[new_file],
+                        super_type='derived')
             filemanager.write_database()
-            msg = f'{self.msg_prefix()}: Job completion handler done'
+            msg = f'{self.msg_prefix()}: Job completion handler done\n'
             print_line(msg)
-            logging.info(msg)
             return True
         except Exception as e:
             raise e
         return False
     # -----------------------------------------------
+
+    @property
+    def variables(self):
+        return self._variables

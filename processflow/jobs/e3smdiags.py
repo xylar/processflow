@@ -221,15 +221,12 @@ class E3SMDiags(Diag):
             config (dict): the global config object
         """
         if self.status != JobStatus.COMPLETED:
-            msg = '{prefix}: Job failed'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
             print_line(msg)
-            logging.info(msg)
+            return
         else:
-            msg = '{prefix}: Job complete'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: Job complete'
             print_line(msg)
-            logging.info(msg)
 
         # if hosting is turned off, simply return
         if not config['global'].get('host'):
@@ -248,6 +245,9 @@ class E3SMDiags(Diag):
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
+        
+        msg = f'{self.msg_prefix()}: Job completion handler done\n'
+        print_line(msg)
     # -----------------------------------------------
 
     def _check_links(self, config):
@@ -255,8 +255,7 @@ class E3SMDiags(Diag):
         viewer_path = os.path.join(self._output_path, 'viewer', 'index.html')
         if not os.path.exists(viewer_path):
             if self._has_been_executed:
-                msg = '{}: could not find page index at {}'.format(
-                    self.msg_prefix(), viewer_path)
+                msg = f'{self.msg_prefix()}: could not find page index at {viewer_path}'
                 logging.error(msg)
             return False
 
@@ -291,14 +290,12 @@ class E3SMDiags(Diag):
                                 if not os.path.exists(sublink_path):
                                     missing_links.append(sublink_path)
         if missing_links:
-            msg = '{prefix}: missing the following links'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: missing the following links'
             logging.error(msg)
             logging.error(missing_links)
             return False
         else:
-            msg = '{prefix}: all links found'.format(
-                prefix=self.msg_prefix())
+            msg = f'{self.msg_prefix()}: all links found'
             logging.info(msg)
             return True
     # -----------------------------------------------

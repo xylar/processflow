@@ -10,6 +10,7 @@ from processflow.jobs.diag import Diag
 from processflow.jobs.e3smdiags import E3SMDiags
 from processflow.jobs.mpasanalysis import MPASAnalysis
 from processflow.jobs.regrid import Regrid
+from processflow.jobs.ilamb import ILAMB
 
 from processflow.lib.jobstatus import JobStatus, StatusMap, ReverseMap
 from processflow.lib.serial import Serial
@@ -25,7 +26,8 @@ job_map = {
     'amwg': AMWG,
     'aprime': Aprime,
     'cmor': Cmor,
-    'mpas_analysis': MPASAnalysis
+    'mpas_analysis': MPASAnalysis,
+    'ilamb': ILAMB
 }
 
 
@@ -143,7 +145,6 @@ class RunManager(object):
             end (int): the last year of simulated data
             case (dict): the case to add this job to
         """
-
         if not isinstance(freqs, list):
             freqs = [freqs]
 
@@ -227,6 +228,7 @@ class RunManager(object):
             })
 
         pp = self.config.get('post-processing')
+        # import ipdb; ipdb.set_trace()
         if pp:
             for key, val in list(pp.items()):
                 cases_to_add = list()
@@ -249,15 +251,16 @@ class RunManager(object):
                                     run_type=dtype,
                                     case=case)
                 elif key == 'cmor':
-                    for table in ['Amon', 'Lmon', 'SImon', 'Omon']:
-                        if self.config['post-processing']['cmor'].get(table):
-                            self.add_pp_type_to_cases(
-                                freqs=val.get('run_frequency'),
-                                job_type=key,
-                                start=start,
-                                end=end,
-                                run_type=table,
-                                case=case)
+                    for case in cases_to_add:
+                        for table in ['Amon', 'Lmon', 'SImon', 'Omon']:
+                            if self.config['post-processing']['cmor'].get(table):
+                                self.add_pp_type_to_cases(
+                                    freqs=val.get('run_frequency'),
+                                    job_type=key,
+                                    start=start,
+                                    end=end,
+                                    run_type=table,
+                                    case=case)
                 else:
                     for case in cases_to_add:
                         self.add_pp_type_to_cases(
@@ -335,6 +338,10 @@ class RunManager(object):
                     if depjob.status != JobStatus.COMPLETED:
                         deps_ready = False
                         break
+
+                # if 'ilamb' in job.msg_prefix():
+                #     import ipdb; ipdb.set_trace()
+                job.check_data_ready(self.filemanager)
                 if deps_ready and job.data_ready:
 
                     # if the job was finished by a previous run of the processflow
@@ -391,7 +398,7 @@ class RunManager(object):
             for job in case['jobs']:
                 if job.id == jobid:
                     return job
-        raise Exception("no job with id {} found".format(jobid))
+        raise Exception(f"no job with id {jobid} found")
     # -----------------------------------------------
 
     def write_job_sets(self, path):

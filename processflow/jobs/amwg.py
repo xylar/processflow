@@ -335,14 +335,10 @@ class AMWG(Diag):
             event_list (EventList): an EventList to push user notifications into
             config (dict): the global config object
         """
-        if self.status == JobStatus.COMPLETED:
-            msg = '{prefix}: Job complete'.format(
-                prefix=self.msg_prefix())
-        else:
-            msg = '{prefix}: Job failed'.format(
-                prefix=self.msg_prefix())
-        print_line(msg)
-        logging.info(msg)
+        if self.status != JobStatus.COMPLETED:
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
+            print_line(msg, 'error')
+            return
 
         # if hosting is turned off, simply return
         if not config['global'].get('host'):
@@ -371,6 +367,9 @@ class AMWG(Diag):
             img_source=img_source,
             host_path=self._host_path,
             event_list=event_list)
+        
+        msg = f'{self.msg_prefix()}: Job completion handler done\n'
+        print_line(msg)
 
     # -----------------------------------------------
 
