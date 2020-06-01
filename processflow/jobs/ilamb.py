@@ -5,6 +5,7 @@ import os
 import shutil
 import errno
 import glob
+import re
 import logging
 
 from processflow.jobs.diag import Diag
@@ -46,6 +47,13 @@ class ILAMB(Diag):
                 self.short_name,
                 'ilamb',
                 self._run_name)
+            self._host_url = 'https://{server}/{prefix}/{case}/ilamb/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
+                server=kwargs['config']['img_hosting']['img_host_server'],
+                prefix=kwargs['config']['img_hosting']['url_prefix'],
+                case=self.short_name,
+                start=self.start_year,
+                end=self.end_year,
+                comp=self._short_comp_name)
         else:
             self._host_path = os.path.join(
                 'html', 
@@ -246,24 +254,26 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
                '--model_root', model_root,
                '--models', self.short_name,
                '--build_dir', self._host_path,
-               '--title', f'{self.short_name}_vs_{self._comparison} \n']
+               '--title', f'{self.short_name}_vs_{self._comparison}']
 
         if ilamb_config.get('confrontation'):
             cmd.extend(['--confrontation',
                         ' '.join(list(ilamb_config['confrontation']))])
-        if ilamb_config.get('shift_from') and ilamb_config.get('shift_to'):
-            cmd.extend(['--model_year',
-                        '{} {}'.format(ilamb_config['shift_from'],
-                                       ilamb_config['shift_to'])
-                        ])
+
+        if ilamb_config.get('shift_year_to'):
+            shift_start = config['simulations']['start_year']
+            shift_end = ilamb_config['shift_year_to']
+            cmd.extend(['--model_year', f'{shift_start} {shift_end}'])
+
         if ilamb_config.get('regions'):
-            cmd.extend(['--regions',
-                        ' '.join(list(ilamb_config['regions']))])
+            cmd.extend(['--regions', ' '.join(list(ilamb_config['regions']))])
+
         if ilamb_config.get('region_definition_files'):
             cmd.extend(['--define_regions',
                         ' '.join(list(ilamb_config['region_definition_files']))])
         if ilamb_config.get('clean') in [1, '1', 'true', 'True']:
             cmd.append('--clean')
+
         if ilamb_config.get('disable_logging') in [1, '1', 'true', 'True']:
             cmd.append('--disable_logging')
 
@@ -281,7 +291,6 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
             True if all output exists as expected
             False otherwise
         """
-        return False
         # if the job ran through slurm can came back complete, just return True
         if self.status == JobStatus.COMPLETED:
             return True
@@ -291,10 +300,14 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
         # output might be there
         else:
             logs = glob.glob(os.path.join(self._host_path, 'ILAMB*.log'))
-            if logs:
-                return True
-            else:
+            if not logs or not os.path.exists(logs[0]):
                 return False
+            else:
+                with open(logs[0], 'r') as ip:
+                    for line in ip.readlines():
+                        if re.search('error', line):
+                            return False
+                return True
 
     def handle_completion(self, filemanager, event_list, config,
                           *args, **kwargs):

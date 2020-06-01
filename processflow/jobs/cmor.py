@@ -62,7 +62,7 @@ class Cmor(Job):
         if not kwargs['config']['post-processing']['cmor'].get(kwargs['run_type']):
             raise ValueError(f'CMOR job must be given a set of variables to run')
 
-        self._variables = kwargs['config']['post-processing']['cmor'][kwargs['run_type']]['variables']
+        self._variables = kwargs['config']['post-processing']['cmor'][kwargs['run_type']]['variables'].copy()
         if not isinstance(self._variables, list):
             self._variables = [self._variables]
         
@@ -142,9 +142,16 @@ class Cmor(Job):
                and start == self._start_year \
                and end == self._end_year:
                 found_vars.append(var)
-                # since the variable already exists, remove it from the list that needs to be generated
-                self._variables.remove(var)
                 self._completed_vars.append(var)
+
+        pbar.close()
+
+        if not self._completed_vars:
+            print(f'No completed variables for {self.short_name}')
+
+        for var in self._completed_vars:
+            if var in self._variables:
+                self._variables.remove(var)
 
         pbar.set_description(f"{self.msg_prefix()}: CMOR variable checking complete")
         pbar.close()
@@ -168,7 +175,7 @@ class Cmor(Job):
                 and job.run_type == self.run_type \
                 and job.start_year == self.start_year \
                 and job.end_year == self.end_year:
-                        self.depends_on.append(job.id)
+                self.depends_on.append(job.id)
         if not self.depends_on:
             msg = f'Unable to find timeseries for {self.msg_prefix()}, does this case generate timeseries?'
             raise Exception(msg)
