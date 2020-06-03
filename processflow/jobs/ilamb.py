@@ -276,6 +276,10 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
 
         if ilamb_config.get('disable_logging') in [1, '1', 'true', 'True']:
             cmd.append('--disable_logging')
+        
+
+        if os.path.exists(self._host_path):
+            shutil.rmtree(self._host_path)
 
         self._has_been_executed = True
         return self._submit_cmd_to_manager(config, cmd, event_list)
@@ -305,20 +309,9 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
             else:
                 with open(logs[0], 'r') as ip:
                     for line in ip.readlines():
-                        if re.search('error', line):
+                        if re.search('*error*', line):
                             return False
                 return True
 
-    def handle_completion(self, filemanager, event_list, config,
-                          *args, **kwargs):
-        """
-        Setup for webhosting after a successful run
-        ILAMB handles moving the files to the correct location, so no extra
-        handling is required
-        Parameters
-        ----------
-            filemanager ():
-            event_list (EventList): event list to push user notifications into
-            config (dict): the global config object
-        """
+    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
         pass
