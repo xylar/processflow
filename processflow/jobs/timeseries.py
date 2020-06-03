@@ -261,14 +261,16 @@ class Timeseries(Job):
                 '--map={}'.format(config['post-processing']['timeseries'].get(
                     'regrid_map_path')),
             ])
+            
         if self._run_type == 'land' or self._run_type == 'lnd':
-            cmd.extend(
-                ['--sgs_frc={}/landfrac'.format(self._input_file_paths[0])])
+            cmd.append(f'--sgs_frc={self._input_file_paths[0]}/landfrac')
+
         elif self._run_type == 'ocn' or self._run_type == 'ocean':
             cmd.extend(['-m', 'mpas'])
+
         elif self._run_type == 'ice' or self._run_type == 'sea-ice':
             cmd.extend(
-                '-m', 'mpas', '--sgs_frc={}/timeMonthly_avg_iceAreaCell'.format(self._input_file_paths[0]))
+                ['-m', 'mpas', f'--sgs_frc={self._input_file_paths[0]}/timeMonthly_avg_iceAreaCell'])
 
         return self._submit_cmd_to_manager(config, cmd, event_list)
     # -----------------------------------------------

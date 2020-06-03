@@ -79,7 +79,8 @@ class Regrid(Job):
                 '-P', 'sgs',
                 '-a', 'conserve',
                 '-s', config['post-processing']['regrid']['lnd']['source_grid_path'],
-                '-g', config['post-processing']['regrid']['lnd']['destination_grid_path']
+                '-g', config['post-processing']['regrid']['lnd']['destination_grid_path'],
+                f'--sgs_frac={self._input_file_paths[0]}/landfrac'
             ])
         elif self.run_type == 'ocn' or self.run_type == 'cice': 
             cmd.extend([
