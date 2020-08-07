@@ -98,6 +98,7 @@ class Timeseries(Job):
             True if all the files exist
             False otherwise
         """
+
         msg = f'{self.msg_prefix()}: Running output check'
         print_line(msg)
 
@@ -125,7 +126,7 @@ class Timeseries(Job):
         # Load the first file as an xarray dataset
         path = self._input_file_paths[0]
         if not os.path.exists(path):
-            msg = "Unable to find input file: {}".format(path)
+            msg = f"Unable to find input file: {path}"
             print_line(msg)
 
         ds = xr.open_dataset(path)
@@ -134,8 +135,8 @@ class Timeseries(Job):
         for variable in self._var_list:
             if variable and variable not in ds.data_vars:
                 to_remove.append(variable)
-                msg = "Variable not found in dataset: {}".format(variable)
-                print_line(msg)
+                msg = f"Variable not found in dataset: {variable}"
+                print_line(msg, 'error')
 
         self._var_list = list(
             filter(lambda x: x not in to_remove, self._var_list))
@@ -163,7 +164,7 @@ class Timeseries(Job):
                 try:
                     pbar.set_description(f'{self.msg_prefix()}: Checking integrity of {file_name}')
                     _ = xr.open_dataset(file_path)
-                except IndexError:
+                except (IndexError, ValueError):
                     print_line(f'Found and error in {file_name}', 'error')
                 else:
                     to_remove.append(var)
@@ -171,7 +172,7 @@ class Timeseries(Job):
                 try:
                     pbar.set_description(f'{self.msg_prefix()}: Checking integrity of {var}.nc')
                     _ = xr.open_dataset(os.path.join(file_source, var + '.nc'))
-                except IndexError:
+                except (IndexError, ValueError):
                     print_line(f'Found and error in {var}.nc', 'error')
                 else:
                     to_remove.append(var)

@@ -230,7 +230,12 @@ class E3SMDiags(Diag):
 
         # if hosting is turned off, simply return
         if not config['global'].get('host'):
+            msg = f'{self.msg_prefix()}: Job completion handler done\n'
+            print_line(msg)
             return
+        
+        msg = f'{self.msg_prefix()}: Setting up webhosting for diagnostic output'
+        print_line(msg)
 
         self.setup_hosting(
             always_copy=config['global'].get('always_copy', False),
@@ -245,6 +250,9 @@ class E3SMDiags(Diag):
             start=self.start_year,
             end=self.end_year,
             comp=self._short_comp_name)
+        
+        msg = f'{self.msg_prefix()}: Webhosting setup complete, diagnostic available at {self._host_url}'
+        print_line(msg)
         
         msg = f'{self.msg_prefix()}: Job completion handler done\n'
         print_line(msg)
