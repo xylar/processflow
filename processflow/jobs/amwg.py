@@ -342,6 +342,8 @@ class AMWG(Diag):
 
         # if hosting is turned off, simply return
         if not config['global'].get('host'):
+            msg = f'{self.msg_prefix()}: Job completion handler done\n'
+            print_line(msg)
             return
 
         img_source = os.path.join(
