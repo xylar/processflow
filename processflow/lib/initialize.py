@@ -9,6 +9,7 @@ from shutil import copy
 from shutil import copyfile
 
 from configobj import ConfigObj
+import yaml
 
 from processflow import resources
 from processflow.lib.filemanager import FileManager
@@ -116,7 +117,16 @@ Please add a space and run again.'''.format(num=line_index))
 
     # read the config file and setup the config dict
     try:
-        config = ConfigObj(pargs.config)
+        if pargs.config[-3:] == 'cfg':
+            msg = f'Loading ConfigObj configuration from {pargs.config}'
+            print_message(msg, 'ok')
+            config = ConfigObj(pargs.config)
+            
+        elif pargs.config[-4:] == 'yaml' or pargs.config[-3:] == 'yml':
+            msg = f'Loading yaml configuration from {pargs.config}'
+            print_message(msg, 'ok')
+            with open(pargs.config, 'r') as stream:
+                config = yaml.safe_load(stream)
     except Exception as e:
         print_debug(e)
         print("Error parsing config file {}".format(pargs.config))

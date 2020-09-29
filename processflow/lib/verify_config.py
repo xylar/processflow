@@ -151,9 +151,11 @@ def verify_config(config):
         # check ncclimo
         # ------------------------------------------------------------------------
         if config['post-processing'].get('climo'):
+            sim_names = []
             for sim in config['simulations']:
                 if sim in ['start_year', 'end_year']:
                     continue
+                sim_names.append(sim)
 
                 if 'climo' not in config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
                     continue
@@ -191,18 +193,14 @@ def verify_config(config):
                 if item in ['run_frequency', 'regrid_map_path', 'destination_grid_name', 'custom_args', 'job_args']:
                     continue
                 if item not in ['atm', 'lnd', 'ocn', 'cice']:
-                    msg = '{} is an unsupported timeseries data type'.format(
+                    msg = '{} is an unsupported timeseries data type, processflow only supports time series regridding for data-types: atm, lnd, ocn, cice'.format(
                         item)
                     messages.append(msg)
-                if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
-                    if 'timeseries' not in config['simulations'][sim].get('job_types'):
-                        continue
+                
                 if not isinstance(config['post-processing']['timeseries'][item], list):
                     config['post-processing']['timeseries'][item] = [
                         config['post-processing']['timeseries'][item]]
-                for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year']:
-                        continue
+                for sim in sim_names:
                     if 'all' not in config['simulations'][sim].get('data_types'):
                         if item not in config['simulations'][sim].get('data_types') and ('timeseries' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'timeseries-{} is set to run for simulation {}, but this simulation does not have {} in its data_types'.format(
@@ -282,8 +280,10 @@ def verify_config(config):
                 msg = 'No run frequency specified for e3sm_diags'
                 messages.append(msg)
             else:
+
                 if not isinstance(frequency, list):
                     config['diags']['e3sm_diags']['run_frequency'] = [frequency]
+                    frequency = config['diags']['e3sm_diags'].get('run_frequency')
 
                 for freq in frequency:
                     for sim in config['simulations']:
@@ -320,9 +320,7 @@ def verify_config(config):
                 if not isinstance(config['diags']['amwg'].get('run_frequency'), list):
                     config['diags']['amwg']['run_frequency'] = [
                         config['diags']['amwg']['run_frequency']]
-                for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year']:
-                        continue
+                for sim in sim_names:
                     if 'amwg' in config['simulations'][sim].get('job_types') \
                             and 'climo' not in config['simulations'][sim].get('job_types'):
                         msg = 'amwg is set to run for case {case} but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
@@ -344,7 +342,10 @@ def verify_config(config):
                 if not isinstance(config['diags']['amwg']['sets'], list):
                     config['diags']['amwg']['sets'] = [
                         config['diags']['amwg']['sets']]
-                for s in config['diags']['amwg']['sets']:
+                for idx, s in enumerate(config['diags']['amwg']['sets']):
+                    if not isinstance(s, str):
+                        config['diags']['amwg']['sets'][idx] = str(s)
+                        s = str(s)
                     if s not in allowed_sets:
                         msg = '{} is not in the allowed sets for amwg, allowed sets are {}'.format(
                             s, allowed_sets)
@@ -363,6 +364,7 @@ def verify_config(config):
             if not config['diags']['aprime'].get('aprime_code_path'):
                 msg = 'no aprime_code_path given for aprime'
                 messages.append(msg)
+
         # ------------------------------------------------------------------------
         # check MPAS-Analysis
         # ------------------------------------------------------------------------
@@ -388,9 +390,7 @@ def verify_config(config):
             required_datatypes = ['ocn', 'cice', 'ocn_restart', 'cice_restart',
                                   'ocn_streams', 'cice_streams', 'ocn_in', 'cice_in', 'meridionalHeatTransport']
             for reqtype in required_datatypes:
-                for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year']:
-                        continue
+                for sim in sim_names:
                     if 'mpas_analysis' in config['simulations'][sim].get('job_types') \
                             and reqtype not in config['simulations'][sim].get('data_types'):
                         if 'all' in config['simulations'][sim].get('data_types') and reqtype in config['data_types'].keys():
@@ -432,7 +432,7 @@ def verify_config(config):
                             msg = f"ILAMB is set to run on variable {var}, but the CMOR job isnt set to generate it"
                             messages.append(msg)
             # make sure there's an ILAMB data root
-            if not config['diags']['ilamb'].get('ilamb_root'):
+            if not config['diags']['ilamb'].get('obs_data_root'):
                 msg = "Please specify the ilamb_root for the ilamb obs data"
                 messages.append(msg)
     return messages
