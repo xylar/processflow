@@ -21,7 +21,7 @@ class Aprime(Diag):
         """
         super(Aprime, self).__init__(*args, **kwargs)
         self._job_type = 'aprime'
-        self._requires = ''
+        self._requires = []
         self._input_base_path = ''
         self._data_required = ['atm', 'cice', 'ocn',
                                'ocn_restart', 'cice_restart',

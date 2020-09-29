@@ -34,7 +34,7 @@ class ILAMB(Diag):
         """
         super(ILAMB, self).__init__(*args, **kwargs)
         self._job_type = 'ilamb'
-        self._requires = 'cmor'
+        self._requires = ['cmor']
         self._host_url = ''
         self._variables = kwargs['config']['diags']['ilamb']['variables']
         self._data_required = [f'cmorized-{var}' for var in self._variables]
@@ -97,7 +97,7 @@ class ILAMB(Diag):
         if self._comparison == 'obs':
             if job.case != self.case:
                 return False
-            if job.job_type != self._requires:
+            if job.job_type not in self._requires:
                 return False
             if job.start_year != self.start_year:
                 return False

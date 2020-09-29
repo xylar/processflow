@@ -19,7 +19,7 @@ class MPASAnalysis(Diag):
         """
         super(MPASAnalysis, self).__init__(*args, **kwargs)
         self._job_type = 'mpas_analysis'
-        self._requires = ''
+        self._requires = []
         self._host_url = ''
         self.case_start_year = kwargs['config']['simulations']['start_year']
         self._data_required = ['cice', 'ocn',

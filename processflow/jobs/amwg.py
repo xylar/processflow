@@ -93,7 +93,7 @@ class AMWG(Diag):
         find the climo job we're waiting for, assuming there's only
         one climo job in this case with the same start and end years
         """
-        if job.job_type != self._requires:
+        if job.job_type not in self._requires:
             return False
         if job.start_year != self.start_year:
             return False

@@ -153,6 +153,9 @@ class Timeseries(Job):
         else:
             file_source = self._output_path
         
+        if not len(os.listdir(file_source)):
+            return
+        
         pbar = tqdm(total=len(self._var_list), desc=f"{self.msg_prefix()}: Checking time-series output")
         for var in self._var_list:
             file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(

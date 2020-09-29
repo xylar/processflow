@@ -40,6 +40,7 @@ class Job(object):
         self._output_path = ''
         self._dryrun = dryrun
         self._job_args = list()
+        self._requires = []
         if manager:
             self._manager = manager
         else:
