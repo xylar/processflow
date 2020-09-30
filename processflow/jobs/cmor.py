@@ -5,7 +5,7 @@ import xarray as xr
 
 from tqdm import tqdm
 from processflow.jobs.job import Job
-from processflow.lib.util import print_line, get_cmip_file_info
+from processflow.lib.util import print_line, get_cmip_file_info, colors
 from processflow.lib.filemanager import FileStatus
 
 
@@ -21,13 +21,15 @@ class Cmor(Job):
             config (dict): the global configuration object
         """
         super(Cmor, self).__init__(*args, **kwargs)
+        config = kwargs['config']
+        
         self._job_type = 'cmor'
         self._requires = []
         self._data_required = []
         self._table = ''
         self._completed_vars = []
+        self._simple = False if config['simulations'][self.case].get('user_input_json_path') else True
 
-        config = kwargs['config']
         custom_args = config['post-processing'][self.job_type].get(
             'custom_args')
         if custom_args:
@@ -119,18 +121,18 @@ class Cmor(Job):
         
         found_vars = []
         if found:
-            pbar = tqdm(total=len(found), desc=f"{self.msg_prefix()}: Validating CMOR variables")
+            pbar = tqdm(total=len(found), desc=f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Validating CMOR variables")
         else:
             return False
 
         for filename in found:
             _, name = os.path.split(filename)
             try:
-                pbar.set_description(f"{self.msg_prefix()}: Checking {name}")
+                pbar.set_description(f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Checking {name}")
                 _ = xr.open_dataset(filename)
             except IndexError:
                 msg = f"{self.msg_prefix()}: Error in {filename}"
-                print_line(msg, 'error')
+                print_line(msg, status='error')
                 continue
             else:
                 pbar.update(1)
@@ -152,13 +154,10 @@ class Cmor(Job):
         for var in self._completed_vars:
             if var in self._variables:
                 self._variables.remove(var)
-
-        pbar.set_description(f"{self.msg_prefix()}: CMOR variable checking complete")
-        pbar.close()
         
+        # if there are any variables left, it means they weren't produced in the run
         if len(self._variables) != 0:
             return False
-        
         return True
     # -----------------------------------------------
 
@@ -221,10 +220,15 @@ class Cmor(Job):
             '--input', input_path,
             '--output', self._output_path,
             '--var-list', ' '.join(self._variables),
-            '-u', config['simulations'][self.case]['user_input_json_path'],
             '--tables', config['post-processing']['cmor']['cmor_tables_path'],
             '--num-proc', '24'
         ]
+        
+        if self._simple:
+            cmd.append('--simple')
+        else:
+            cmd.extend(['-u', config['simulations'][self.case]['user_input_json_path']])
+        
         if self._run_type == 'atm':
             mode = 'atm'
         elif self._run_type == 'lnd':
