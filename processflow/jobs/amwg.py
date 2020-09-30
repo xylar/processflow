@@ -24,6 +24,11 @@ class AMWG(Diag):
                 to pass to the resource manager
         """
         super(AMWG, self).__init__(*args, **kwargs)
+        if not os.environ.get('NCARG_ROOT'):
+            msg = 'ERROR: NCL doesnt appear to be installed in your environment, unable to run AMWG'
+            print_line(msg, status='err')
+            self._status = JobStatus.FAILED
+
         self._job_type = 'amwg'
         self._requires = ['climo']
         self._data_required = ['climo_regrid']
@@ -337,7 +342,7 @@ class AMWG(Diag):
         """
         if self.status != JobStatus.COMPLETED:
             msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
-            print_line(msg, 'error')
+            print_line(msg, status='error')
             return
 
         # if hosting is turned off, simply return
