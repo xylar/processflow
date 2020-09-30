@@ -6,7 +6,7 @@ from subprocess import Popen, PIPE
 from time import sleep
 
 from processflow.lib.jobinfo import JobInfo
-from processflow.lib.util import print_debug
+from processflow.lib.util import print_debug, print_line
 
 
 class Slurm(object):
@@ -98,6 +98,7 @@ class Slurm(object):
                              shell=False, stderr=PIPE, stdout=PIPE)
                 out, err = proc.communicate()
                 if err:
+                    print_line(err, status='err')
                     sleep(1)
                 else:
                     success = True
@@ -105,8 +106,6 @@ class Slurm(object):
                 success = False
                 sleep(1)
 
-        if err:
-            raise Exception('SLURM ERROR: ' + err)
         job_info = JobInfo()
         for item in out.split(b'\n'):
             for j in item.split(b' '):

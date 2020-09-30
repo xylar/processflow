@@ -520,8 +520,7 @@ class RunManager(object):
                 job.status = status
 
                 if job.status == JobStatus.FAILED:
-                    msg = 'Job has failed, check the job output here: {}'.format(
-                        job.get_output_path())
+                    msg = f'Job has failed, check the job output here: {job.get_output_path()}\n'
                     print_line(msg, status='error')
 
                 if status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
@@ -530,6 +529,9 @@ class RunManager(object):
                     if not job.postvalidate(
                             self.config, event_list=self.event_list):
                         job.status = JobStatus.FAILED
+                        status = JobStatus.FAILED
+                        msg = f'Job has failed, check the job output here: {job.get_output_path()}\n'
+                        print_line(msg, status='error')
                     else:
                         job.handle_completion(
                             filemanager=self.filemanager,
