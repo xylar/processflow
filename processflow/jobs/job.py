@@ -117,7 +117,7 @@ class Job(object):
             custom_args (dict): a mapping of args to the arg values
         """
         for arg, val in list(custom_args.items()):
-            new_arg = '{} {}'.format(arg, val)
+            new_arg = val
             for _, manager_args in list(self._manager_args.items()):
                 found = False
                 for idx, marg in enumerate(manager_args):
@@ -143,7 +143,7 @@ class Job(object):
 
     def setup_data(self, config, filemanager, case):
         """
-        symlinks all data_types sepecified in the jobs _data_required field,
+        symlinks all data_types required in the jobs _data_required field,
         and puts a copy of the path for the links into the _input_file_paths field
         """
 
@@ -164,6 +164,8 @@ class Job(object):
 
             # are these history files?
             monthly = datainfo.get('monthly')
+            if 'ts_' in datatype:
+                monthly = True
 
             # first get the list of file paths to the data
             if monthly == 'True' or monthly == True:
@@ -298,7 +300,7 @@ class Job(object):
         to the resource manager controller
 
         Parameters:
-            cmd (str): the command to submit
+            cmd (list): a list of strings to turn into the command to submit
             config (dict): the global configuration object
         Returns:
             job_id (int): the job_id from the resource manager
@@ -316,7 +318,7 @@ class Job(object):
             os.remove(run_script)
 
         # generate the run script using the manager arguments and command
-        command = ' '.join(cmd)
+        command = ' '.join([str(x) for x in cmd])
         script_prefix = ''
         if isinstance(self._manager, Slurm):
             margs = self._manager_args['slurm']
