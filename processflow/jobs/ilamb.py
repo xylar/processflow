@@ -13,16 +13,6 @@ from processflow.lib.util import render, print_line, format_debug
 from processflow.lib.jobstatus import JobStatus
 
 
-# STEP 0: Wait for required CMOR jobs to finish [TODO]
-
-# STEP 1: Put all the required files where they need to be [TODO]
-
-
-# STEP 2: Generate the config [done]
-# STEP 3: Generate the command [done]
-# STEP 4: submit the command to slurm [done]
-
-
 class ILAMB(Diag):
     def __init__(self, *args, **kwargs):
         """
@@ -33,23 +23,24 @@ class ILAMB(Diag):
                 to pass to the resource manager
         """
         super(ILAMB, self).__init__(*args, **kwargs)
+
+        config = kwargs['config']
         self._job_type = 'ilamb'
         self._requires = ['cmor']
         self._host_url = ''
-        self._variables = kwargs['config']['diags']['ilamb']['variables']
+        self._variables = config['diags']['ilamb']['variables']
         self._data_required = [f'cmorized-{var}' for var in self._variables]
 
-
         self._run_name = f'{self.start_year:04d}_{self.end_year:04d}_vs_{self._short_comp_name}'
-        if kwargs['config']['global']['host']:
+        if config['global']['host']:
             self._host_path = os.path.join(
-                kwargs['config']['img_hosting']['host_directory'],
+                config['img_hosting']['host_directory'],
                 self.short_name,
                 'ilamb',
                 self._run_name)
             self._host_url = 'https://{server}/{prefix}/{case}/ilamb/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(
-                server=kwargs['config']['img_hosting']['img_host_server'],
-                prefix=kwargs['config']['img_hosting']['url_prefix'],
+                server=config['img_hosting']['img_host_server'],
+                prefix=config['img_hosting']['url_prefix'],
                 case=self.short_name,
                 start=self.start_year,
                 end=self.end_year,
@@ -63,14 +54,14 @@ class ILAMB(Diag):
         if not os.path.exists(self._host_path):
             os.makedirs(self._host_path)
 
-        custom_args = kwargs['config']['diags'][self.job_type].get(
+        custom_args = config['diags'][self.job_type].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
 
 
         self._output_path = os.path.join(
-            kwargs['config']['global']['project_path'],
+            config['global']['project_path'],
             'output',
             'diags',
             self.short_name,
@@ -155,7 +146,7 @@ class ILAMB(Diag):
             if not files or len(files) == 0:
                 msg = f"{self.msg_prefix()}: filemanager can't find input files for " \
                        "datatype {datatype}"
-                print_line(msg, 'error')
+                print_line(msg, status='error')
                 continue
 
             for file_ in files:
@@ -248,8 +239,8 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
         # ILAMB wants the MODELS directory
         model_root, _ = os.path.split(self._input_base_path)
 
-        cmd = [f'export ILAMB_ROOT={ilamb_config["ilamb_root"]}',
-               '\nilamb-run',
+        cmd = [f'export ILAMB_ROOT={ilamb_config["obs_data_root"]}\n',
+               'ilamb-run',
                '--config', config_path,
                '--model_root', model_root,
                '--models', self.short_name,
@@ -261,7 +252,7 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
                         ' '.join(list(ilamb_config['confrontation']))])
 
         if ilamb_config.get('shift_year_to'):
-            shift_start = config['simulations']['start_year']
+            shift_start = self.start_year
             shift_end = ilamb_config['shift_year_to']
             cmd.extend(['--model_year', f'{shift_start} {shift_end}'])
 
@@ -309,9 +300,9 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
             else:
                 with open(logs[0], 'r') as ip:
                     for line in ip.readlines():
-                        if re.search('*error*', line):
+                        if re.search('error', line, re.IGNORECASE):
                             return False
                 return True
 
     def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
-        pass
+        print('\n')
