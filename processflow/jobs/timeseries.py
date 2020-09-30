@@ -3,10 +3,11 @@ import logging
 import os
 import xarray as xr
 from tqdm import tqdm
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from processflow.jobs.job import Job
 from processflow.lib.jobstatus import JobStatus
-from processflow.lib.util import get_ts_output_files, print_line
+from processflow.lib.util import get_ts_output_files, print_line, colors
 from processflow.lib.filemanager import FileStatus
 
 
@@ -105,7 +106,6 @@ class Timeseries(Job):
         if self._dryrun:
             return True
         
-        
         # filter out variables that exist
         self.filter_var_list()
         if not self._var_list:
@@ -115,7 +115,7 @@ class Timeseries(Job):
         if self._has_been_executed:
             for var in self._var_list:
                 msg = f"{self.msg_prefix()}: Unable to find {var} after execution",
-                print_line(msg, 'error')
+                print_line(msg, status='error')
 
         # if anything is left in the var list then the job had an error or needs to run
         return False
@@ -136,7 +136,7 @@ class Timeseries(Job):
             if variable and variable not in ds.data_vars:
                 to_remove.append(variable)
                 msg = f"Variable not found in dataset: {variable}"
-                print_line(msg, 'error')
+                print_line(msg, status='err')
 
         self._var_list = list(
             filter(lambda x: x not in to_remove, self._var_list))
@@ -144,6 +144,18 @@ class Timeseries(Job):
         return
     # -----------------------------------------------
 
+    def check_file_integrity(self, file_path, var):
+        if os.path.exists(file_path):
+            try:
+                _ = xr.open_dataset(file_path)
+            except (IndexError, ValueError):
+                print_line(f'Found and error in {file_path}', status='error')
+                return None
+            else:
+                return var
+        else:
+            return None
+        
     def filter_var_list(self):
         to_remove = list()
 
@@ -153,39 +165,35 @@ class Timeseries(Job):
         else:
             file_source = self._output_path
         
-        if not len(os.listdir(file_source)):
+        if not os.path.exists(file_source) or not len(os.listdir(file_source)):
             return
         
-        pbar = tqdm(total=len(self._var_list), desc=f"{self.msg_prefix()}: Checking time-series output")
-        for var in self._var_list:
-            file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
-                var=var,
-                start=self.start_year,
-                end=self.end_year)
-            file_path = os.path.join(file_source, file_name)
-            if os.path.exists(file_path):
-                try:
-                    pbar.set_description(f'{self.msg_prefix()}: Checking integrity of {file_name}')
-                    _ = xr.open_dataset(file_path)
-                except (IndexError, ValueError):
-                    print_line(f'Found and error in {file_name}', 'error')
+        pbar = tqdm(total=len(self._var_list), desc=f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Checking time-series output")
+        futures = []
+        with ProcessPoolExecutor(max_workers=8) as pool:
+            for var in self._var_list:
+                if os.path.exists(os.path.join(file_source, f"{var}.nc")):
+                    file_name = f"{var}.nc"
                 else:
-                    to_remove.append(var)
-            elif os.path.exists(os.path.join(file_source, var + '.nc')):
-                try:
-                    pbar.set_description(f'{self.msg_prefix()}: Checking integrity of {var}.nc')
-                    _ = xr.open_dataset(os.path.join(file_source, var + '.nc'))
-                except (IndexError, ValueError):
-                    print_line(f'Found and error in {var}.nc', 'error')
-                else:
-                    to_remove.append(var)
-            pbar.update(1)
+                    file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
+                        var=var,
+                        start=self.start_year,
+                        end=self.end_year)
+                file_path = os.path.join(file_source, file_name)
+                futures.append(
+                    pool.submit(self.check_file_integrity, file_path, var))
+            
+            for future in as_completed(futures):
+                pbar.update(1)
+                res = future.result()
+                if res:
+                    to_remove.append(res)
         pbar.close()
-
         self._var_list = list(
             filter(lambda x: x not in to_remove, self._var_list)
         )
         return
+
     # -----------------------------------------------
 
 
@@ -244,6 +252,8 @@ class Timeseries(Job):
         self.check_all_variables_present(config)
         self.extract_scalar()
         if not self._var_list:
+            msg = "Variable list is empty\n"
+            print_line(msg)
             return 0
 
         # create the ncclimo command string
