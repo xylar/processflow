@@ -116,40 +116,38 @@ class Cmor(Job):
             if files is None:
                 continue
             for f in files:
-                if f[-3:] == '.nc' and self._table in f:
-                    found.append(os.path.join(root, f))
-        
-        found_vars = []
-        if found:
-            pbar = tqdm(total=len(found), desc=f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Validating CMOR variables")
-        else:
+                if f[-3:] == '.nc':
+                    _, name = os.path.split(f)
+                    var, start, end = get_cmip_file_info(name)
+                    if not var or not start or not end:
+                        continue
+                    if var in self._variables \
+                       and start == self._start_year \
+                       and end == self._end_year:
+                        found.append(os.path.join(root, f))
+
+        if not found:
             return False
+        
+        pbar = tqdm(total=len(found), desc=f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Validating CMOR variables")
 
         for filename in found:
             _, name = os.path.split(filename)
+            var, _, _ = get_cmip_file_info(name)
+            pbar.set_description(f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Checking {name}")
             try:
-                pbar.set_description(f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Checking {name}")
                 _ = xr.open_dataset(filename)
             except IndexError:
                 msg = f"{self.msg_prefix()}: Error in {filename}"
                 print_line(msg, status='error')
-                continue
             else:
-                pbar.update(1)
-
-            var, start, end = get_cmip_file_info(name)
-            if not var or not start or not end:
-                continue
-            if var in self._variables \
-               and start == self._start_year \
-               and end == self._end_year:
-                found_vars.append(var)
                 self._completed_vars.append(var)
-
+            finally:
+                pbar.update(1)
         pbar.close()
 
-        if not self._completed_vars:
-            print(f'No completed variables for {self.short_name}')
+        if not self._completed_vars and self._has_been_executed:
+            print_line(f'{self.msg_prefix()} No completed variables for {self.short_name}', status='err')
 
         for var in self._completed_vars:
             if var in self._variables:
@@ -206,7 +204,7 @@ class Cmor(Job):
             _, map_path = os.path.split(config['post-processing']['cmor']['mpas_map_path'])
             additional_files.append(config['post-processing']['cmor']['regions_path'])
             additional_files.append(config['post-processing']['cmor']['mpas_mesh_path'])
-        if self._run_type == 'atm':
+        if self._run_type == 'atm' and config['post-processing']['cmor'].get('vertical_map_path'):
             additional_files.append(config['post-processing']['cmor']['vertical_map_path'])
         
         for path in additional_files:
