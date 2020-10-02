@@ -384,13 +384,14 @@ class RunManager(object):
                         dryrun=self.dryrun,
                         event_list=self.event_list,
                         depends_jobs=dep_jobs)
+                    self.running_jobs.append({
+                        'manager_id': run_id,
+                        'job_id': job.id
+                    })
                     if run_id == 0:
                         job.status = JobStatus.COMPLETED
-                    else:
-                        self.running_jobs.append({
-                            'manager_id': run_id,
-                            'job_id': job.id
-                        })
+                        self.monitor_running_jobs()
+                        
     # -----------------------------------------------
 
     def get_job_by_id(self, jobid):
