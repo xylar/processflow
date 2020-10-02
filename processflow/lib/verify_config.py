@@ -44,9 +44,11 @@ def verify_config(config):
         msg = 'simulation end_year is less then start_year, is time going backwards!?'
         messages.append(msg)
 
+    sim_names = []
     for sim in config.get('simulations'):
         if sim in ['start_year', 'end_year']:
             continue
+        sim_names.append(sim)
         if config['simulations'][sim].get('comparisons'):
             if not isinstance(config['simulations'][sim]['comparisons'], list):
                 config['simulations'][sim]['comparisons'] = [
@@ -151,11 +153,7 @@ def verify_config(config):
         # check ncclimo
         # ------------------------------------------------------------------------
         if config['post-processing'].get('climo'):
-            sim_names = []
-            for sim in config['simulations']:
-                if sim in ['start_year', 'end_year']:
-                    continue
-                sim_names.append(sim)
+            for sim in sim_names:
 
                 if 'climo' not in config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
                     continue
