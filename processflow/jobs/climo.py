@@ -126,8 +126,6 @@ class Climo(Job):
             input_path, _ = os.path.split(self._input_file_paths[0])
 
         cmd = ['ncclimo']
-        if self._job_args:
-            cmd.extend(self._job_args)
         cmd.extend([
             '-c', self.case,
             '-a', 'sdd',

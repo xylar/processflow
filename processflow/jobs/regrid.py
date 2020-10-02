@@ -71,8 +71,6 @@ class Regrid(Job):
         input_path, _ = os.path.split(self._input_file_paths[0])
         # setups the ncremap run command
         cmd = ['ncremap -I {}'.format(input_path)]
-        if self._job_args:
-            cmd.extend(self._job_args)
 
         if self.run_type == 'lnd':
             cmd.extend([

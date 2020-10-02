@@ -168,11 +168,6 @@ class E3SMDiags(Diag):
             variables['reference_data_path'] = input_path
             variables['ref_name'] = self.comparison
             variables['reference_name'] = config['simulations'][self.comparison]['short_name']
-    
-        if self._job_params:
-            variables['custom_params'] = ''
-            for p in self._job_params:
-                variables['custom_params'] += '{} = "{}"\n'.format(p, self._job_params[p])
 
         # render the parameter file from the template
         param_template_out = os.path.join(

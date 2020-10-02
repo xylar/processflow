@@ -183,6 +183,8 @@ class Job(object):
                     prefix=self.msg_prefix(),
                     datatype=datatype)
                 logging.error(msg)
+                print_line(msg, status='err')
+                self.status = JobStatus.FAILED
                 continue
 
             # extract the file names
@@ -313,22 +315,23 @@ class Job(object):
         run_name = self.get_run_name()
 
         run_script = os.path.join(scripts_path, run_name)
-        self._console_output_path = '{}.out'.format(run_script)
+        self._console_output_path = f'{run_script}.out'
         if os.path.exists(run_script):
             os.remove(run_script)
+
+        # add job specific args to the command string
+        if self._job_args:
+            cmd.extend(self._job_args)
 
         # generate the run script using the manager arguments and command
         command = ' '.join([str(x) for x in cmd])
         script_prefix = ''
         if isinstance(self._manager, Slurm):
             margs = self._manager_args['slurm']
-            margs.append(
-                '-o {}'.format(self._console_output_path))
+            margs.append(f'-o {self._console_output_path}')
             manager_prefix = '#SBATCH'
             for item in margs:
-                script_prefix += '{prefix} {value}\n'.format(
-                    prefix=manager_prefix,
-                    value=item)
+                script_prefix += f'{manager_prefix} {item}\n'
 
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
@@ -349,15 +352,13 @@ class Job(object):
 
         # if this is a dry run, set the status and exit
         if self._dryrun:
-            msg = '{}: dryrun is set, completing without running'.format(
-                self.msg_prefix())
+            msg = f'{self.msg_prefix()}: dryrun is set, completing without running'
             logging.info(msg)
             print_line(msg)
             self.status = JobStatus.COMPLETED
             return False
 
-        msg = '{}: Job ready, submitting to queue'.format(
-            self.msg_prefix())
+        msg = f'{self.msg_prefix()}: Job ready, submitting to queue'
         print_line(msg)
 
         # submit the run script to the resource controller
