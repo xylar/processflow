@@ -59,14 +59,18 @@ class ILAMB(Diag):
         if custom_args:
             self.set_custom_args(custom_args)
 
-
-        self._output_path = os.path.join(
-            config['global']['project_path'],
-            'output',
-            'diags',
-            self.short_name,
-            'ilamb',
-            self._run_name)
+        custom_output_path = config['post-processing'][self.job_type].get(
+            'custom_output_path')
+        if custom_output_path:
+            self._output_path = self.setup_output_directory(custom_output_path)
+        else:
+            self._output_path = os.path.join(
+                config['global']['project_path'],
+                'output',
+                'diags',
+                self.short_name,
+                'ilamb',
+                self._run_name)
         os.makedirs(self._output_path, exist_ok=True)
         
         self._input_base_path = os.path.join(
