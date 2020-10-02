@@ -3,6 +3,7 @@ import logging
 import os
 import xarray as xr
 from tqdm import tqdm
+from subprocess import Popen, PIPE
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from processflow.jobs.job import Job
@@ -68,6 +69,8 @@ class Timeseries(Job):
                 config['post-processing']['timeseries']['destination_grid_name'],
                 '{length}yr'.format(length=self.end_year - self.start_year + 1),
                 self._run_type)
+            if not os.path.exists(self._regrid_path):
+                os.makedirs(self._regrid_path)
         else:
             self._regrid = False
         self.setup_job_args(config)
@@ -212,20 +215,26 @@ class Timeseries(Job):
         for variable in self._var_list:
             if 'time' not in ds[variable].coords:
                 if 'ncol' not in ds[variable].coords:
-                    msg = 'Found scalar variable {}, extracting'.format(
-                        variable)
+                    msg = f'Found scalar variable {variable}, extracting'
                     print_line(msg)
                     to_remove.append(variable)
-                    outpath = os.path.join(self._output_path, variable + '.nc')
-                    os.popen('ncks -v {variable} {inpath} {outpath}'.format(
-                        variable=variable,
-                        inpath=self._input_file_paths[0],
-                        outpath=outpath))
+                    outfilename = f'{variable}_{self.start_year:04d}01_{self.end_year:04d}12.nc'
+                    outpath = os.path.join(self._output_path, outfilename)
+                    if os.path.exists(outpath):
+                        msg = f"{outfilename} already exists, skipping"
+                        logging.info(msg)
+                        continue
+                    cmd = f'ncks -v {variable} {self._input_file_paths[0]} {outpath}'.split()
+                    proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+                    out, err = proc.communicate()
+                    if proc.returncode != 0:
+                        print_line(err, status='err')
+                        self.status = JobStatus.FAILED
+                        return
                     if self._regrid:
-                        os.popen('cp {} {}'.format(outpath, self._regrid_path))
+                        os.popen(f'cp {outpath} {self._regrid_path}/')
                 else:
-                    msg = 'No time axis for variable {}, removing from variable list'.format(
-                        variable)
+                    msg = f'No time axis for variable {variable}, removing from variable list'
                     print_line(msg)
                     to_remove.append(variable)
         ds.close()
@@ -252,14 +261,12 @@ class Timeseries(Job):
         self.check_all_variables_present(config)
         self.extract_scalar()
         if not self._var_list:
-            msg = "Variable list is empty\n"
+            msg = "Variable list is empty"
             print_line(msg)
             return 0
 
         # create the ncclimo command string
         cmd = ['ncclimo']
-        if self._job_args:
-            cmd.extend(self._job_args)
         cmd.extend([
             '--input={}'.format(input_path),
             '-v', ','.join(self._var_list),
