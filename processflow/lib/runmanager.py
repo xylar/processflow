@@ -15,7 +15,7 @@ from processflow.jobs.ilamb import ILAMB
 from processflow.lib.jobstatus import JobStatus, StatusMap, ReverseMap
 from processflow.lib.serial import Serial
 from processflow.lib.slurm import Slurm
-from processflow.lib.util import print_line
+from processflow.lib.util import print_line, print_debug
 
 
 job_map = {
@@ -487,7 +487,9 @@ class RunManager(object):
                 job_info = self.manager.showjob(item['manager_id'])
                 if job_info.state is None:
                     continue
-            except Exception:
+            except Exception as e:
+                
+                print_debug(e)
                 # if the job is old enough it wont be in the slurm list anymore
                 # which will throw an exception
                 self._job_complete += 1
@@ -503,9 +505,7 @@ class RunManager(object):
                     self.report_completed_job()
                 else:
                     job.status = JobStatus.FAILED
-                    line = "{job}: resource manager lookup error for jobid {id}. The job may have failed, check the error output".format(
-                        job=job.msg_prefix(),
-                        id=item['manager_id'])
+                    line = f"{job.msg_prefix()}: resource manager lookup error for jobid {item['manager_id']}. The job may have failed, check the error output"
                     print_line(line)
                 continue
 

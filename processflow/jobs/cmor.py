@@ -204,8 +204,8 @@ class Cmor(Job):
             _, map_path = os.path.split(config['post-processing']['cmor']['mpas_map_path'])
             additional_files.append(config['post-processing']['cmor']['regions_path'])
             additional_files.append(config['post-processing']['cmor']['mpas_mesh_path'])
-        if self._run_type == 'atm' and config['post-processing']['cmor'].get('vertical_map_path'):
-            additional_files.append(config['post-processing']['cmor']['vertical_map_path'])
+            if self._run_type == 'ocn':
+                additional_files.append(config['post-processing']['cmor']['mpaso-namelist'])
         
         for path in additional_files:
             _, filename = os.path.split(path)

@@ -102,7 +102,6 @@ simulations:
     regions_path: /p/user_pub/e3sm/baldwin32/bgc_processing/cmor_test/oEC60to30v3_Atlandtic_region_and_southern_transect.nc
     run_frequency: '100'
     variable_list: all
-    vertical_map_path: /p/user_pub/e3sm/baldwin32/bgc_processing/cmor_test/vrt_remap_plev19.nc
   regrid:
     atm:
       destination_grid_name: fv129x256

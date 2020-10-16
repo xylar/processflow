@@ -227,11 +227,25 @@ def verify_config(config):
                     if not isinstance(config['post-processing']['cmor'][table]['variables'], list):
                         config['post-processing']['cmor'][table]['variables'] = [
                             config['post-processing']['cmor'][table]['variables']]
+                
+                if table == "Omon":
+                    for extra in ['mpas_mesh_path', 'mpas_map_path', 'regions_path', 'mpaso-namelist']:
+                        if not config['post-processing']['cmor'].get(extra):
+                            msg = f"cmor set to run CMIP table {table} but {extra} was not included in the cmor config section"
+                            messages.append(msg)
+                
+                if table == "SImon":
+                    for extra in ['mpas_mesh_path', 'mpas_map_path']:
+                        if not config['post-processing']['cmor'].get(extra):
+                            msg = f"cmor set to run CMIP table {table} but {extra} was not included in the cmor config section"
+                            messages.append(msg)
+
             if not any_tables:
                 msg = "Please specify which tables to produce variables for"
                 messages.append(msg)
+            
 
-            for extra in ['mpas_mesh_path', 'mpas_map_path', 'regions_path', 'vertical_map_path']:
+            for extra in ['mpas_mesh_path', 'mpas_map_path', 'regions_path', 'mpaso-namelist']:
                 if config['post-processing']['cmor'].get(extra) and not os.path.exists(config['post-processing']['cmor'][extra]) and not os.path.lexists(config['post-processing']['cmor'][extra]):
                     msg = f"{extra} was given for cmor, but the file {config['post-processing']['cmor'][extra]} doesnt appear to exist"
                     messages.append(msg)

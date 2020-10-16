@@ -62,12 +62,14 @@ class Slurm(object):
         while tries != 10:
             proc = Popen(cmd, shell=False, stderr=PIPE, stdout=PIPE)
             out, err = proc.communicate()
+            out = out.decode('utf-8')
             if err:
+                err = err.decode('utf-8')
+                print_line(err, status='err')
                 logging.error(err)
                 tries += 1
                 sleep(tries * 2)
-            if err:
-                print(err)
+
                 qinfo = self.queue()
                 for job in qinfo:
                     if job.get('COMMAND') == cmd[1]:
@@ -97,8 +99,13 @@ class Slurm(object):
                 proc = Popen(['scontrol', 'show', 'job', jobid],
                              shell=False, stderr=PIPE, stdout=PIPE)
                 out, err = proc.communicate()
+                out = out.decode('utf-8')
                 if err:
+                    err = err.decode('utf-8')
                     print_line(err, status='err')
+                    if err == 'slurm_load_jobs error: Invalid job id specified':
+                        import ipdb; ipdb.set_trace()
+                        raise ValueError(f"Unable to find slurm job with id {jobid}")
                     sleep(1)
                 else:
                     success = True
@@ -107,9 +114,9 @@ class Slurm(object):
                 sleep(1)
 
         job_info = JobInfo()
-        for item in out.split(b'\n'):
-            for j in item.split(b' '):
-                index = j.find(b'=')
+        for item in out.split('\n'):
+            for j in item.split(' '):
+                index = j.find('=')
                 if index <= 0:
                     continue
                 attribute = self.slurm_to_jobinfo(j[:index])
@@ -117,24 +124,24 @@ class Slurm(object):
                     continue
                 job_info.set_attr(
                     attr=attribute,
-                    val=j[index + 1:].decode("utf-8"))
+                    val=j[index + 1:])
         return job_info
     # -----------------------------------------------
 
     def slurm_to_jobinfo(self, attr):
-        if attr == b'Partition':
+        if attr == 'Partition':
             return 'PARTITION'
-        elif attr == b'Command':
+        elif attr == 'Command':
             return 'COMMAND'
-        elif attr == b'UserId':
+        elif attr == 'UserId':
             return 'USER'
-        elif attr == b'JobName':
+        elif attr == 'JobName':
             return 'NAME'
-        elif attr == b'JobState':
+        elif attr == 'JobState':
             return 'STATE'
-        elif attr == b'JobId':
+        elif attr == 'JobId':
             return 'JOBID'
-        elif attr == b'RunTime':
+        elif attr == 'RunTime':
             return 'RUNTIME'
         else:
             return None
@@ -147,6 +154,10 @@ class Slurm(object):
         cmd = 'sinfo show nodes | grep up | wc -l'
         p = Popen([cmd], stderr=PIPE, stdout=PIPE, shell=True)
         out, err = p.communicate()
+        out = out.decode('utf-8')
+        err = err.decode('utf-8')
+        if err:
+            print(err)
         try:
             num_nodes = int(out)
         except:
@@ -166,9 +177,13 @@ class Slurm(object):
                 cmd = ['squeue', '-u', os.environ['USER'], '-o', '%i|%j|%o|%t']
                 proc = Popen(cmd, shell=False, stderr=PIPE, stdout=PIPE)
                 out, err = proc.communicate()
+                out = out.decode('utf-8')
+                err = err.decode('utf-8')
                 if err:
+                    import ipdb; ipdb.set_trace()
                     tries += 1
                     sleep(tries)
+                    print(err)
                 else:
                     break
             except:
@@ -197,7 +212,10 @@ class Slurm(object):
                 cmd = ['scancel', str(job_id)]
                 proc = Popen(cmd, shell=False, stderr=PIPE, stdout=PIPE)
                 out, err = proc.communicate()
-                if 'Transport endpoint is not connected' in err or err:
+                out = out.decode('utf-8')
+                err = err.decode('utf-8')
+                if err:
+                    print(err)
                     tries += 1
                     sleep(tries)
                 else:

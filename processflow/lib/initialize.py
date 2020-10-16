@@ -107,14 +107,6 @@ def initialize(argv, **kwargs):
         print("Invalid config, {} does not exist".format(pargs.config))
         return False, False
 
-    # Check that there are no white space errors in the config file
-    line_index = check_config_white_space(pargs.config)
-    if line_index != 0:
-        print('''
-ERROR: line {num} does not have a space after the \'=\', white space is required.
-Please add a space and run again.'''.format(num=line_index))
-        return False, False
-
     # read the config file and setup the config dict
     try:
         if pargs.config[-3:] == 'cfg':
@@ -122,6 +114,13 @@ Please add a space and run again.'''.format(num=line_index))
             print_message(msg, 'ok')
             config = ConfigObj(pargs.config)
             
+            # Check that there are no white space errors in the config file
+            line_index = check_config_white_space(pargs.config)
+            if line_index != 0:
+                print('''
+ERROR: line {num} does not have a space after the \'=\', white space is required.
+Please add a space and run again.'''.format(num=line_index))
+                return False, False
         elif pargs.config[-4:] == 'yaml' or pargs.config[-3:] == 'yml':
             msg = f'Loading yaml configuration from {pargs.config}'
             print_message(msg, 'ok')
