@@ -1,5 +1,5 @@
 #!/bin/bash
-export VERSION="2.2.3"
+export VERSION="2.2.4"
 export BUILD_NAME="0"
 export CONDA_BLD_PATH=~/conda-bld
 USER="e3sm"
