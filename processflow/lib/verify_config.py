@@ -28,21 +28,25 @@ def verify_config(config):
     # ------------------------------------------------------------------------
     # check simulations
     # ------------------------------------------------------------------------
+    time_error = False
     if not config['simulations'].get('start_year'):
         msg = 'no start_year set for simulations'
         messages.append(msg)
+        time_error = True
     else:
         config['simulations']['start_year'] = int(
             config['simulations']['start_year'])
     if not config['simulations'].get('end_year'):
         msg = 'no end_year set for simulations'
         messages.append(msg)
+        time_error = True
     else:
         config['simulations']['end_year'] = int(
             config['simulations']['end_year'])
-    if int(config['simulations'].get('end_year')) < int(config['simulations'].get('start_year')):
-        msg = 'simulation end_year is less then start_year, is time going backwards!?'
-        messages.append(msg)
+    if not time_error:
+        if int(config['simulations'].get('end_year')) < int(config['simulations'].get('start_year')):
+            msg = 'simulation end_year is less then start_year, is time going backwards!?'
+            messages.append(msg)
 
     sim_names = []
     for sim in config.get('simulations'):
