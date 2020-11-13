@@ -228,7 +228,6 @@ class RunManager(object):
             })
 
         pp = self.config.get('post-processing')
-        # import ipdb; ipdb.set_trace()
         if pp:
             for key, val in list(pp.items()):
                 cases_to_add = list()

@@ -93,6 +93,7 @@ def initialize(argv, **kwargs):
         print(('Processflow version {} from branch {}'.format(
             __version__, __branch__)))
         sys.exit(0)
+    
     if not pargs.config:
         parse_args(print_help=True)
         return False, False
@@ -100,15 +101,16 @@ def initialize(argv, **kwargs):
         msg = "The referenced config is not a regular file, please select a config file"
         print_message(msg)
         return False, False
-    event_list = kwargs['event_list']
-    print_line('Entering setup')
-
     if not os.path.exists(pargs.config):
         print("Invalid config, {} does not exist".format(pargs.config))
         return False, False
 
+    event_list = kwargs['event_list']
+    print_line('Entering setup')
+
     # read the config file and setup the config dict
     try:
+        _, config_name = os.path.split(pargs.config)
         if pargs.config[-3:] == 'cfg':
             msg = f'Loading ConfigObj configuration from {pargs.config}'
             print_message(msg, 'ok')
@@ -204,7 +206,7 @@ Please add a space and run again.'''.format(num=line_index))
     # copy in the new version
     input_config_path = os.path.join(
         config['global']['project_path'],
-        'run.cfg')
+        config_name)
     # if we're using the config in the project directory no need to copy
     if pargs.config != input_config_path:
         if os.path.exists(input_config_path):
