@@ -354,9 +354,6 @@ class RunManager(object):
                             event_list=self.event_list,
                             config=self.config)
                         self.report_completed_job()
-                        msg = '{}: Job previously computed, skipping'.format(
-                            job.msg_prefix())
-                        print_line(msg)
                         continue
 
                     # set to pending before data setup so we dont double submit
@@ -452,10 +449,7 @@ class RunManager(object):
     # -----------------------------------------------
 
     def report_completed_job(self):
-        msg = 'Job progress: {complete}/{total} or {percent:.2f}%'.format(
-            complete=self._job_complete,
-            total=self._job_total,
-            percent=(((self._job_complete * 1.0)/self._job_total)*100))
+        msg = f'Job progress: {self._job_complete}/{self._job_total} or {self._job_complete * 1.0 / self._job_total * 100:.2f}%\n'
         print_line(msg)
     # -----------------------------------------------
 
