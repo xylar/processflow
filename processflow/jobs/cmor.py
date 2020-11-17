@@ -119,9 +119,13 @@ class Cmor(Job):
                 if f[-3:] == '.nc':
                     _, name = os.path.split(f)
                     var, start, end = get_cmip_file_info(name)
-                    if not var or not start or not end:
+                    if var and var in self._variables and not start and not end:
+                        # found an fx variable
+                        found.append(os.path.join(root, f))
+                    elif not var or not start or not end:
+                        # not recognized
                         continue
-                    if var in self._variables \
+                    elif var in self._variables \
                        and start == self._start_year \
                        and end == self._end_year:
                         found.append(os.path.join(root, f))
