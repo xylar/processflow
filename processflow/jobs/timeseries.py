@@ -200,7 +200,7 @@ class Timeseries(Job):
     # -----------------------------------------------
 
 
-    def extract_scalar(self):
+    def extract_scalar(self, config):
 
         msg = 'Checking for scalar variables'
         print_line(msg)
@@ -214,7 +214,7 @@ class Timeseries(Job):
         to_remove = list()
         for variable in self._var_list:
             if 'time' not in ds[variable].coords:
-                if 'ncol' not in ds[variable].coords:
+                if 'ncol' not in ds[variable].coords and 'ncol' not in ds[variable].dims:
                     msg = f'Found scalar variable {variable}, extracting'
                     print_line(msg)
                     to_remove.append(variable)
@@ -234,9 +234,28 @@ class Timeseries(Job):
                     if self._regrid:
                         os.popen(f'cp {outpath} {self._regrid_path}/')
                 else:
-                    msg = f'No time axis for variable {variable}, removing from variable list'
-                    print_line(msg)
-                    to_remove.append(variable)
+                    # this variable doesnt have time, but it does have space, so regrid the values from just the first input file
+                    cmd = f"ncremap -i {self._input_file_paths[0]} -o {os.path.join(self._regrid_path, variable)}_{self.start_year:04d}01_{self.end_year:04d}12.nc".split()
+                    if self._run_type == 'land' or self._run_type == 'lnd':
+                        cmd.append(f'--sgs_frc={self._input_file_paths[0]}/landfrac')
+                    elif self._run_type == 'ocn' or self._run_type == 'ocean':
+                        cmd.extend(['-m', 'mpas'])
+                    elif self._run_type == 'ice' or self._run_type == 'sea-ice':
+                        cmd.extend(
+                            ['-m', 'mpas', f'--sgs_frc={self._input_file_paths[0]}/timeMonthly_avg_iceAreaCell'])
+                    
+                    cmd.append(f"--map={config['post-processing']['timeseries']['regrid_map_path']}")
+                    proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+                    out, err = proc.communicate()
+                    if proc.returncode != 0:
+                        print_line(err, status='err')
+                        self.status = JobStatus.FAILED
+                        return
+                    else:
+                        msg = f"{variable} extraction complete"
+                        print_line(msg)
+                        to_remove.append(variable)  
+
         ds.close()
         self._var_list = list(
             filter(lambda x: x not in to_remove, self._var_list))
@@ -259,7 +278,7 @@ class Timeseries(Job):
         input_path, _ = os.path.split(self._input_file_paths[0])
 
         self.check_all_variables_present(config)
-        self.extract_scalar()
+        self.extract_scalar(config)
         if not self._var_list:
             msg = "Variable list is empty"
             print_line(msg)
@@ -279,8 +298,7 @@ class Timeseries(Job):
         if self._regrid:
             cmd.extend([
                 '-O', self._regrid_path,
-                '--map={}'.format(config['post-processing']['timeseries'].get(
-                    'regrid_map_path')),
+                f"--map={config['post-processing']['timeseries']['regrid_map_path']}"
             ])
             
         if self._run_type == 'land' or self._run_type == 'lnd':
