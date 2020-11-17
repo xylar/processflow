@@ -33,10 +33,9 @@ def print_line(line, ignore_text=False, newline=True, status='ok'):
         timestr = f'{start_color}{start_icon}{colors.ENDC} {hour}:{minutes}:{sec}'
         msg = f'{timestr}: {line}'
         if newline:
-            print(msg)
+            print(msg, flush=True)
         else:
-            print(msg, end=' ')
-        sys.stdout.flush()
+            print(msg, end=' ', flush=True)
 # -----------------------------------------------
 
 
@@ -61,24 +60,25 @@ def get_climo_output_files(input_path, start_year, end_year):
 # -----------------------------------------------
 
 
-def get_cmip_file_info(input_path):
+def get_cmip_file_info(filename):
     """
     From a CMIP6 filename, return the variable name as well as the start and end year
     """
 
-    if input_path[-3:] != '.nc':
+    if filename[-3:] != '.nc':
         return False, False, False
-    
-    idx = input_path.find('_')
-    var = input_path[:idx]
+
+    attrs = filename.split('_')
+    var = attrs[0]
 
     pattern = r'\d{6}-\d{6}'
-    idx = re.search(pattern, input_path)
-    if not idx:
-        return False, False, False
-    idx = idx.start()
-    start = int(input_path[idx: idx + 4])
-    end = int(input_path[idx + 7: idx + 11])
+    match = re.match(pattern, attrs[-1])
+    if not match:
+        # this variable doesnt have time
+        return var, False, False
+    
+    start = int(attrs[-1][:4])
+    end = int(attrs[-1][7:11])
 
     return var, start, end
 # -----------------------------------------------
