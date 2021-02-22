@@ -222,7 +222,7 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
                         for line in ip.readlines():
                             op.write(line)
 
-    def execute(self, config, event_list, depends_jobs, *args, slurm_args=None, dryrun=False, **kwargs):
+    def execute(self, config, depends_jobs, *args, slurm_args=None, dryrun=False, **kwargs):
         """
         Generates and submits a run script for ILAMB
         Parameters
@@ -277,7 +277,7 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
             shutil.rmtree(self._host_path)
 
         self._has_been_executed = True
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
 
     def postvalidate(self, config, *args, **kwargs):
         """
@@ -308,5 +308,5 @@ bgcolors: "{variable_groups[group]['bgcolors']}"
                             return False
                 return True
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         print('\n')

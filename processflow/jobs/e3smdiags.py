@@ -118,7 +118,7 @@ class E3SMDiags(Diag):
                 raise ValueError('Unable to find job dependencies for {}'.format(str(self)))
     # -----------------------------------------------
 
-    def execute(self, config, event_list, *args, slurm_args=None, dryrun=False, **kwargs):
+    def execute(self, config, *args, slurm_args=None, dryrun=False, **kwargs):
         """
         Generates and submits a run script for e3sm_diags
 
@@ -188,7 +188,7 @@ class E3SMDiags(Diag):
             output_path=param_template_out)
         
         cmd = ['python', param_template_out]
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -206,13 +206,12 @@ class E3SMDiags(Diag):
         return self._check_links(config)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Perform setup for webhosting
 
         Parameters
         ----------
-            event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
         if self.status != JobStatus.COMPLETED:
@@ -235,8 +234,7 @@ class E3SMDiags(Diag):
         self.setup_hosting(
             always_copy=config['global'].get('always_copy', False),
             img_source=self._output_path,
-            host_path=self._host_path,
-            event_list=event_list)
+            host_path=self._host_path)
 
         self._host_url = 'https://{server}/{prefix}/{case}/e3sm_diags/{start:04d}_{end:04d}_vs_{comp}/viewer/index.html'.format(
             server=config['img_hosting']['img_host_server'],

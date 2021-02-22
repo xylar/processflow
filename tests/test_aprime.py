@@ -4,20 +4,18 @@ import sys
 import unittest
 from threading import Event
 
- 
 
-from processflow.lib.events import EventList
 from processflow.lib.jobstatus import JobStatus
-from processflow.lib.util import print_message
+from processflow.lib.util import print_line
 from processflow.lib.initialize import initialize
 from processflow.jobs.aprime import Aprime
+from processflow.version import __version__, __branch__
 
 
 class TestAprime(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestAprime, self).__init__(*args, **kwargs)
-        self.event_list = EventList()
         self.config_path = 'tests/test_configs/aprime_complete.cfg'
 
     def test_aprime_skip_complete(self):
@@ -26,15 +24,14 @@ class TestAprime(unittest.TestCase):
         been run as complete and wont get executed
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
-        
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
+
         _args = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=_args,
-            version="2.2.0",
-            branch="testing",
-            event_list=self.event_list)
+            version=__version__,
+            branch=__branch__)
 
         aprime = Aprime(
             short_name='testing_1pctCO2',
@@ -44,26 +41,22 @@ class TestAprime(unittest.TestCase):
             comparison='obs',
             config=config)
 
-        self.assertTrue(
-            aprime.postvalidate(
-                config,
-                self.event_list))
+        self.assertTrue(aprime.postvalidate(config))
 
     def test_aprime_execute_dryrun(self):
         """
         test that the e3sm_diags prevalidate and prerun setup works correctly
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         _args = ['--test', '-c', self.config_path]
         config, filemanager, runmanager = initialize(
             argv=_args,
-            version="2.2.0",
-            branch="testing",
-            event_list=self.event_list)
-        
+            version=__version__,
+            branch=__branch__)
+
         self.assertFalse(config is None)
         self.assertFalse(filemanager is None)
         self.assertFalse(runmanager is None)
@@ -82,7 +75,6 @@ class TestAprime(unittest.TestCase):
                         case='20180215.DECKv1b_1pctCO2.ne30_oEC.edison')
                     job.execute(
                         config=config,
-                        event_list=self.event_list,
                         dryrun=True)
                     self.assertEquals(
                         job.status,

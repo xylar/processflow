@@ -33,11 +33,10 @@ job_map = {
 
 class RunManager(object):
 
-    def __init__(self, event_list, config, filemanager):
+    def __init__(self, config, filemanager):
 
         self.config = config
         self.account = config['global'].get('account', '')
-        self.event_list = event_list
         self.filemanager = filemanager
         self.dryrun = True if config['global'].get('dryrun') == True else False
         self.debug = True if config['global'].get('debug') == True else False
@@ -345,13 +344,11 @@ class RunManager(object):
 
                     # if the job was finished by a previous run of the processflow
 
-                    if job.postvalidate(
-                            self.config, event_list=self.event_list):
+                    if job.postvalidate(self.config):
                         job.status = JobStatus.COMPLETED
                         self._job_complete += 1
                         job.handle_completion(
                             filemanager=self.filemanager,
-                            event_list=self.event_list,
                             config=self.config)
                         self.report_completed_job()
                         continue
@@ -378,7 +375,6 @@ class RunManager(object):
                     run_id = job.execute(
                         config=self.config,
                         dryrun=self.dryrun,
-                        event_list=self.event_list,
                         depends_jobs=dep_jobs)
                     self.running_jobs.append({
                         'manager_id': run_id,
@@ -472,7 +468,6 @@ class RunManager(object):
                 for_removal.append(item)
                 job.handle_completion(
                     filemanager=self.filemanager,
-                    event_list=self.event_list,
                     config=self.config)
                 self.report_completed_job()
                 continue
@@ -488,12 +483,10 @@ class RunManager(object):
                 self._job_complete += 1
                 for_removal.append(item)
 
-                if job.postvalidate(
-                        self.config, event_list=self.event_list):
+                if job.postvalidate(self.config):
                     job.status = JobStatus.COMPLETED
                     job.handle_completion(
                         filemanager=self.filemanager,
-                        event_list=self.event_list,
                         config=self.config)
                     self.report_completed_job()
                 else:
@@ -520,8 +513,7 @@ class RunManager(object):
                 if status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
                     self._job_complete += 1
 
-                    if not job.postvalidate(
-                            self.config, event_list=self.event_list):
+                    if not job.postvalidate(self.config):
                         job.status = JobStatus.FAILED
                         status = JobStatus.FAILED
                         msg = f'Job has failed, check the job output here: {job.get_output_path()}\n'
@@ -529,7 +521,6 @@ class RunManager(object):
                     else:
                         job.handle_completion(
                             filemanager=self.filemanager,
-                            event_list=self.event_list,
                             config=self.config)
                     self.report_completed_job()
                     for_removal.append(item)

@@ -6,13 +6,12 @@ import unittest
 from threading import Event
 from shutil import rmtree
 
- 
 
-from processflow.lib.events import EventList
 from processflow.lib.jobstatus import JobStatus
-from processflow.lib.util import print_message
+from processflow.lib.util import print_line
 from processflow.lib.initialize import initialize, setup_directories
 from processflow.jobs.e3smdiags import E3SMDiags
+from processflow.version import __version__, __branch__
 from utils import mock_climos
 
 
@@ -20,14 +19,12 @@ class TestE3SM(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestE3SM, self).__init__(*args, **kwargs)
-        self.event_list = EventList()
         self.config_path = 'tests/test_configs/e3sm_diags_complete.cfg'
         self.config, self.filemanager, self.runmanager = initialize(
             argv=['--test', '-c', self.config_path, '--dryrun'],
-            version="2.2.0",
-            branch="testing",
-            event_list=self.event_list)
-        
+            version=__version__,
+            branch=__branch__)
+
         self.config['data_types']['climo_regrid'] = {}
         self.config['data_types']['climo_regrid']['monthly'] = True
 
@@ -44,8 +41,8 @@ class TestE3SM(unittest.TestCase):
         produced output as failed
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         e3sm_diags = E3SMDiags(
             short_name=self.short_name,
@@ -56,23 +53,21 @@ class TestE3SM(unittest.TestCase):
             config=self.config)
 
         self.assertFalse(
-            e3sm_diags.postvalidate(
-                config=self.config,
-                event_list=self.event_list))
+            e3sm_diags.postvalidate(config=self.config))
 
     def test_e3sm_diags_execute_dryrun(self):
         """
         test that the e3sm_diags prevalidate and prerun setup works correctly
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         for case in self.runmanager.cases:
             for job in case['jobs']:
                 if job.job_type == 'climo':
                     mock_climos(
-                        job._output_path, 
+                        job._output_path,
                         job._regrid_path,
                         self.config,
                         self.filemanager,
@@ -91,7 +86,6 @@ class TestE3SM(unittest.TestCase):
                         case=self.case_name)
                     job.execute(
                         config=self.config,
-                        event_list=self.event_list,
                         dryrun=True)
                     self.assertEquals(
                         job.status,

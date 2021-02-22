@@ -75,14 +75,13 @@ class MPASAnalysis(Diag):
         return
     # -----------------------------------------------
 
-    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for mpas_analysis
 
         Parameters
         ----------
             config (dict): the global processflow config object
-            event_list (EventList): an EventList to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
         """
@@ -149,7 +148,7 @@ class MPASAnalysis(Diag):
             output_path=template_out)
 
         cmd = ['mpas_analysis', template_out]
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -190,7 +189,7 @@ class MPASAnalysis(Diag):
                 return False
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Setup for webhosting after a successful run
 
@@ -198,7 +197,6 @@ class MPASAnalysis(Diag):
 
         Parameters
         ----------
-            event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
         self._host_url = 'https://{server}/{prefix}/{case}/mpas_analysis/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(

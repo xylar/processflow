@@ -54,7 +54,7 @@ class Cmor(Job):
             self._run_type = 'cice'
             
         elif kwargs['run_type'] == 'Omon':
-            self._data_required = ['ocn']
+            self._data_required = ['ocn', 'ts_regrid_atm']
             self._run_type = 'ocn'
         else:
             raise ValueError(f"{self._run_type} isnt an expected CMOR data type")
@@ -79,8 +79,7 @@ class Cmor(Job):
                 'output',
                 'pp',
                 'cmor',
-                self.short_name,
-                f'{self.start_year:04d}_{self.end_year:04d}')
+                self.short_name)
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
         self.setup_job_args(config)
@@ -133,7 +132,7 @@ class Cmor(Job):
         if not found:
             return False
         
-        pbar = tqdm(total=len(found), desc=f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Validating CMOR variables")
+        pbar = tqdm(total=len(self._variables), desc=f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Validating CMOR variables")
 
         for filename in found:
             _, name = os.path.split(filename)
@@ -144,6 +143,10 @@ class Cmor(Job):
             except IndexError:
                 msg = f"{self.msg_prefix()}: Error in {filename}"
                 print_line(msg, status='error')
+            except ValueError:
+                msg = f"{self.msg_prefix()}: bad CMOR file in CMOR output {name}, removing"
+                print_line(msg, status='error')
+                os.remove(filename)
             else:
                 self._completed_vars.append(var)
             finally:
@@ -151,14 +154,19 @@ class Cmor(Job):
         pbar.close()
 
         if not self._completed_vars and self._has_been_executed:
-            print_line(f'{self.msg_prefix()} No completed variables for {self.short_name}', status='err')
+            print_line(f'{self.msg_prefix()}: No completed variables for {self.short_name}', status='err')
 
+        if self._completed_vars:
+            msg = f"{self.msg_prefix()}: Found {len(self._completed_vars)} of {len(self._variables)} variables complete"
+            print_line(msg)
+        
         for var in self._completed_vars:
             if var in self._variables:
                 self._variables.remove(var)
-        
+
         # if there are any variables left, it means they weren't produced in the run
         if len(self._variables) != 0:
+            msg = f"{self.msg_prefix()}: Starting remaining {len(self._variables)} variables"
             return False
         return True
     # -----------------------------------------------
@@ -182,14 +190,13 @@ class Cmor(Job):
             raise Exception(msg)
     # -----------------------------------------------
 
-    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Execute the CMOR job
 
         Parameters
         ----------
             config (dict): the global config object
-            event_list (EventList): an EventList to push notifications into
             dryrun (bool): if true this job will generate all scripts,
                 setup data, and exit without submitting the job
         Returns
@@ -216,6 +223,8 @@ class Cmor(Job):
             dest = os.path.join(input_path, filename)
             if not os.path.lexists(dest):
                 os.symlink(path, dest)
+        
+        numproc = config['post-processing']['cmor'].get('numproc', 24)
 
         cmd = [
             'e3sm_to_cmip',
@@ -223,7 +232,7 @@ class Cmor(Job):
             '--output', self._output_path,
             '--var-list', ' '.join(self._variables),
             '--tables', config['post-processing']['cmor']['cmor_tables_path'],
-            '--num-proc', '24'
+            '--num-proc', str(numproc)
         ]
         
         if self._simple:
@@ -248,17 +257,16 @@ class Cmor(Job):
         if custom_handlers is not None:
             cmd.extend(['--handlers', custom_handlers])
 
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Adds the output from cmor into the filemanager database as type 'cmorized'
 
         Paremeters
         ----------
             filemanager (FileManager): the manager to add files to
-            event_list (EventList): an EventList to add notification messages to
             config (dict): the global config object
         Returns
         -------

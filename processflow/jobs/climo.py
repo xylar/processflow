@@ -103,7 +103,7 @@ class Climo(Job):
         return True
     # -----------------------------------------------
 
-    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for ncremap to regrid model output
 
@@ -138,10 +138,10 @@ class Climo(Job):
             '--no_amwg_links'
         ])
 
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Adds the output files to the filemanager database
             as 'climo_regrid' and 'climo_native' data types
@@ -149,7 +149,6 @@ class Climo(Job):
         Parameters
         ----------
             filemanager (FileManager): The filemanager to add the climo files to
-            event_list (EventList): an event list to push notifications into
             config (dict): the global configuration object
         """
         if self.status != JobStatus.COMPLETED:

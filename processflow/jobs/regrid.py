@@ -55,14 +55,13 @@ class Regrid(Job):
         return True
     # -----------------------------------------------
 
-    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for ncremap to regrid model output
 
         Parameters
         ----------
             config (dict): the global processflow config object
-            event_list (EventList): an event list to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
         """
@@ -106,7 +105,7 @@ class Regrid(Job):
             '-O', self._output_path,
         ])
 
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -132,7 +131,7 @@ class Regrid(Job):
         return True
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())

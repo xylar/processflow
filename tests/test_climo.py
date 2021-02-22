@@ -8,12 +8,13 @@ from shutil import rmtree
 
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.initialize import initialize, setup_directories
-from processflow.lib.util import print_message
-from processflow.lib.events import EventList
+from processflow.lib.util import print_line
 from processflow.jobs.climo import Climo
+from processflow.version import __version__, __branch__
 from tests.utils import mock_climos, json_to_conf, mock_atm
 
 PROJECT_PATH = os.path.abspath('tests/test_resources/climo_test')
+
 
 class TestClimo(unittest.TestCase):
 
@@ -24,7 +25,6 @@ class TestClimo(unittest.TestCase):
         self.config_path = 'tests/test_configs/valid_config_simple.cfg'
         self.case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
         self.short_name = 'piControl_testing'
-        self.event_list = EventList()
 
         self.project_path = PROJECT_PATH
         local_data_path = os.path.join(self.project_path, 'input')
@@ -54,17 +54,16 @@ class TestClimo(unittest.TestCase):
 
         self.config, self.filemanager, self.runmanager = initialize(
             argv=['--test', '-c', self.config_path],
-            version="2.2.0",
-            branch="testing",
-            event_list=self.event_list)
+            version=__version__,
+            branch=__branch__)
 
     def test_climo_setup(self):
         """
         Run ncclimo setup on valid config
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         climo = Climo(
             short_name=self.short_name,
@@ -82,8 +81,8 @@ class TestClimo(unittest.TestCase):
         Test that climo.postvalidate will return true on a case thats been run
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         climo = Climo(
             short_name=self.short_name,
@@ -107,8 +106,8 @@ class TestClimo(unittest.TestCase):
         Test that climo.postvalidate will return false on a case that hasnt been run
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         climo = Climo(
             short_name=self.short_name,
@@ -125,8 +124,8 @@ class TestClimo(unittest.TestCase):
         Test that ncclimo will do all proper setup in an incomplete run
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         climo = Climo(
             short_name=self.short_name,
@@ -140,7 +139,6 @@ class TestClimo(unittest.TestCase):
             JobStatus.VALID)
         climo.execute(
             config=self.config,
-            event_list=self.event_list,
             dryrun=True)
         self.assertEquals(
             climo.status,
@@ -152,8 +150,8 @@ class TestClimo(unittest.TestCase):
         for the given yearset it will varify that the output is present and not run again
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         climo = Climo(
             short_name=self.short_name,
@@ -174,15 +172,16 @@ class TestClimo(unittest.TestCase):
             JobStatus.VALID)
         climo.execute(
             config=self.config,
-            event_list=self.event_list,
             dryrun=True)
         self.assertTrue(
             climo.postvalidate(
                 config=self.config))
 
+
 def tearDownModule():
     if os.path.exists(PROJECT_PATH):
         rmtree(PROJECT_PATH, ignore_errors=True)
+
 
 if __name__ == '__main__':
     unittest.main()

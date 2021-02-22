@@ -23,13 +23,12 @@ class FileManager(object):
     Manage all files required by jobs
     """
 
-    def __init__(self, event_list, config, database='processflow.db'):
+    def __init__(self, config, database='processflow.db'):
         """
         Parameters:
             database (str): the path to where to create the sqlite database file
             config (dict): the global configuration dict
         """
-        self._event_list = event_list
         self._db_path = database
         self._config = config
 

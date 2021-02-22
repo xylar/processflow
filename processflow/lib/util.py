@@ -4,15 +4,17 @@ import os
 import re
 import sys
 import traceback
-
-from datetime import datetime
-
 import jinja2
+
+from pathlib import Path
+from datetime import datetime
+from subprocess import Popen, PIPE
+
 
 
 def print_line(line, ignore_text=False, newline=True, status='ok'):
     """
-    Prints a message to either the console, the event_list, or the current event
+    Prints a message to log file and the console
 
     Parameters:
         line (str): The message to print
@@ -200,21 +202,6 @@ class colors:
 # -----------------------------------------------
 
 
-def print_message(message, status='error'):
-    """
-    Prints a message with either a green + or a red -
-
-    Parameters:
-        message (str): the message to print
-        status (str): th"""
-    if status == 'error':
-        print(colors.FAIL + '[-] ' + colors.ENDC + \
-            colors.BOLD + str(message) + colors.ENDC)
-    elif status == 'ok':
-        print(colors.OKGREEN + '[+] ' + colors.ENDC + str(message))
-# -----------------------------------------------
-
-
 def render(variables, input_path, output_path):
     """
     Renders the jinja2 template from the input_path into the output_path
@@ -263,4 +250,25 @@ def create_symlink_dir(src_dir, src_list, dst):
         except Exception as e:
             msg = format_debug(e)
             logging.error(msg)
+# -----------------------------------------------
+
+def ncrcat(inpath, files):
+    
+    _, start, start_end = get_cmip_file_info(files[0])
+    _, _, end = get_cmip_file_info(files[-1])
+    
+    outname = files[0]
+    outname.replace(f"{start_end:04d}12", f"{end:04d}12")
+    outpath = Path(outname)
+
+    print_line(f"Concatinating CMOR output for {files[0]:-16}")
+    cmd = f"ncrcat {' '.join(files)} {outpath}".split()
+    proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+    out, err = proc.communicate()
+    if proc.returncode != 0 or err:
+        print_line("Error running ncrcat", status='err')
+        print(err)
+        return None
+    else:
+        return outpath
 # -----------------------------------------------

@@ -260,14 +260,13 @@ class Timeseries(Job):
         self._var_list = list(
             filter(lambda x: x not in to_remove, self._var_list))
 
-    def execute(self, config, event_list, *args, dryrun=False, **kwargs):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for e3sm_diags
 
         Parameters
         ----------
             config (dict): the global processflow config object
-            event_list (EventList): an event list to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
         """
@@ -311,10 +310,10 @@ class Timeseries(Job):
             cmd.extend(
                 ['-m', 'mpas', f'--sgs_frc={self._input_file_paths[0]}/timeMonthly_avg_iceAreaCell'])
 
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Post run handler, adds produced timeseries variable files into
         the filemanagers database
@@ -322,7 +321,6 @@ class Timeseries(Job):
         Parameters
         ----------
             filemanager (FileManager): The filemanager to add the files to
-            event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
 

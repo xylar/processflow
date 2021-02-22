@@ -8,10 +8,9 @@ import threading
 
 from time import sleep
 
-from processflow.lib.events import EventList
 from processflow.lib.finalize import finalize
 from processflow.lib.initialize import initialize
-from processflow.lib.util import print_debug, print_line, print_message
+from processflow.lib.util import print_debug, print_line
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'no'
 os.environ['NCO_PATH_OVERRIDE'] = 'no'
@@ -27,8 +26,6 @@ def main(cl_args=None):
         kwargs (dict): when running in test mode, arguments are passed directly through the kwargs
             which bypasses the argument parsing.
     """
-    # create global EventList
-    event_list = EventList()
 
     # The master configuration object
     config = {}
@@ -43,12 +40,10 @@ def main(cl_args=None):
                       "    command line: {}".format(cl_args,
                                                     ' '.join(sys.argv[:])))
 
-    config, runmanager = initialize(
-        argv=cl_args,
-        event_list=event_list)
+    config, runmanager = initialize(argv=cl_args)
 
     if isinstance(config, int):
-        print_message("Error in setup, exiting", 'error')
+        print_line("Error in setup, exiting", status='error')
         return -1
     logging.info('Config setup complete')
     debug = True if config['global'].get('debug') else False
@@ -88,7 +83,6 @@ def main(cl_args=None):
                 print_line(msg)
                 finalize(
                     config=config,
-                    event_list=event_list,
                     status=status,
                     runmanager=runmanager)
                 # SUCCESS EXIT
@@ -98,11 +92,11 @@ def main(cl_args=None):
                 print_line(' -- sleeping')
             sleep(loop_delay)
     except KeyboardInterrupt as e:
-        print_message('----- KEYBOARD INTERRUPT -----')
+        print_line('----- KEYBOARD INTERRUPT -----', status='err')
         if debug:
             import ipdb; ipdb.set_trace()
     except Exception as e:
-        print_message('----- AN UNEXPECTED EXCEPTION OCCURED -----')
+        print_line('----- AN UNEXPECTED EXCEPTION OCCURED -----', status='err')
         print_debug(e)
     finally:
         runmanager.write_job_sets(state_path)

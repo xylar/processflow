@@ -5,15 +5,15 @@ import unittest
 
  
 
-from processflow.lib.util import render,  print_message
+from processflow.lib.util import render, print_line
 
 
 class TestFileManager(unittest.TestCase):
 
     def test_render(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         render_target = 'tests/test_resources/test_render_target.txt'
         render_reference = 'tests/test_resources/test_render_reference.txt'
         render_output = 'tests/test_resources/ender_output.txt'
@@ -35,16 +35,16 @@ class TestFileManager(unittest.TestCase):
 
     def test_render_bad_input_file(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         render_target = 'tests/DOES_NOT_EXIST'
         render_output = 'tests/test_resources/render_output.txt'
         self.assertFalse(render({}, render_target, render_output))
 
     def test_render_bad_outout_file(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         render_target = 'tests/test_resources/test_render_target.txt'
         render_output = '/usr/local/NO_PERMISSIONS'
         self.assertFalse(render({}, render_target, render_output))

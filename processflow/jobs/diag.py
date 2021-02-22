@@ -60,7 +60,7 @@ class Diag(Job):
             comp=self._short_comp_name)
     # -----------------------------------------------
 
-    def setup_hosting(self, always_copy, img_source, host_path, event_list):
+    def setup_hosting(self, always_copy, img_source, host_path):
         """
         Performs file copys for images into the web hosting directory
 
@@ -69,7 +69,6 @@ class Diag(Job):
             always_copy (bool): if previous output exists in the target location, should the new output overwrite
             img_source (str): the path to where the images are coming from
             host_path (str): the path for where the images should be hosted
-            event_list (EventList): an eventlist to push user notifications into
         """
         if always_copy:
             if os.path.exists(host_path):
@@ -214,7 +213,7 @@ class Diag(Job):
         return
     # -----------------------------------------------
 
-    def _submit_cmd_to_manager(self, config, cmd, event_list):
+    def _submit_cmd_to_manager(self, config, cmd):
         """
         Takes the jobs main cmd, generates a batch script and submits the script
         to the resource manager controller

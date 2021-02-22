@@ -137,14 +137,13 @@ class AMWG(Diag):
             self.depends_on.append(self_climo.id)
     # -----------------------------------------------
 
-    def execute(self, config, event_list, *args, custom_args=None, dryrun=False, **kwargs):
+    def execute(self, config, *args, custom_args=None, dryrun=False, **kwargs):
         """
         Execute the AMWG job
 
         Parameters
         ----------
             config (dict): the global config object
-            event_list (EventList): an EventList to push notifications into
             dryrun (bool): if true this job will generate all scripts,
                 setup data, and exit without submitting the job
         Returns
@@ -217,10 +216,10 @@ class AMWG(Diag):
 
         # create the run command and submit it
         cmd = ['csh', csh_template_out]
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def postvalidate(self, config, event_list, *args, **kwargs):
+    def postvalidate(self, config, *args, **kwargs):
         """
         Validates that the job ran correctly
 
@@ -266,7 +265,6 @@ class AMWG(Diag):
                 return self._check_tar(
                     img_source_tar, 
                     img_source, 
-                    event_list, 
                     config, 
                     expected_files) == 0
             else:
@@ -312,7 +310,7 @@ class AMWG(Diag):
             number_missing = 0
             if os.path.exists(img_source_tar):
                 number_missing = self._check_tar(
-                    img_source_tar, img_source, event_list, config, expected_files)
+                    img_source_tar, img_source, config, expected_files)
 
         if number_missing == 0:
             msg = '{prefix}: all expected output images found'.format(
@@ -331,13 +329,13 @@ class AMWG(Diag):
             return False
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Sets up variables needed to web hosting
 
         Parameters
         ----------
-            event_list (EventList): an EventList to push user notifications into
+            filemanager: the global filemanager instance
             config (dict): the global config object
         """
         if self.status != JobStatus.COMPLETED:
@@ -372,8 +370,7 @@ class AMWG(Diag):
         self.setup_hosting(
             always_copy=config['global']['always_copy'],
             img_source=img_source,
-            host_path=self._host_path,
-            event_list=event_list)
+            host_path=self._host_path)
         
         msg = f'{self.msg_prefix()}: Job completion handler done\n'
         print_line(msg)
@@ -481,7 +478,7 @@ class AMWG(Diag):
             os.rename(input_file, new_name)
     # -----------------------------------------------
 
-    def _check_tar(self, img_source_tar, img_source, event_list, config, expected_files):
+    def _check_tar(self, img_source_tar, img_source, config, expected_files):
         number_missing = 0
         msg = '{prefix}: extracting images from tar archive'.format(
             prefix=self.msg_prefix())

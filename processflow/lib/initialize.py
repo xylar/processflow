@@ -9,6 +9,7 @@ from shutil import copy
 from shutil import copyfile
 
 from configobj import ConfigObj
+from pathlib import Path
 import yaml
 
 from processflow import resources
@@ -16,7 +17,6 @@ from processflow.lib.filemanager import FileManager
 from processflow.lib.runmanager import RunManager
 from processflow.lib.util import print_debug
 from processflow.lib.util import print_line
-from processflow.lib.util import print_message
 from processflow.lib.verify_config import verify_config, check_config_white_space
 from processflow.version import __version__, __branch__
 
@@ -79,7 +79,6 @@ def initialize(argv, **kwargs):
 
     Parameters:
         argv (list): a list of arguments
-        event_list (EventList): The main list of events
         __version__ (str): the current version number for processflow
         __branch__ (str): the branch this version was built from
     """
@@ -99,13 +98,12 @@ def initialize(argv, **kwargs):
         return False, False
     if not os.path.isfile(pargs.config):
         msg = "The referenced config is not a regular file, please select a config file"
-        print_message(msg)
+        print_line(msg)
         return False, False
     if not os.path.exists(pargs.config):
         print("Invalid config, {} does not exist".format(pargs.config))
         return False, False
 
-    event_list = kwargs['event_list']
     print_line('Entering setup')
 
     # read the config file and setup the config dict
@@ -113,7 +111,7 @@ def initialize(argv, **kwargs):
         _, config_name = os.path.split(pargs.config)
         if pargs.config[-3:] == 'cfg':
             msg = f'Loading ConfigObj configuration from {pargs.config}'
-            print_message(msg, 'ok')
+            print_line(msg, status='ok')
             config = ConfigObj(pargs.config)
             
             # Check that there are no white space errors in the config file
@@ -125,7 +123,7 @@ Please add a space and run again.'''.format(num=line_index))
                 return False, False
         elif pargs.config[-4:] == 'yaml' or pargs.config[-3:] == 'yml':
             msg = f'Loading yaml configuration from {pargs.config}'
-            print_message(msg, 'ok')
+            print_line(msg, status='ok')
             with open(pargs.config, 'r') as stream:
                 config = yaml.safe_load(stream)
     except Exception as e:
@@ -138,13 +136,13 @@ Please add a space and run again.'''.format(num=line_index))
     messages = verify_config(config)
     if messages:
         for message in messages:
-            print_message(message)
+            print_line(message)
         return False, False
 
     try:
         setup_directories(config)
     except Exception as e:
-        print_message('Failed to setup directories')
+        print_line('Failed to setup directories')
         print_debug(e)
         sys.exit(1)
 
@@ -204,14 +202,16 @@ Please add a space and run again.'''.format(num=line_index))
     # Copy the config into the input directory for safe keeping
     # if there's already a version there, then remove it and 
     # copy in the new version
-    input_config_path = os.path.join(
+    input_config_path = Path(
         config['global']['project_path'],
         config_name)
+    config_path = Path(pargs.config)
     # if we're using the config in the project directory no need to copy
-    if pargs.config != input_config_path:
-        if os.path.exists(input_config_path):
-            os.remove(input_config_path)
-        copy(pargs.config, input_config_path)
+    if config_path.absolute() != input_config_path.absolute():
+        try:
+            copy(pargs.config, input_config_path)
+        except:
+            print_line("Unable to create copy of config")
 
     if config['global']['always_copy']:
         msg = 'Running in forced-copy mode, previously hosted diagnostic output will be replaced'
@@ -228,7 +228,6 @@ Please add a space and run again.'''.format(num=line_index))
     print_line(msg)
     filemanager = FileManager(
         database=db,
-        event_list=event_list,
         config=config)
 
     filemanager.populate_file_list()
@@ -251,7 +250,7 @@ Please add a space and run again.'''.format(num=line_index))
         print_line(msg)
     else:
         msg = 'Additional data needed'
-        print_message(msg)
+        print_line(msg)
         sys.exit(1)
 
     logging.info("FileManager setup complete")
@@ -259,7 +258,6 @@ Please add a space and run again.'''.format(num=line_index))
 
     # setup the runmanager
     runmanager = RunManager(
-        event_list=event_list,
         config=config,
         filemanager=filemanager)
 

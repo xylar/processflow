@@ -20,7 +20,7 @@ class Slurm(object):
         """
         if not any(os.access(os.path.join(path, 'sinfo'), os.X_OK) for path in os.environ["PATH"].split(os.pathsep)):
             raise Exception(
-                'Unable to find slurm, is it installed on this sytem?')
+                'Unable to find slurm, is it installed on this system?')
     # -----------------------------------------------
 
     def batch(self, cmd, sargs=None):
@@ -36,6 +36,7 @@ class Slurm(object):
         try:
             out, err = self._submit('sbatch', cmd, sargs)
         except Exception as e:
+            import ipdb; ipdb.set_trace()
             print('Batch job submission failed')
             print_debug(e)
             return 0
@@ -179,8 +180,7 @@ class Slurm(object):
                 out, err = proc.communicate()
                 out = out.decode('utf-8')
                 err = err.decode('utf-8')
-                if err:
-                    import ipdb; ipdb.set_trace()
+                if err or not out:
                     tries += 1
                     sleep(tries)
                     print(err)
@@ -189,7 +189,7 @@ class Slurm(object):
             except:
                 sleep(1)
         if tries == 10:
-            raise Exception('SLURM ERROR: Transport endpoint is not connected')
+            raise Exception('SLURM ERROR: Unable to communicate with squeue')
 
         queueinfo = []
         for item in out.split(b'\n')[1:]:

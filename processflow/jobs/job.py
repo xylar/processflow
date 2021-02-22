@@ -93,7 +93,7 @@ class Job(object):
         raise Exception(msg)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         msg = '{} has not implemented the handle_completion method'.format(
             self.job_type)
         raise Exception(msg)
@@ -296,7 +296,7 @@ class Job(object):
                 case=self.short_name)
     # -----------------------------------------------
 
-    def _submit_cmd_to_manager(self, config, cmd, event_list):
+    def _submit_cmd_to_manager(self, config, cmd):
         """
         Takes the jobs main cmd, generates a batch script and submits the script
         to the resource manager controller
@@ -378,6 +378,12 @@ class Job(object):
             logging.error(msg)
             return False
         return True
+    # -----------------------------------------------
+
+    @property
+    def job_type(self):
+        return self._job_type
+
     # -----------------------------------------------
 
     @property

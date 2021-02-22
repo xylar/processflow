@@ -3,16 +3,17 @@ import os
 import sys
 import unittest
 
- 
 
 from processflow.lib.mailer import Mailer
-from processflow.lib.util import print_message
+from processflow.lib.util import print_line
 
 
 class TestMailer(unittest.TestCase):
 
     def test_send_mail_valid(self):
-        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print '\n'
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         m = Mailer(
             src='baldwin32@llnl.gov',
             dst='baldwin32@llnl.gov')
@@ -22,7 +23,9 @@ class TestMailer(unittest.TestCase):
         self.assertTrue(ret)
 
     def test_send_mail_invalid(self):
-        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print '\n'
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         m = Mailer(
             src='xxyyzz',
             dst='xxyyzz')
