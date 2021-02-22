@@ -5,14 +5,10 @@ import sys
 import threading
 import unittest
 
- 
 
-from processflow.lib.util import print_message
-from processflow.lib.events import EventList
+from processflow.lib.util import print_line
 from processflow.lib.initialize import initialize, parse_args
-
-__version__ = '2.0.0'
-__branch__ = 'master'
+from processflow.version import __version__, __branch__
 
 
 class TestInitialize(unittest.TestCase):
@@ -27,8 +23,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_parse_args_valid(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         argv = ['-c', 'tests/test_configs/valid_config_simple.cfg',
                 '-l', 'pflow.log',
                 '-r', 'resources/',
@@ -47,8 +43,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_parse_args_print_help(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         argv = ['-h']
         with self.assertRaises(SystemExit) as exitexception:
             pargs = parse_args(argv)
@@ -60,8 +56,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_print_version(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         argv = ['-v']
         with self.assertRaises(SystemExit) as exitexception:
             a, b, c = initialize(argv=argv, version=__version__)
@@ -69,8 +65,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_no_config(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         argv = []
         a, b, c = initialize(argv=argv)
         self.assertEqual(a, False)
@@ -79,27 +75,25 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_valid_config_simple(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/valid_config_simple.cfg']
         _, _, _ = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
     def test_init_config_doesnt_exist_simple(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/this_file_doesnt_exist.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
@@ -107,15 +101,14 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_config_no_white_space_simple(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/invalid_config_no_white_space.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
@@ -123,15 +116,14 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_cant_parse_config(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/invalid_config_cant_parse.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
@@ -139,15 +131,14 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_missing_lnd(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/invalid_config_missing_lnd.cfg']
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)
@@ -155,8 +146,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_from_scratch_config(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c', 'tests/test_configs/valid_config_from_scratch.cfg',
                  '-m', '1']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
@@ -166,8 +157,7 @@ class TestInitialize(unittest.TestCase):
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
         self.assertNotEqual(config, False)
         self.assertNotEqual(filemanager, False)
@@ -179,8 +169,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_from_scratch_config_bad_project_dir(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/valid_config_from_scratch_bad_project_path.cfg']
         project_path = '/usr/testing/'
@@ -188,8 +178,7 @@ class TestInitialize(unittest.TestCase):
             config, filemanager, runmanager = initialize(
                 argv=pargv,
                 version=__version__,
-                branch=__branch__,
-                event_list=EventList())
+                branch=__branch__)
 
             self.assertEqual(config, False)
             self.assertEqual(filemanager, False)
@@ -200,8 +189,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_from_scratch_config_globus(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/valid_config_from_scratch_globus.cfg']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
@@ -211,8 +200,7 @@ class TestInitialize(unittest.TestCase):
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
         self.assertNotEqual(config, False)
         self.assertNotEqual(filemanager, False)
@@ -224,8 +212,8 @@ class TestInitialize(unittest.TestCase):
 
     def test_init_from_scratch_config_globus_bad_uuid(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         pargv = ['--test', '-c',
                  'tests/test_configs/valid_config_from_scratch_globus_bad_uuid.cfg']
         project_path = '/p/user_pub/e3sm/baldwin32/testing/empty/'
@@ -235,8 +223,7 @@ class TestInitialize(unittest.TestCase):
         config, filemanager, runmanager = initialize(
             argv=pargv,
             version=__version__,
-            branch=__branch__,
-            event_list=EventList())
+            branch=__branch__)
 
         self.assertEqual(config, False)
         self.assertEqual(filemanager, False)

@@ -21,7 +21,7 @@ class Aprime(Diag):
         """
         super(Aprime, self).__init__(*args, **kwargs)
         self._job_type = 'aprime'
-        self._requires = ''
+        self._requires = []
         self._input_base_path = ''
         self._data_required = ['atm', 'cice', 'ocn',
                                'ocn_restart', 'cice_restart',
@@ -67,6 +67,7 @@ class Aprime(Diag):
         else:
             self._host_path = ''
             self._output_path = ''
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -76,14 +77,13 @@ class Aprime(Diag):
         return
     # -----------------------------------------------
 
-    def execute(self, config, event_list, dryrun=False):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for ncremap to regrid model output
 
         Parameters
         ----------
             config (dict): the global processflow config object
-            event_list (EventList): an EventList to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
         """
@@ -126,8 +126,7 @@ class Aprime(Diag):
         cmd = [
             'cd {}\n'.format(aprime_code_path),
             'bash', template_out]
-        self._has_been_executed = True
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -157,26 +156,26 @@ class Aprime(Diag):
             return False
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Setup for webhosting after a successful run
 
         Parameters
         ----------
-            event_list (EventList): an event list to push user notifications into
+            filemanager: the global filemanager instance
             config (dict): the global config object
         """
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed'.format(
                 prefix=self.msg_prefix(),
                 case=self._short_name)
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
         else:
             msg = '{prefix}: Job complete'.format(
                 prefix=self.msg_prefix(),
                 case=self._short_name)
-            print_line(msg, event_list)
+            print_line(msg)
             logging.info(msg)
 
         # if hosting is turned off, simply return
@@ -186,8 +185,7 @@ class Aprime(Diag):
         self.setup_hosting(
             always_copy=config['global']['always_copy'],
             img_source=self._output_path,
-            host_path=self._host_path,
-            event_list=event_list)
+            host_path=self._host_path)
 
         self._host_url = 'https://{server}/{prefix}/{short_name}/aprime/{start:04d}_{end:04d}_vs_{comp}/{case}_years{start}-{end}_vs_{comp}/index.html'.format(
             server=config['img_hosting']['img_host_server'],

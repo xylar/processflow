@@ -10,11 +10,12 @@ from processflow.jobs.diag import Diag
 from processflow.jobs.e3smdiags import E3SMDiags
 from processflow.jobs.mpasanalysis import MPASAnalysis
 from processflow.jobs.regrid import Regrid
+from processflow.jobs.ilamb import ILAMB
 
 from processflow.lib.jobstatus import JobStatus, StatusMap, ReverseMap
 from processflow.lib.serial import Serial
 from processflow.lib.slurm import Slurm
-from processflow.lib.util import print_line
+from processflow.lib.util import print_line, print_debug
 
 
 job_map = {
@@ -25,17 +26,17 @@ job_map = {
     'amwg': AMWG,
     'aprime': Aprime,
     'cmor': Cmor,
-    'mpas_analysis': MPASAnalysis
+    'mpas_analysis': MPASAnalysis,
+    'ilamb': ILAMB
 }
 
 
 class RunManager(object):
 
-    def __init__(self, event_list, config, filemanager):
+    def __init__(self, config, filemanager):
 
         self.config = config
         self.account = config['global'].get('account', '')
-        self.event_list = event_list
         self.filemanager = filemanager
         self.dryrun = True if config['global'].get('dryrun') == True else False
         self.debug = True if config['global'].get('debug') == True else False
@@ -54,7 +55,7 @@ class RunManager(object):
 
         if config['global'].get('serial'):
             msg = '\n\n=== Running in Serial Mode ===\n'
-            print_line(msg, event_list)
+            print_line(msg)
             self.manager = Serial()
         else:
             self.manager = Slurm()
@@ -64,7 +65,7 @@ class RunManager(object):
         while self.max_running_jobs == 0:
             sleep(1)
             msg = 'Unable to communication with scontrol, checking again'
-            print_line(msg, event_list)
+            print_line(msg)
             self.max_running_jobs = self.manager.get_node_number()
     # -----------------------------------------------
 
@@ -143,7 +144,6 @@ class RunManager(object):
             end (int): the last year of simulated data
             case (dict): the case to add this job to
         """
-
         if not isinstance(freqs, list):
             freqs = [freqs]
 
@@ -248,6 +248,17 @@ class RunManager(object):
                                     end=end,
                                     run_type=dtype,
                                     case=case)
+                elif key == 'cmor':
+                    for case in cases_to_add:
+                        for table in ['Amon', 'Lmon', 'SImon', 'Omon']:
+                            if self.config['post-processing']['cmor'].get(table):
+                                self.add_pp_type_to_cases(
+                                    freqs=val.get('run_frequency'),
+                                    job_type=key,
+                                    start=start,
+                                    end=end,
+                                    run_type=table,
+                                    case=case)
                 else:
                     for case in cases_to_add:
                         self.add_pp_type_to_cases(
@@ -263,6 +274,7 @@ class RunManager(object):
                 for case in self.cases:
                     if not self.config['simulations'][case['case']].get('job_types'):
                         continue
+
                     if 'all' in self.config['simulations'][case['case']]['job_types'] or key in self.config['simulations'][case['case']]['job_types']:
                         self.add_diag_type_to_cases(
                             freqs=diags[key]['run_frequency'],
@@ -283,7 +295,8 @@ class RunManager(object):
         for case in self.cases:
             for job in case['jobs']:
                 if job.comparison != 'obs':
-                    other_case, = [case for case in self.cases if case['case'] == job.comparison]
+                    other_case, = [
+                        case for case in self.cases if case['case'] == job.comparison]
                     job.setup_dependencies(
                         jobs=case['jobs'],
                         comparison_jobs=other_case['jobs'])
@@ -315,7 +328,7 @@ class RunManager(object):
                     msg = 'running {} of {} jobs, waiting for queue to shrink'.format(
                         len(self.running_jobs), self.max_running_jobs)
                     if self.debug:
-                        print_line(msg, self.event_list)
+                        print_line(msg)
                     return
                 deps_ready = True
                 for depjobid in job.depends_on:
@@ -323,22 +336,21 @@ class RunManager(object):
                     if depjob.status != JobStatus.COMPLETED:
                         deps_ready = False
                         break
+
+                # if 'ilamb' in job.msg_prefix():
+                #     import ipdb; ipdb.set_trace()
+                job.check_data_ready(self.filemanager)
                 if deps_ready and job.data_ready:
 
                     # if the job was finished by a previous run of the processflow
 
-                    if job.postvalidate(
-                            self.config, event_list=self.event_list):
+                    if job.postvalidate(self.config):
                         job.status = JobStatus.COMPLETED
                         self._job_complete += 1
                         job.handle_completion(
                             filemanager=self.filemanager,
-                            event_list=self.event_list,
                             config=self.config)
                         self.report_completed_job()
-                        msg = '{}: Job previously computed, skipping'.format(
-                            job.msg_prefix())
-                        print_line(msg, self.event_list)
                         continue
 
                     # set to pending before data setup so we dont double submit
@@ -350,7 +362,6 @@ class RunManager(object):
                         filemanager=self.filemanager,
                         case=job.case)
                     # if this job needs data from another case, set that up too
-
                     if isinstance(job, Diag):
                         if job.comparison != 'obs':
                             job.setup_data(
@@ -358,17 +369,21 @@ class RunManager(object):
                                 filemanager=self.filemanager,
                                 case=job.comparison)
 
+                    # get the instances of jobs this job is dependent on
+                    dep_jobs = [self.get_job_by_id(
+                        job_id) for job_id in job._depends_on]
                     run_id = job.execute(
                         config=self.config,
                         dryrun=self.dryrun,
-                        event_list=self.event_list)
+                        depends_jobs=dep_jobs)
+                    self.running_jobs.append({
+                        'manager_id': run_id,
+                        'job_id': job.id
+                    })
                     if run_id == 0:
                         job.status = JobStatus.COMPLETED
-                    else:
-                        self.running_jobs.append({
-                            'manager_id': run_id,
-                            'job_id': job.id
-                        })
+                        self.monitor_running_jobs()
+                        
     # -----------------------------------------------
 
     def get_job_by_id(self, jobid):
@@ -376,7 +391,7 @@ class RunManager(object):
             for job in case['jobs']:
                 if job.id == jobid:
                     return job
-        raise Exception("no job with id {} found".format(jobid))
+        raise Exception(f"no job with id {jobid} found")
     # -----------------------------------------------
 
     def write_job_sets(self, path):
@@ -430,11 +445,8 @@ class RunManager(object):
     # -----------------------------------------------
 
     def report_completed_job(self):
-        msg = 'Job progress: {complete}/{total} or {percent:.2f}%'.format(
-            complete=self._job_complete,
-            total=self._job_total,
-            percent=(((self._job_complete * 1.0)/self._job_total)*100))
-        print_line(msg, self.event_list)
+        msg = f'Job progress: {self._job_complete}/{self._job_total} or {self._job_complete * 1.0 / self._job_total * 100:.2f}%\n'
+        print_line(msg)
     # -----------------------------------------------
 
     def monitor_running_jobs(self, debug=False):
@@ -456,7 +468,6 @@ class RunManager(object):
                 for_removal.append(item)
                 job.handle_completion(
                     filemanager=self.filemanager,
-                    event_list=self.event_list,
                     config=self.config)
                 self.report_completed_job()
                 continue
@@ -464,28 +475,24 @@ class RunManager(object):
                 job_info = self.manager.showjob(item['manager_id'])
                 if job_info.state is None:
                     continue
-            except Exception:
+            except Exception as e:
+                
+                print_debug(e)
                 # if the job is old enough it wont be in the slurm list anymore
                 # which will throw an exception
                 self._job_complete += 1
                 for_removal.append(item)
 
-                if job.postvalidate(
-                        self.config, event_list=self.event_list):
+                if job.postvalidate(self.config):
                     job.status = JobStatus.COMPLETED
                     job.handle_completion(
                         filemanager=self.filemanager,
-                        event_list=self.event_list,
                         config=self.config)
                     self.report_completed_job()
                 else:
                     job.status = JobStatus.FAILED
-                    line = "{job}: resource manager lookup error for jobid {id}. The job may have failed, check the error output".format(
-                        job=job.msg_prefix(),
-                        id=item['manager_id'])
-                    print_line(
-                        line=line,
-                        event_list=self.event_list)
+                    line = f"{job.msg_prefix()}: resource manager lookup error for jobid {item['manager_id']}. The job may have failed, check the error output"
+                    print_line(line)
                 continue
 
             status = StatusMap[job_info.state]
@@ -496,19 +503,24 @@ class RunManager(object):
                     prefix=job.msg_prefix(),
                     s1=ReverseMap[job.status],
                     s2=ReverseMap[status])
-                print_line(msg, self.event_list)
+                print_line(msg)
                 job.status = status
+
+                if job.status == JobStatus.FAILED:
+                    msg = f'Job has failed, check the job output here: {job.get_output_path()}\n'
+                    print_line(msg, status='error')
 
                 if status in [JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED]:
                     self._job_complete += 1
 
-                    if not job.postvalidate(
-                            self.config, event_list=self.event_list):
+                    if not job.postvalidate(self.config):
                         job.status = JobStatus.FAILED
+                        status = JobStatus.FAILED
+                        msg = f'Job has failed, check the job output here: {job.get_output_path()}\n'
+                        print_line(msg, status='error')
                     else:
                         job.handle_completion(
                             filemanager=self.filemanager,
-                            event_list=self.event_list,
                             config=self.config)
                     self.report_completed_job()
                     for_removal.append(item)

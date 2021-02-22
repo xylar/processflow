@@ -14,7 +14,7 @@ from subprocess import call
 from processflow.jobs.job import Job
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.slurm import Slurm
-from processflow.lib.util import print_line, print_message
+from processflow.lib.util import print_line
 from processflow.lib.util import create_symlink_dir, render
 
 
@@ -24,7 +24,7 @@ class Diag(Job):
         self._host_url = ''
         self._short_comp_name = ""
         self._comparison = kwargs.get('comparison', 'obs')
-
+        self._job_params = {}
         # setup the comparison name
         if self._comparison == 'obs':
             self._short_comp_name = 'obs'
@@ -60,7 +60,7 @@ class Diag(Job):
             comp=self._short_comp_name)
     # -----------------------------------------------
 
-    def setup_hosting(self, always_copy, img_source, host_path, event_list):
+    def setup_hosting(self, always_copy, img_source, host_path):
         """
         Performs file copys for images into the web hosting directory
 
@@ -69,13 +69,12 @@ class Diag(Job):
             always_copy (bool): if previous output exists in the target location, should the new output overwrite
             img_source (str): the path to where the images are coming from
             host_path (str): the path for where the images should be hosted
-            event_list (EventList): an eventlist to push user notifications into
         """
         if always_copy:
             if os.path.exists(host_path):
                 msg = '{prefix}: Removing previous output from host location'.format(
                     prefix=self.msg_prefix())
-                print_line(msg, event_list, newline=False)
+                print_line(msg, newline=False)
                 rmtree(host_path)
                 msg = '... complete'
                 print(msg)
@@ -83,7 +82,7 @@ class Diag(Job):
         if not os.path.exists(host_path):
             msg = '{prefix}: Moving files for web hosting'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list, newline=False)
+            print_line(msg, newline=False)
             copy_tree(
                 src=img_source,
                 dst=host_path)
@@ -92,7 +91,7 @@ class Diag(Job):
             # fix permissions for apache
             msg = '{prefix}: Fixing permissions'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list, newline=False)
+            print_line(msg, newline=False)
             call(['chmod', '-R', 'go+rx', host_path])
             tail, _ = os.path.split(host_path)
             for _ in range(2):
@@ -103,7 +102,7 @@ class Diag(Job):
         else:
             msg = '{prefix}: Files already present at host location, skipping'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            print_line(msg)
 
     # -----------------------------------------------
 
@@ -214,7 +213,7 @@ class Diag(Job):
         return
     # -----------------------------------------------
 
-    def _submit_cmd_to_manager(self, config, cmd, event_list):
+    def _submit_cmd_to_manager(self, config, cmd):
         """
         Takes the jobs main cmd, generates a batch script and submits the script
         to the resource manager controller
@@ -286,16 +285,28 @@ class Diag(Job):
             msg = '{}: dryrun is set, completing without running'.format(
                 self.msg_prefix())
             logging.info(msg)
-            print_message(msg, 'ok')
+            print_line(msg)
             self.status = JobStatus.COMPLETED
             return False
 
         msg = '{}: Job ready, submitting to queue'.format(
             self.msg_prefix())
-        print_message(msg, 'ok')
+        print_line(msg)
 
         # submit the run script to the resource controller
         self._job_id = self._manager.batch(run_script)
         self._has_been_executed = True
         return self._job_id
+    # -----------------------------------------------
+
+    def setup_job_args(self, config):
+        if config['diags'][self._job_type].get('job_args'):
+            for _, val in config['diags'][self._job_type]['job_args'].items():
+                self._job_args.append(val)
+    # -----------------------------------------------
+        
+    def setup_job_params(self, config):
+        if config['diags'][self._job_type].get('job_params'):
+            for key, val in config['diags'][self._job_type]['job_params'].items():
+                self._job_params[key] = val
     # -----------------------------------------------

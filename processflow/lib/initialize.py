@@ -9,13 +9,14 @@ from shutil import copy
 from shutil import copyfile
 
 from configobj import ConfigObj
+from pathlib import Path
+import yaml
 
 from processflow import resources
 from processflow.lib.filemanager import FileManager
 from processflow.lib.runmanager import RunManager
 from processflow.lib.util import print_debug
 from processflow.lib.util import print_line
-from processflow.lib.util import print_message
 from processflow.lib.verify_config import verify_config, check_config_white_space
 from processflow.version import __version__, __branch__
 
@@ -57,6 +58,11 @@ def parse_args(argv=None, print_help=None):
         help="Run in serial on systems without a resource manager",
         action='store_true')
     parser.add_argument(
+        '--skip-db',
+        dest='skip_db',
+        help="If processflow has been run before with this config, dont run the database file check again",
+        action='store_true')
+    parser.add_argument(
         '--test',
         help=argparse.SUPPRESS,
         action='store_true')
@@ -73,7 +79,6 @@ def initialize(argv, **kwargs):
 
     Parameters:
         argv (list): a list of arguments
-        event_list (EventList): The main list of events
         __version__ (str): the current version number for processflow
         __branch__ (str): the branch this version was built from
     """
@@ -87,50 +92,57 @@ def initialize(argv, **kwargs):
         print(('Processflow version {} from branch {}'.format(
             __version__, __branch__)))
         sys.exit(0)
+    
     if not pargs.config:
         parse_args(print_help=True)
-        return False, False, False
+        return False, False
     if not os.path.isfile(pargs.config):
         msg = "The referenced config is not a regular file, please select a config file"
-        print_message(msg)
-        return False, False, False
-    event_list = kwargs['event_list']
-    print_line(
-        line='Entering setup',
-        event_list=event_list)
-
+        print_line(msg)
+        return False, False
     if not os.path.exists(pargs.config):
-        print("{} does not exist".format(pargs.config))
-        return False, False, False
+        print("Invalid config, {} does not exist".format(pargs.config))
+        return False, False
 
-    # Check that there are no white space errors in the config file
-    line_index = check_config_white_space(pargs.config)
-    if line_index != 0:
-        print('''
-ERROR: line {num} does not have a space after the \'=\', white space is required.
-Please add a space and run again.'''.format(num=line_index))
-        return False, False, False
+    print_line('Entering setup')
 
     # read the config file and setup the config dict
     try:
-        config = ConfigObj(pargs.config)
+        _, config_name = os.path.split(pargs.config)
+        if pargs.config[-3:] == 'cfg':
+            msg = f'Loading ConfigObj configuration from {pargs.config}'
+            print_line(msg, status='ok')
+            config = ConfigObj(pargs.config)
+            
+            # Check that there are no white space errors in the config file
+            line_index = check_config_white_space(pargs.config)
+            if line_index != 0:
+                print('''
+ERROR: line {num} does not have a space after the \'=\', white space is required.
+Please add a space and run again.'''.format(num=line_index))
+                return False, False
+        elif pargs.config[-4:] == 'yaml' or pargs.config[-3:] == 'yml':
+            msg = f'Loading yaml configuration from {pargs.config}'
+            print_line(msg, status='ok')
+            with open(pargs.config, 'r') as stream:
+                config = yaml.safe_load(stream)
     except Exception as e:
         print_debug(e)
         print("Error parsing config file {}".format(pargs.config))
         parse_args(print_help=True)
-        return False, False, False
+        return False, False
 
     # run validator for config file
     messages = verify_config(config)
     if messages:
         for message in messages:
-            print_message(message)
+            print_line(message)
         return False, False
 
     try:
         setup_directories(config)
     except Exception as e:
-        print_message('Failed to setup directories')
+        print_line('Failed to setup directories')
         print_debug(e)
         sys.exit(1)
 
@@ -156,9 +168,7 @@ Please add a space and run again.'''.format(num=line_index))
             config['global']['project_path'],
             'output',
             'processflow.log')
-    print_line(
-        line='Log saved to {}'.format(log_path),
-        event_list=event_list)
+    print_line('Log saved to {}'.format(log_path))
 
     config['global']['log_path'] = log_path
     if os.path.exists(log_path):
@@ -179,14 +189,10 @@ Please add a space and run again.'''.format(num=line_index))
     logging.info(msg)
 
     if pargs.max_jobs:
-        print_line(
-            line="running with maximum {} jobs".format(pargs.max_jobs),
-            event_list=event_list)
+        print_line("running with maximum {} jobs".format(pargs.max_jobs))
 
     if not config['global']['host'] or not config.get('img_hosting'):
-        print_line(
-            line='Not hosting img output',
-            event_list=event_list)
+        print_line('Not hosting img output')
 
     msg = 'processflow version {} branch {}'.format(
         __version__,
@@ -196,21 +202,23 @@ Please add a space and run again.'''.format(num=line_index))
     # Copy the config into the input directory for safe keeping
     # if there's already a version there, then remove it and 
     # copy in the new version
-    input_config_path = os.path.join(
+    input_config_path = Path(
         config['global']['project_path'],
-        'run.cfg')
+        config_name)
+    config_path = Path(pargs.config)
     # if we're using the config in the project directory no need to copy
-    if pargs.config != input_config_path:
-        if not os.path.exists(input_config_path):            
+    if config_path.absolute() != input_config_path.absolute():
+        try:
             copy(pargs.config, input_config_path)
+        except:
+            print_line("Unable to create copy of config")
+
 
     if config['global']['always_copy']:
         msg = 'Running in forced-copy mode, previously hosted diagnostic output will be replaced'
     else:
         msg = 'Running without forced-copy, previous hosted output will be preserved'
-    print_line(
-        line=msg,
-        event_list=event_list)
+    print_line(msg)
 
     # initialize the filemanager
     db = os.path.join(
@@ -218,29 +226,32 @@ Please add a space and run again.'''.format(num=line_index))
         'output',
         'processflow.db')
     msg = 'Initializing file manager'
-    print_line(msg, event_list)
+    print_line(msg)
     filemanager = FileManager(
         database=db,
-        event_list=event_list,
         config=config)
 
     filemanager.populate_file_list()
 
-    msg = 'Starting local status update'
-    print_line(msg, event_list)
 
-    filemanager.file_status_check()
-    msg = 'Local status update complete'
-    print_line(msg, event_list)
+    if pargs.skip_db:
+        msg = 'Skipping local status update'
+        print_line(msg)
+    else:
+        msg = 'Starting local status update'
+        print_line(msg)
+        filemanager.file_status_check()
+        msg = 'Local status update complete'
+        print_line(msg)
 
     all_data = filemanager.all_data_local()
 
     if all_data:
         msg = 'all data is local'
-        print_line(msg, event_list)
+        print_line(msg)
     else:
         msg = 'Additional data needed'
-        print_message(msg, 'error')
+        print_line(msg)
         sys.exit(1)
 
     logging.info("FileManager setup complete")
@@ -248,23 +259,22 @@ Please add a space and run again.'''.format(num=line_index))
 
     # setup the runmanager
     runmanager = RunManager(
-        event_list=event_list,
         config=config,
         filemanager=filemanager)
 
     if pargs.debug:
         msg = '-- setting up cases -- '
-        print_line(msg, event_list)
+        print_line(msg)
     runmanager.setup_cases()
 
     if pargs.debug:
         msg = '-- setting up jobs --'
-        print_line(msg, event_list)
+        print_line(msg)
     runmanager.setup_jobs()
 
     if pargs.debug:
         msg = '-- writing job state out to file --'
-        print_line(msg, event_list)
+        print_line(msg)
     runmanager.write_job_sets(
         os.path.join(config['global']['project_path'],
                      'output',

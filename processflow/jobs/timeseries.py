@@ -1,10 +1,14 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 import logging
 import os
+import xarray as xr
+from tqdm import tqdm
+from subprocess import Popen, PIPE
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from processflow.jobs.job import Job
 from processflow.lib.jobstatus import JobStatus
-from processflow.lib.util import get_ts_output_files, print_line
+from processflow.lib.util import get_ts_output_files, print_line, colors
 from processflow.lib.filemanager import FileStatus
 
 
@@ -21,10 +25,18 @@ class Timeseries(Job):
         self._regrid_path = ''
 
         config = kwargs['config']
-        custom_args = config['post-processing'][self.job_type].get(
+        custom_args = config['post-processing']['timeseries'].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
+
+        self._original_var_list = config['post-processing']['timeseries'][self._run_type]
+        if isinstance(self._original_var_list, list) and ' ' in self._original_var_list[0]:
+            self._original_var_list = self._original_var_list[0].split(' ')
+        elif isinstance(self._original_var_list, list) and ',' in self._original_var_list[0]:
+            self._original_var_list = self._original_var_list[0].split(',')
+        self._original_var_list = list(filter(lambda x: x != '', self._original_var_list))
+        self._var_list = self._original_var_list[:]
 
         # setup the output directory, creating it if it doesnt already exist
         custom_output_path = config['post-processing'][self.job_type].get(
@@ -39,7 +51,8 @@ class Timeseries(Job):
                 'ts',
                 self._short_name,
                 config['simulations'][self.case]['native_grid_name'],
-                '{length}yr'.format(length=self.end_year - self.start_year + 1))
+                '{length}yr'.format(length=self.end_year - self.start_year + 1),
+                self._run_type)
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
 
@@ -54,9 +67,20 @@ class Timeseries(Job):
                 'ts',
                 self._short_name,
                 config['post-processing']['timeseries']['destination_grid_name'],
-                '{length}yr'.format(length=self.end_year - self.start_year + 1))
+                '{length}yr'.format(length=self.end_year - self.start_year + 1),
+                self._run_type)
+            if not os.path.exists(self._regrid_path):
+                os.makedirs(self._regrid_path)
         else:
             self._regrid = False
+        self.setup_job_args(config)
+
+    @property
+    def output_path(self):
+        if self._regrid:
+            return self._regrid_path
+        else:
+            return self._output_path
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -78,85 +102,218 @@ class Timeseries(Job):
             True if all the files exist
             False otherwise
         """
+
+        msg = f'{self.msg_prefix()}: Running output check'
+        print_line(msg)
+
         if self._dryrun:
             return True
+        
+        # filter out variables that exist
+        self.filter_var_list()
+        if not self._var_list:
+            self.status = JobStatus.COMPLETED
+            return True
 
-        for var in config['post-processing']['timeseries'][self._run_type]:
-            file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
-                var=var,
-                start=self.start_year,
-                end=self.end_year)
-            file_path = os.path.join(self._output_path, file_name)
-            if not os.path.exists(file_path):
-                if self._has_been_executed:
-                    msg = "{prefix}: Unable to find {file} after execution".format(
-                        prefix=self.msg_prefix(),
-                        file=file_path)
-                    logging.error(msg)
-                return False
+        if self._has_been_executed:
+            for var in self._var_list:
+                msg = f"{self.msg_prefix()}: Unable to find {var} after execution",
+                print_line(msg, status='error')
 
-        # next, if regridding is turned on check that all regrid ts files were created
-        if self._regrid:
-
-            for var in config['post-processing']['timeseries'][self._run_type]:
-                file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
-                    var=var,
-                    start=self.start_year,
-                    end=self.end_year)
-                file_path = os.path.join(self._regrid_path, file_name)
-                if not os.path.exists(file_path):
-                    if self._has_been_executed:
-                        msg = "{prefix}: Unable to find {file} after execution".format(
-                            prefix=self.msg_prefix(),
-                            file=file_path)
-                        logging.error(msg)
-                    return False
-
-        # if nothing was missing then we must be done
-        return True
+        # if anything is left in the var list then the job had an error or needs to run
+        return False
     # -----------------------------------------------
 
-    def execute(self, config, event_list, dryrun=False):
+    def check_all_variables_present(self, config):
+
+        # Load the first file as an xarray dataset
+        path = self._input_file_paths[0]
+        if not os.path.exists(path):
+            msg = f"Unable to find input file: {path}"
+            print_line(msg)
+
+        ds = xr.open_dataset(path)
+        to_remove = list()
+        # Check that each of the variables we're trying to extract is present
+        for variable in self._var_list:
+            if variable and variable not in ds.data_vars:
+                to_remove.append(variable)
+                msg = f"Variable not found in dataset: {variable}"
+                print_line(msg, status='err')
+
+        self._var_list = list(
+            filter(lambda x: x not in to_remove, self._var_list))
+        ds.close()
+        return
+    # -----------------------------------------------
+
+    def check_file_integrity(self, file_path, var):
+        if os.path.exists(file_path):
+            try:
+                _ = xr.open_dataset(file_path)
+            except (IndexError, ValueError):
+                print_line(f'Found and error in {file_path}', status='error')
+                return None
+            else:
+                return var
+        else:
+            return None
+        
+    def filter_var_list(self):
+        to_remove = list()
+
+        # if regridding is turned on check that all regrid ts files were created
+        if self._regrid:
+            file_source = self._regrid_path
+        else:
+            file_source = self._output_path
+        
+        if not os.path.exists(file_source) or not len(os.listdir(file_source)):
+            return
+        
+        pbar = tqdm(total=len(self._var_list), desc=f"{colors.OKGREEN}[+]{colors.ENDC} {self.msg_prefix()}: Checking time-series output")
+        futures = []
+        with ProcessPoolExecutor(max_workers=8) as pool:
+            for var in self._var_list:
+                if os.path.exists(os.path.join(file_source, f"{var}.nc")):
+                    file_name = f"{var}.nc"
+                else:
+                    file_name = "{var}_{start:04d}01_{end:04d}12.nc".format(
+                        var=var,
+                        start=self.start_year,
+                        end=self.end_year)
+                file_path = os.path.join(file_source, file_name)
+                futures.append(
+                    pool.submit(self.check_file_integrity, file_path, var))
+            
+            for future in as_completed(futures):
+                pbar.update(1)
+                res = future.result()
+                if res:
+                    to_remove.append(res)
+        pbar.close()
+        self._var_list = list(
+            filter(lambda x: x not in to_remove, self._var_list)
+        )
+        return
+
+    # -----------------------------------------------
+
+
+    def extract_scalar(self, config):
+
+        msg = 'Checking for scalar variables'
+        print_line(msg)
+        # Load the first file as an xarray dataset
+        path = self._input_file_paths[0]
+        if not os.path.exists(path):
+            msg = "Unable to find input file: {}".format(path)
+            print_line(msg)
+
+        ds = xr.open_dataset(path)
+        to_remove = list()
+        for variable in self._var_list:
+            if 'time' not in ds[variable].coords:
+                if 'ncol' not in ds[variable].coords and 'ncol' not in ds[variable].dims:
+                    msg = f'Found scalar variable {variable}, extracting'
+                    print_line(msg)
+                    to_remove.append(variable)
+                    outfilename = f'{variable}_{self.start_year:04d}01_{self.end_year:04d}12.nc'
+                    outpath = os.path.join(self._output_path, outfilename)
+                    if os.path.exists(outpath):
+                        msg = f"{outfilename} already exists, skipping"
+                        logging.info(msg)
+                        continue
+                    cmd = f'ncks -v {variable} {self._input_file_paths[0]} {outpath}'.split()
+                    proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+                    out, err = proc.communicate()
+                    if proc.returncode != 0:
+                        print_line(err, status='err')
+                        self.status = JobStatus.FAILED
+                        return
+                    if self._regrid:
+                        os.popen(f'cp {outpath} {self._regrid_path}/')
+                else:
+                    # this variable doesnt have time, but it does have space, so regrid the values from just the first input file
+                    cmd = f"ncremap -i {self._input_file_paths[0]} -o {os.path.join(self._regrid_path, variable)}_{self.start_year:04d}01_{self.end_year:04d}12.nc".split()
+                    if self._run_type == 'land' or self._run_type == 'lnd':
+                        cmd.append(f'--sgs_frc={self._input_file_paths[0]}/landfrac')
+                    elif self._run_type == 'ocn' or self._run_type == 'ocean':
+                        cmd.extend(['-m', 'mpas'])
+                    elif self._run_type == 'ice' or self._run_type == 'sea-ice':
+                        cmd.extend(
+                            ['-m', 'mpas', f'--sgs_frc={self._input_file_paths[0]}/timeMonthly_avg_iceAreaCell'])
+                    
+                    cmd.append(f"--map={config['post-processing']['timeseries']['regrid_map_path']}")
+                    proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+                    out, err = proc.communicate()
+                    if proc.returncode != 0:
+                        print_line(err, status='err')
+                        self.status = JobStatus.FAILED
+                        return
+                    else:
+                        msg = f"{variable} extraction complete"
+                        print_line(msg)
+                        to_remove.append(variable)  
+
+        ds.close()
+        self._var_list = list(
+            filter(lambda x: x not in to_remove, self._var_list))
+
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for e3sm_diags
 
         Parameters
         ----------
             config (dict): the global processflow config object
-            event_list (EventList): an event list to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
         """
         self._dryrun = dryrun
 
         # sort the input files
-        self._input_file_paths.sort()
-        list_string = ' '.join(self._input_file_paths)
+        self._input_file_paths = sorted(self._input_file_paths)
+        input_path, _ = os.path.split(self._input_file_paths[0])
+
+        self.check_all_variables_present(config)
+        self.extract_scalar(config)
+        if not self._var_list:
+            msg = "Variable list is empty"
+            print_line(msg)
+            return 0
 
         # create the ncclimo command string
-        var_list = config['post-processing']['timeseries'][self._run_type]
-        cmd = [
-            'ncclimo',
-            '-a', 'sdd',
-            '-c', self.case,
-            '-v', ','.join(var_list),
+        cmd = ['ncclimo']
+        cmd.extend([
+            '--input={}'.format(input_path),
+            '-v', ','.join(self._var_list),
             '-s', str(self.start_year),
             '-e', str(self.end_year),
             '--ypf={}'.format(self.end_year - self.start_year + 1),
             '-o', self._output_path
-        ]
+        ])
+
         if self._regrid:
             cmd.extend([
                 '-O', self._regrid_path,
-                '--map={}'.format(config['post-processing']['timeseries'].get(
-                    'regrid_map_path')),
+                f"--map={config['post-processing']['timeseries']['regrid_map_path']}"
             ])
-        cmd.append(list_string)
+            
+        if self._run_type == 'land' or self._run_type == 'lnd':
+            cmd.append(f'--sgs_frc={self._input_file_paths[0]}/landfrac')
 
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        elif self._run_type == 'ocn' or self._run_type == 'ocean':
+            cmd.extend(['-m', 'mpas'])
+
+        elif self._run_type == 'ice' or self._run_type == 'sea-ice':
+            cmd.extend(
+                ['-m', 'mpas', f'--sgs_frc={self._input_file_paths[0]}/timeMonthly_avg_iceAreaCell'])
+
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Post run handler, adds produced timeseries variable files into
         the filemanagers database
@@ -164,34 +321,37 @@ class Timeseries(Job):
         Parameters
         ----------
             filemanager (FileManager): The filemanager to add the files to
-            event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
 
-        if not config['data_types'].get('ts_native'):
-            config['data_types']['ts_native'] = {'monthly': False}
-        if not config['data_types'].get('ts_regrid'):
-            config['data_types']['ts_regrid'] = {'monthly': False}
+        for dtype in [f'ts_native_{self._run_type}', f'ts_regrid_{self._run_type}']:
+            if not config['data_types'].get(dtype):
+                config['data_types'][dtype] = {'monthly': False}
+        
         if self._dryrun:
             return
 
         if self.status != JobStatus.COMPLETED:
-            msg = '{prefix}: Job failed, not running completion handler'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
+            
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
+            print_line(msg)
             logging.info(msg)
             return
         else:
-            msg = '{prefix}: Job complete'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
-
-        var_list = config['post-processing']['timeseries'][self._run_type]
+            msg = f'{self.msg_prefix()}: Job complete'
+            print_line(msg)
 
         new_files = list()
         ts_files = get_ts_output_files(
-            self._output_path, var_list, self.start_year, self.end_year)
+            self._output_path,
+            self._original_var_list,
+            self.start_year,
+            self.end_year)
+        if not ts_files:
+            self.status = JobStatus.FAILED
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
+            print_line(msg)
+            return
         for ts_file in ts_files:
             new_files.append({
                 'name': ts_file,
@@ -202,7 +362,7 @@ class Timeseries(Job):
                 'local_status': FileStatus.PRESENT.value
             })
         filemanager.add_files(
-            data_type='ts_native',
+            data_type=f'ts_native_{self._run_type}',
             file_list=new_files,
             super_type='derived')
 
@@ -210,9 +370,14 @@ class Timeseries(Job):
             new_files = list()
             ts_files = get_ts_output_files(
                 self._regrid_path,
-                var_list,
+                self._original_var_list,
                 self.start_year,
                 self.end_year)
+            if not ts_files:
+                self.status = JobStatus.FAILED
+                msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
+                print_line(msg)
+                return
             for ts_file in ts_files:
                 new_files.append({
                     'name': ts_file,
@@ -223,15 +388,13 @@ class Timeseries(Job):
                     'local_status': FileStatus.PRESENT.value
                 })
             filemanager.add_files(
-                data_type='ts_regrid',
+                data_type='ts_regrid_' + self._run_type,
                 file_list=new_files,
                 super_type='derived')
 
         filemanager.write_database()
-        msg = '{prefix}: Job completion handler done'.format(
-            prefix=self.msg_prefix())
-        print_line(msg, event_list)
-        logging.info(msg)
+        msg = f'{self.msg_prefix()}: Job completion handler done\n'
+        print_line(msg)
     # -----------------------------------------------
 
     def setup_temp_path(self, config, *args, **kwards):

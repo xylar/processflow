@@ -3,7 +3,7 @@ A module to verify that the user config is valid
 """
 from __future__ import absolute_import, division, print_function, unicode_literals
 import os
-
+import socket
 
 def verify_config(config):
     messages = list()
@@ -28,25 +28,31 @@ def verify_config(config):
     # ------------------------------------------------------------------------
     # check simulations
     # ------------------------------------------------------------------------
+    time_error = False
     if not config['simulations'].get('start_year'):
         msg = 'no start_year set for simulations'
         messages.append(msg)
+        time_error = True
     else:
         config['simulations']['start_year'] = int(
             config['simulations']['start_year'])
     if not config['simulations'].get('end_year'):
         msg = 'no end_year set for simulations'
         messages.append(msg)
+        time_error = True
     else:
         config['simulations']['end_year'] = int(
             config['simulations']['end_year'])
-    if int(config['simulations'].get('end_year')) < int(config['simulations'].get('start_year')):
-        msg = 'simulation end_year is less then start_year, is time going backwards!?'
-        messages.append(msg)
+    if not time_error:
+        if int(config['simulations'].get('end_year')) < int(config['simulations'].get('start_year')):
+            msg = 'simulation end_year is less then start_year, is time going backwards!?'
+            messages.append(msg)
 
+    sim_names = []
     for sim in config.get('simulations'):
         if sim in ['start_year', 'end_year']:
             continue
+        sim_names.append(sim)
         if config['simulations'][sim].get('comparisons'):
             if not isinstance(config['simulations'][sim]['comparisons'], list):
                 config['simulations'][sim]['comparisons'] = [
@@ -151,9 +157,7 @@ def verify_config(config):
         # check ncclimo
         # ------------------------------------------------------------------------
         if config['post-processing'].get('climo'):
-            for sim in config['simulations']:
-                if sim in ['start_year', 'end_year']:
-                    continue
+            for sim in sim_names:
 
                 if 'climo' not in config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
                     continue
@@ -187,21 +191,18 @@ def verify_config(config):
                     config['post-processing']['timeseries']['run_frequency'] = [
                         config['post-processing']['timeseries']['run_frequency']]
             for item in config['post-processing']['timeseries']:
-                if item in ['run_frequency', 'regrid_map_path', 'destination_grid_name', 'custom_args']:
+                
+                if item in ['run_frequency', 'regrid_map_path', 'destination_grid_name', 'custom_args', 'job_args']:
                     continue
                 if item not in ['atm', 'lnd', 'ocn', 'cice']:
-                    msg = '{} is an unsupported timeseries data type'.format(
+                    msg = '{} is an unsupported timeseries data type, processflow only supports time series regridding for data-types: atm, lnd, ocn, cice'.format(
                         item)
                     messages.append(msg)
-                if config['simulations'][sim].get('job_types') and 'all' not in config['simulations'][sim].get('job_types'):
-                    if 'timeseries' not in config['simulations'][sim].get('job_types'):
-                        continue
+                
                 if not isinstance(config['post-processing']['timeseries'][item], list):
                     config['post-processing']['timeseries'][item] = [
                         config['post-processing']['timeseries'][item]]
-                for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year']:
-                        continue
+                for sim in sim_names:
                     if 'all' not in config['simulations'][sim].get('data_types'):
                         if item not in config['simulations'][sim].get('data_types') and ('timeseries' in config['simulations'][sim]['job_types'] or 'all' in config['simulations'][sim]['job_types']):
                             msg = 'timeseries-{} is set to run for simulation {}, but this simulation does not have {} in its data_types'.format(
@@ -211,39 +212,48 @@ def verify_config(config):
         # check cmor
         # ------------------------------------------------------------------------
         if config['post-processing'].get('cmor'):
+            # check that a valid run_frequency is set
             if not config['post-processing']['cmor'].get('run_frequency'):
                 msg = 'no run_frequency given for cmor, make sure this matches the frequency for timeseries'
                 messages.append(msg)
             else:
+                # if its not a list, package it inside one
                 if not isinstance(config['post-processing']['cmor'].get('run_frequency'), list):
                     config['post-processing']['cmor']['run_frequency'] = [
                         config['post-processing']['cmor']['run_frequency']]
-            if not config['post-processing']['cmor'].get('variable_list'):
-                msg = 'no variable list given for cmor, please provide a list of E3SM variables to convert to CMIP6 format'
+
+            any_tables = False
+            for table in ["Amon", "Lmon", "Omon", "SImon"]:
+                if config['post-processing']['cmor'].get(table):
+                    any_tables = True
+                
+                    # make sure the var list is packed inside a list
+                    if not isinstance(config['post-processing']['cmor'][table]['variables'], list):
+                        config['post-processing']['cmor'][table]['variables'] = [
+                            config['post-processing']['cmor'][table]['variables']]
+                
+                if table == "Omon":
+                    for extra in ['mpas_mesh_path', 'mpas_map_path', 'regions_path', 'mpaso-namelist']:
+                        if not config['post-processing']['cmor'].get(extra):
+                            msg = f"cmor set to run CMIP table {table} but {extra} was not included in the cmor config section"
+                            messages.append(msg)
+                
+                if table == "SImon":
+                    for extra in ['mpas_mesh_path', 'mpas_map_path']:
+                        if not config['post-processing']['cmor'].get(extra):
+                            msg = f"cmor set to run CMIP table {table} but {extra} was not included in the cmor config section"
+                            messages.append(msg)
+
+            if not any_tables:
+                msg = "Please specify which tables to produce variables for"
                 messages.append(msg)
-            elif not config['post-processing'].get('timeseries'):
-                msg = "the cmor job requires timeseries file generation, add a timeseries job to enable cmor"
-                messages.append(msg)
-            else:
-                if not isinstance(config['post-processing']['cmor']['variable_list'], list):
-                    config['post-processing']['cmor']['variable_list'] = [
-                        config['post-processing']['cmor']['variable_list']]
-                for variable in config['post-processing']['cmor']['variable_list']:
-                    if variable not in config['post-processing']['timeseries'].get('atm', list()) and variable not in config['post-processing']['timeseries'].get('lnd', list()) and variable not in config['post-processing']['timeseries'].get('ocn', list()) and variable != 'all':
-                        msg = 'variable {} is in the cmor variable_list but not present in the timeseries list, all cmor input variables must first be extracted as timeseries varibles'.format(
-                            variable)
-                        messages.append(msg)
-            for sim in config['post-processing']['cmor']:
-                if sim not in config['simulations']:
-                    continue
-                if not config['post-processing']['cmor'][sim].get('user_input_json_path'):
-                    msg = 'simulation case {} is set to be cmorized, but no user_input json file path provided'.format(
-                        sim)
+            
+
+            for extra in ['mpas_mesh_path', 'mpas_map_path', 'regions_path', 'mpaso-namelist']:
+                if config['post-processing']['cmor'].get(extra) and not os.path.exists(config['post-processing']['cmor'][extra]) and not os.path.lexists(config['post-processing']['cmor'][extra]):
+                    msg = f"{extra} was given for cmor, but the file {config['post-processing']['cmor'][extra]} doesnt appear to exist"
                     messages.append(msg)
-                else:
-                    if not os.path.exists(config['post-processing']['cmor'][sim].get('user_input_json_path')):
-                        msg = 'provided user_input_json_path {} doesnt exist.'
-                        messages.append(msg)
+
             if not config['post-processing']['cmor'].get('cmor_tables_path'):
                 msg = 'please provide a path to where to find the master cmor tables. A copy of the tables can be found here: https://github.com/PCMDI/cmor'
                 messages.append(msg)
@@ -258,36 +268,60 @@ def verify_config(config):
         # check e3sm_diags
         # ------------------------------------------------------------------------
         if config['diags'].get('e3sm_diags'):
-            if not config['diags']['e3sm_diags'].get('backend'):
-                msg = 'no backend given for e3sm_diags'
+
+            sets = config['diags']['e3sm_diags'].get('sets_to_run')
+            if sets:
+                if 'area_mean_time_series' in sets:
+                    if 'timeseries' not in config['post-processing'].keys():
+                        msg = 'e3sm_diags is set to run area_mean_time_series but no timeseries job speficied'
+                        messages.append(msg)
+            else:
+                msg = 'please specify which plot sets to run for e3sm_diags using the sets_to_run config option (lon_lat is the most common set).'
                 messages.append(msg)
-            if not config['diags']['e3sm_diags'].get('reference_data_path'):
-                msg = 'no reference_data_path given for e3sm_diags'
-                messages.append(msg)
-            if not config['diags']['e3sm_diags'].get('run_frequency'):
-                msg = 'no run_frequency given for e3sm_diags'
+
+            if not config['diags']['e3sm_diags'].get('machine_path_prefix'):
+                hostname = socket.gethostname()
+                if hostname == 'acme1.llnl.gov':
+                    config['diags']['e3sm_diags']['machine_path_prefix'] = '/p/user_pub/e3sm/e3sm_diags_data/'
+                elif 'cori' in hostname:
+                    config['diags']['e3sm_diags']['machine_path_prefix'] = '/global/cfs/cdirs/e3sm/acme_diags/obs_for_e3sm_diags/'
+                elif 'compy' in hostname:
+                    config['diags']['e3sm_diags']['machine_path_prefix'] = '/compyfs/e3sm_diags_data/obs_for_e3sm_diags/'
+                else:
+                    msg = 'e3sm_diags requires the mechine_path_prefix for obs data'
+                    messages.append(msg)
+
+            frequency = config['diags']['e3sm_diags'].get('run_frequency')
+            if not frequency:
+                msg = 'No run frequency specified for e3sm_diags'
                 messages.append(msg)
             else:
-                if not isinstance(config['diags']['e3sm_diags'].get('run_frequency'), list):
-                    config['diags']['e3sm_diags']['run_frequency'] = [
-                        config['diags']['e3sm_diags']['run_frequency']]
 
-                for freq in config['diags']['e3sm_diags']['run_frequency']:
+                if not isinstance(frequency, list):
+                    config['diags']['e3sm_diags']['run_frequency'] = [frequency]
+                    frequency = config['diags']['e3sm_diags'].get('run_frequency')
+
+                for freq in frequency:
                     for sim in config['simulations']:
                         if sim in ['start_year', 'end_year']:
                             continue
                         if 'e3sm_diags' in config['simulations'][sim].get('job_types') \
-                                and 'climo' not in config['simulations'][sim].get('job_types'):
-                            msg = 'e3sm_diags is set to run for case {case} at {freq}yr frequency, but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                                and 'lat_lon' in config['diags']['e3sm_diags']['sets_to_run'] \
+                                and 'climo' not in config['simulations'][sim].get('job_types') \
+                                and ('climo' in config['post-processing'].keys() and 'all' not in config['simulations'][sim].get('job_types')):
+                            msg = 'e3sm_diags is set to run lon_lat for case {case} at {freq}yr frequency, but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
                                 case=sim,
                                 freq=freq)
                             messages.append(msg)
-                    if not config.get('post-processing') \
-                            or not config['post-processing'].get('climo') \
-                            or not freq in config['post-processing']['climo']['run_frequency']:
-                        msg = 'e3sm_diags is set to run at frequency {} but no climo job for this frequency is set'.format(
-                            freq)
-                        messages.append(msg)
+                        if 'e3sm_diags' in config['simulations'][sim].get('job_types') \
+                                and 'area_mean_time_series' in config['diags']['e3sm_diags']['sets_to_run'] \
+                                and 'timeseries' not in config['simulations'][sim].get('job_types') \
+                                and ('timeseries' in config['post-processing'].keys() and 'all' not in config['simulations'][sim].get('job_types')):
+                            msg = 'e3sm_diags is set to run timeseries for case {case} at {freq}yr frequency, but no timeseries job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
+                                case=sim,
+                                freq=freq)
+                            messages.append(msg)
+
         # ------------------------------------------------------------------------
         # check amwg
         # ------------------------------------------------------------------------
@@ -302,9 +336,7 @@ def verify_config(config):
                 if not isinstance(config['diags']['amwg'].get('run_frequency'), list):
                     config['diags']['amwg']['run_frequency'] = [
                         config['diags']['amwg']['run_frequency']]
-                for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year']:
-                        continue
+                for sim in sim_names:
                     if 'amwg' in config['simulations'][sim].get('job_types') \
                             and 'climo' not in config['simulations'][sim].get('job_types'):
                         msg = 'amwg is set to run for case {case} but no climo job is set in its config. Add "climo" to the cases job list, or set the jobs to "all" to run all defined jobs'.format(
@@ -326,7 +358,10 @@ def verify_config(config):
                 if not isinstance(config['diags']['amwg']['sets'], list):
                     config['diags']['amwg']['sets'] = [
                         config['diags']['amwg']['sets']]
-                for s in config['diags']['amwg']['sets']:
+                for idx, s in enumerate(config['diags']['amwg']['sets']):
+                    if not isinstance(s, str):
+                        config['diags']['amwg']['sets'][idx] = str(s)
+                        s = str(s)
                     if s not in allowed_sets:
                         msg = '{} is not in the allowed sets for amwg, allowed sets are {}'.format(
                             s, allowed_sets)
@@ -345,6 +380,7 @@ def verify_config(config):
             if not config['diags']['aprime'].get('aprime_code_path'):
                 msg = 'no aprime_code_path given for aprime'
                 messages.append(msg)
+
         # ------------------------------------------------------------------------
         # check MPAS-Analysis
         # ------------------------------------------------------------------------
@@ -370,9 +406,7 @@ def verify_config(config):
             required_datatypes = ['ocn', 'cice', 'ocn_restart', 'cice_restart',
                                   'ocn_streams', 'cice_streams', 'ocn_in', 'cice_in', 'meridionalHeatTransport']
             for reqtype in required_datatypes:
-                for sim in config['simulations']:
-                    if sim in ['start_year', 'end_year']:
-                        continue
+                for sim in sim_names:
                     if 'mpas_analysis' in config['simulations'][sim].get('job_types') \
                             and reqtype not in config['simulations'][sim].get('data_types'):
                         if 'all' in config['simulations'][sim].get('data_types') and reqtype in config['data_types'].keys():
@@ -381,6 +415,42 @@ def verify_config(config):
                             case=sim,
                             reqtype=reqtype)
                         messages.append(msg)
+
+        # ------------------------------------------------------------------------
+        # check ILAMB
+        # ------------------------------------------------------------------------                        
+        if config['diags'].get('ilamb'):
+            # make sure there's a run_frequency and its packed inside a list
+            if not config['diags']['ilamb'].get('run_frequency'):
+                msg = 'no run_frequency given for ilamb'
+                messages.append(msg)
+            else:
+                if not isinstance(config['diags']['ilamb']['run_frequency'], list):
+                    config['diags']['ilamb']['run_frequency'] = [
+                        config['diags']['ilamb']['run_frequency']]
+            # make sure there's a cmor job
+            if not config['post-processing'].get('cmor'):
+                msg = f"ILAMB requires that variables be provided in the CMIP6 format, please configure a CMOR job"
+                messages.append(msg)
+            else:
+                # make sure all the variables are going to be created by CMOR
+                if not config['diags']['ilamb'].get('variables'):
+                    msg = f'Please give one or more variables for ilamb to run'
+                    messages.append(msg)
+                else:
+                    for var in config['diags']['ilamb']['variables']:
+                        found_var = False
+                        for table in ["Amon", "Lmon"]:
+                            if var in config['post-processing']['cmor'][table]['variables']:
+                                found_var = True
+                                break
+                        if not found_var:
+                            msg = f"ILAMB is set to run on variable {var}, but the CMOR job isnt set to generate it"
+                            messages.append(msg)
+            # make sure there's an ILAMB data root
+            if not config['diags']['ilamb'].get('obs_data_root'):
+                msg = "Please specify the ilamb_root for the ilamb obs data"
+                messages.append(msg)
     return messages
 # ------------------------------------------------------------------------
 

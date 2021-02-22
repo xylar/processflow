@@ -8,12 +8,14 @@ from configobj import ConfigObj
 from shutil import rmtree
 
 from processflow.lib.filemanager import FileManager
-from processflow.lib.events import EventList
-from processflow.lib.util import print_message
+from processflow.lib.util import print_line
 from processflow.lib.initialize import initialize
+from processflow.version import __version__, __branch__
+
 from tests.utils import json_to_conf, mock_atm
 
 PROJECT_PATH = os.path.abspath('tests/test_resources/filemanager_test')
+
 
 class TestFileManager(unittest.TestCase):
 
@@ -26,7 +28,6 @@ class TestFileManager(unittest.TestCase):
         self.config_path = 'tests/test_configs/valid_config_all_data.cfg'
         self.case_name = '20180129.DECKv1b_piControl.ne30_oEC.edison'
         self.short_name = 'piControl_testing'
-        self.event_list = EventList()
 
         self.project_path = PROJECT_PATH
         local_data_path = os.path.join('tests/test_resources/mock_data')
@@ -51,7 +52,7 @@ class TestFileManager(unittest.TestCase):
             }
         }
         json_to_conf(config_json, self.config_path, keys)
-    
+
     def tearDownModule(self):
         if os.path.exists(self.project_path):
             rmtree(self.project_path, ignore_errors=True)
@@ -62,14 +63,13 @@ class TestFileManager(unittest.TestCase):
         """
 
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         db = 'tests/test_resources/{}.db'.format(inspect.stack()[0][3])
         config = ConfigObj(self.config_path)
 
         filemanager = FileManager(
             database=db,
-            event_list=EventList(),
             config=config)
 
         self.assertTrue(isinstance(filemanager, FileManager))
@@ -81,14 +81,13 @@ class TestFileManager(unittest.TestCase):
         run the filemanager setup with sta turned on
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config = ConfigObj(self.config_path)
         db = 'tests/test_resources/{}.db'.format(inspect.stack()[0][3])
 
         filemanager = FileManager(
             database=db,
-            event_list=EventList(),
             config=config)
         filemanager.populate_file_list()
         filemanager.update_local_status()
@@ -103,20 +102,18 @@ class TestFileManager(unittest.TestCase):
         run the filemanager setup with short term archive turned on
         """
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         db = 'tests/test_resources/{}.db'.format(inspect.stack()[0][3])
 
         pargv = ['--test', '-c', self.config_path]
         config, _, _ = initialize(
             argv=pargv,
-            version='2.2.0',
-            branch='__testing__',
-            event_list=EventList())
+            version=__version__,
+            branch=__branch__)
 
         filemanager = FileManager(
             database=db,
-            event_list=EventList(),
             config=config)
         filemanager.populate_file_list()
         self.assertTrue(isinstance(filemanager, FileManager))
@@ -174,9 +171,11 @@ class TestFileManager(unittest.TestCase):
 
         os.remove(db)
 
+
 def tearDownModule():
     if os.path.exists(PROJECT_PATH):
         rmtree(PROJECT_PATH, ignore_errors=True)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,37 +19,39 @@ class Climo(Job):
         self._dryrun = True if kwargs.get('dryrun') == True else False
         self._regrid_path = ""
 
-        custom_args = kwargs['config']['post-processing'][self.job_type].get(
+        config = kwargs['config']
+        custom_args = config['post-processing'][self.job_type].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
 
         # setup the output directory, creating it if it doesnt already exist
-        custom_output_path = kwargs['config']['post-processing'][self.job_type].get(
+        custom_output_path = config['post-processing'][self.job_type].get(
             'custom_output_path')
         if custom_output_path:
             self._output_path = self.setup_output_directory(custom_output_path)
             self._regrid_path = self._output_path
         else:
             self._output_path = os.path.join(
-                kwargs['config']['global']['project_path'],
+                config['global']['project_path'],
                 'output',
                 'pp',
                 'climos_native',
-                kwargs['config']['simulations'][self.case]['native_grid_name'],
+                config['simulations'][self.case]['native_grid_name'],
                 self._short_name,
                 '{length}yr'.format(length=self.end_year - self.start_year + 1))
             self._regrid_path = os.path.join(
-                kwargs['config']['global']['project_path'],
+                config['global']['project_path'],
                 'output',
                 'pp',
                 'climos_regrid',
-                kwargs['config']['post-processing']['climo']['destination_grid_name'],
+                config['post-processing']['climo']['destination_grid_name'],
                 self._short_name,
                 '{length}yr'.format(length=self.end_year - self.start_year + 1))
         for path in [self._output_path, self._regrid_path]:
             if not os.path.exists(path):
                 os.makedirs(path)
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -101,7 +103,7 @@ class Climo(Job):
         return True
     # -----------------------------------------------
 
-    def execute(self, config, event_list, dryrun=False):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for ncremap to regrid model output
 
@@ -123,8 +125,8 @@ class Climo(Job):
         else:
             input_path, _ = os.path.split(self._input_file_paths[0])
 
-        cmd = [
-            'ncclimo',
+        cmd = ['ncclimo']
+        cmd.extend([
             '-c', self.case,
             '-a', 'sdd',
             '-s', str(self.start_year),
@@ -133,14 +135,13 @@ class Climo(Job):
             '-r', config['post-processing']['climo']['regrid_map_path'],
             '-o', self._output_path,
             '-O', self._regrid_path,
-            '--no_amwg_links',
-        ]
+            '--no_amwg_links'
+        ])
 
-        self._has_been_executed = True
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Adds the output files to the filemanager database
             as 'climo_regrid' and 'climo_native' data types
@@ -148,20 +149,15 @@ class Climo(Job):
         Parameters
         ----------
             filemanager (FileManager): The filemanager to add the climo files to
-            event_list (EventList): an event list to push notifications into
             config (dict): the global configuration object
         """
         if self.status != JobStatus.COMPLETED:
-            msg = '{prefix}: Job failed, not running completion handler'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
+            msg = f'{self.msg_prefix()}: Job failed, not running completion handler'
+            print_line(msg)
             return
         else:
-            msg = '{prefix}: Job complete'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
+            msg = f'{self.msg_prefix()}: Job complete'
+            print_line(msg)
 
         new_files = list()
         for regrid_file in get_climo_output_files(self._regrid_path, self.start_year, self.end_year):
@@ -177,7 +173,7 @@ class Climo(Job):
             data_type='climo_regrid',
             file_list=new_files,
             super_type='derived')
-        
+
         if not config['data_types'].get('climo_regrid'):
             config['data_types']['climo_regrid'] = {'monthly': True}
 
@@ -198,8 +194,7 @@ class Climo(Job):
             config['data_types']['climo_native'] = {'monthly': True}
 
         filemanager.write_database()
-        msg = '{prefix}: Job completion handler done'.format(
-            prefix=self.msg_prefix())
-        print_line(msg, event_list)
+        msg = f'{self.msg_prefix()}: Job completion handler done\n'
+        print_line(msg)
         logging.info(msg)
     # -----------------------------------------------

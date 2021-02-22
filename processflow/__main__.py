@@ -8,10 +8,9 @@ import threading
 
 from time import sleep
 
-from processflow.lib.events import EventList
 from processflow.lib.finalize import finalize
 from processflow.lib.initialize import initialize
-from processflow.lib.util import print_debug, print_line, print_message
+from processflow.lib.util import print_debug, print_line
 
 os.environ['UVCDAT_ANONYMOUS_LOG'] = 'no'
 os.environ['NCO_PATH_OVERRIDE'] = 'no'
@@ -27,8 +26,6 @@ def main(cl_args=None):
         kwargs (dict): when running in test mode, arguments are passed directly through the kwargs
             which bypasses the argument parsing.
     """
-    # create global EventList
-    event_list = EventList()
 
     # The master configuration object
     config = {}
@@ -43,12 +40,10 @@ def main(cl_args=None):
                       "    command line: {}".format(cl_args,
                                                     ' '.join(sys.argv[:])))
 
-    config, runmanager = initialize(
-        argv=cl_args,
-        event_list=event_list)
+    config, runmanager = initialize(argv=cl_args)
 
     if isinstance(config, int):
-        print("Error in setup, exiting")
+        print_line("Error in setup, exiting", status='error')
         return -1
     logging.info('Config setup complete')
     debug = True if config['global'].get('debug') else False
@@ -67,43 +62,43 @@ def main(cl_args=None):
         while True:
 
             if debug:
-                print_line(' -- checking data -- ', event_list)
+                print_line(' -- checking data --')
             runmanager.check_data_ready()
 
             if debug:
-                print_line(' -- starting ready jobs --', event_list)
+                print_line(' -- starting ready jobs --')
             runmanager.start_ready_jobs()
 
             if debug:
-                print_line(' -- monitoring running jobs --', event_list)
+                print_line(' -- monitoring running jobs --')
             runmanager.monitor_running_jobs(debug=debug)
 
             if debug:
-                print_line(' -- writing out state -- ', event_list)
+                print_line(' -- writing out state --')
             runmanager.write_job_sets(state_path)
 
             status = runmanager.is_all_done()
             if status >= 0:
                 msg = "Finishing up run"
-                print_line(msg, event_list)
+                print_line(msg)
                 finalize(
                     config=config,
-                    event_list=event_list,
                     status=status,
                     runmanager=runmanager)
                 # SUCCESS EXIT
                 return 0
 
             if debug:
-                print_line(' -- sleeping', event_list)
+                print_line(' -- sleeping')
             sleep(loop_delay)
     except KeyboardInterrupt as e:
-        print_message('\n----- KEYBOARD INTERRUPT -----')
-        runmanager.write_job_sets(state_path)
-        print_message('-----  cleanup complete  -----', 'ok')
+        print_line('----- KEYBOARD INTERRUPT -----', status='err')
+        if debug:
+            import ipdb; ipdb.set_trace()
     except Exception as e:
-        print_message('----- AN UNEXPECTED EXCEPTION OCCURED -----')
+        print_line('----- AN UNEXPECTED EXCEPTION OCCURED -----', status='err')
         print_debug(e)
+    finally:
         runmanager.write_job_sets(state_path)
 # -----------------------------------------------
 

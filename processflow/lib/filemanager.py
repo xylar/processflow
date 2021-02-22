@@ -2,12 +2,13 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 import logging
 import os
 import threading
+from tqdm import tqdm
 
 from threading import Thread
 from enum import IntEnum
 
 from .models import DataFile
-from processflow.lib.util import print_debug, print_line, print_message
+from processflow.lib.util import print_debug, print_line
 
 
 class FileStatus(IntEnum):
@@ -22,13 +23,12 @@ class FileManager(object):
     Manage all files required by jobs
     """
 
-    def __init__(self, event_list, config, database='processflow.db'):
+    def __init__(self, config, database='processflow.db'):
         """
         Parameters:
             database (str): the path to where to create the sqlite database file
             config (dict): the global configuration dict
         """
-        self._event_list = event_list
         self._db_path = database
         self._config = config
 
@@ -138,16 +138,17 @@ class FileManager(object):
         replace = {
             'PROJECT_PATH': self._config['global']['project_path'],
             'CASEID': case,
-            'REST_YR': '{:04d}'.format(start_year + 1),
-            'START_YR': '{:04d}'.format(start_year),
-            'END_YR': '{:04d}'.format(end_year),
+            'REST_YR': f'{start_year + 1:04d}',
+            'START_YR': f'{start_year:04d}',
+            'END_YR': f'{end_year:04d}',
             'LOCAL_PATH': self._config['simulations'][case].get('local_path', '')
         }
         if year is not None:
-            replace['YEAR'] = '{:04d}'.format(year)
+            replace['YEAR'] = f'{year:04d}'
         if month is not None:
-            replace['MONTH'] = '{:02d}'.format(month)
+            replace['MONTH'] = f'{month:02d}'
 
+        # if this datatype definition also includes a specific entry for the given case
         if self._config['data_types'][data_type].get(case):
             if self._config['data_types'][data_type][case].get(data_type_option):
                 instring = self._config['data_types'][data_type][case][data_type_option]
@@ -155,6 +156,7 @@ class FileManager(object):
                     if item.upper() in self._config['data_types'][data_type][case][data_type_option]:
                         instring = instring.replace(
                             item.upper(), self._config['simulations'][case][item])
+                        break
                 return instring
 
         instring = self._config['data_types'][data_type].get(data_type_option)
@@ -172,32 +174,36 @@ class FileManager(object):
         Populate the database with the required DataFile entries
         """
         msg = 'Creating file table'
-        print_line(
-            line=msg,
-            event_list=self._event_list)
+        print_line(msg)
 
         start_year = int(self._config['simulations']['start_year'])
         end_year = int(self._config['simulations']['end_year'])
         with DataFile._meta.database.atomic():
             # for each case
+            new_files = list()
             for case in self._config['simulations']:
                 if case in ['start_year', 'end_year']:
                     continue
 
-                # for each data type
-                for _type in self._config['data_types']:
-                    data_types_for_case = self._config['simulations'][case]['data_types']
-                    if 'all' not in data_types_for_case:
-                        if _type not in data_types_for_case:
-                            continue
+                # for each data type included in this case
+                for _type in self._config['simulations'][case]['data_types']:
+
+                    # if the type isnt defined in the config, throw an exception
+                    if _type not in self._config['data_types'] and _type != 'all':
+                        raise ValueError(f'{_type} from case {case} is not defined as a valid data type')                    
+                    elif _type == 'all':
+                        pass
+                    else:
+                        msg = f'Checking files for data type: {_type} for case: {case}'
+                        print_line(msg, 'ok')
 
                     # setup the base local_path
-                    local_path = self.render_file_string(
+                    local_root = self.render_file_string(
                         data_type=_type,
                         data_type_option='local_path',
                         case=case)
 
-                    new_files = list()
+                    
                     if self._config['data_types'][_type].get('monthly') and self._config['data_types'][_type]['monthly'] in ['True', 'true', '1', 1]:
                         # handle monthly data
                         for year in range(start_year, end_year + 1):
@@ -208,10 +214,12 @@ class FileManager(object):
                                     case=case,
                                     year=year,
                                     month=month)
+                                
+                                local_path = os.path.join(local_root, filename)
                                 new_files.append({
                                     'name': filename,
-                                    'local_path': os.path.join(local_path, filename),
-                                    'local_status': FileStatus.NOT_PRESENT.value,
+                                    'local_path': local_path,
+                                    'local_status': FileStatus.PRESENT.value,
                                     'case': case,
                                     'year': year,
                                     'month': month,
@@ -225,10 +233,13 @@ class FileManager(object):
                             data_type=_type,
                             data_type_option='file_format',
                             case=case)
+                        local_path = os.path.join(local_path, filename)
+                        if not os.path.exists(local_path):
+                            raise ValueError(f'File {local_path} not found for case {case}')
                         new_files.append({
                             'name': filename,
                             'local_path': os.path.join(local_path, filename),
-                            'local_status': FileStatus.NOT_PRESENT.value,
+                            'local_status': FileStatus.PRESENT.value,
                             'case': case,
                             'year': 0,
                             'month': 0,
@@ -236,17 +247,15 @@ class FileManager(object):
                             'super_type': 'raw_output',
                             'local_size': 0
                         })
-                    tail, _ = os.path.split(new_files[0]['local_path'])
-                    if not os.path.exists(tail):
-                        os.makedirs(tail)
-                    step = 500
-                    for idx in range(0, len(new_files), step):
-                        with DataFile._meta.database.atomic():
-                            DataFile.insert_many(
-                                new_files[idx: idx + step]).execute()
 
-            msg = 'Database update complete'
-            print_line(msg, self._event_list)
+            step = 500
+            for idx in range(0, len(new_files), step):
+                with DataFile._meta.database.atomic():
+                    DataFile.insert_many(
+                        new_files[idx: idx + step]).execute()
+
+            msg = 'Database initialization complete'
+            print_line(msg)
     # -----------------------------------------------
 
     def print_db(self):
@@ -301,27 +310,16 @@ class FileManager(object):
 
         Return True if there was new local data found, False othewise
         """
-        try:
-            query = (DataFile
-                     .select()
-                     .where(DataFile.local_status == FileStatus.NOT_PRESENT.value))
-            to_update = list()
-            for datafile in query.execute():
+        # try:
+        query = (DataFile
+                    .select()
+                    .where(DataFile.local_status == FileStatus.PRESENT.value))
+        to_update = list()
 
-                if os.path.exists(datafile.local_path):
-                    datafile.local_status = FileStatus.PRESENT.value
-                    to_update.append(datafile)
-                else:
-                    msg = '{filename} is not present at {path}'.format(
-                        filename=datafile.name, path=datafile.local_path)
-                    logging.error(msg)
-                    print_line(msg, self._event_list)
-
-            with DataFile._meta.database.atomic():
-                DataFile.bulk_update(to_update, fields=[
-                                     'local_status'], batch_size=100)
-        except Exception as e:
-            print_debug(e)
+        for datafile in tqdm(query.execute(), desc="Checking local files"):
+            if not os.path.exists(datafile.local_path):
+                raise ValueError(f'File {datafile.local_path} not found')
+            
     # -----------------------------------------------
 
     def all_data_local(self):

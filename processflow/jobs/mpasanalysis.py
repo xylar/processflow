@@ -19,7 +19,7 @@ class MPASAnalysis(Diag):
         """
         super(MPASAnalysis, self).__init__(*args, **kwargs)
         self._job_type = 'mpas_analysis'
-        self._requires = ''
+        self._requires = []
         self._host_url = ''
         self.case_start_year = kwargs['config']['simulations']['start_year']
         self._data_required = ['cice', 'ocn',
@@ -65,7 +65,7 @@ class MPASAnalysis(Diag):
                     comp=self._short_comp_name))
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
-
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -75,14 +75,13 @@ class MPASAnalysis(Diag):
         return
     # -----------------------------------------------
 
-    def execute(self, config, event_list, dryrun=False):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for mpas_analysis
 
         Parameters
         ----------
             config (dict): the global processflow config object
-            event_list (EventList): an EventList to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
         """
@@ -149,8 +148,7 @@ class MPASAnalysis(Diag):
             output_path=template_out)
 
         cmd = ['mpas_analysis', template_out]
-        self._has_been_executed = True
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -191,7 +189,7 @@ class MPASAnalysis(Diag):
                 return False
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         """
         Setup for webhosting after a successful run
 
@@ -199,7 +197,6 @@ class MPASAnalysis(Diag):
 
         Parameters
         ----------
-            event_list (EventList): an event list to push user notifications into
             config (dict): the global config object
         """
         self._host_url = 'https://{server}/{prefix}/{case}/mpas_analysis/{start:04d}_{end:04d}_vs_{comp}/index.html'.format(

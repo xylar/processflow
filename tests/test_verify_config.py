@@ -8,7 +8,7 @@ from configobj import ConfigObj
  
 
 from processflow.lib.verify_config import verify_config
-from processflow.lib.util import print_message
+from processflow.lib.util import print_line
 
 
 class TestVerifyConfig(unittest.TestCase):
@@ -18,8 +18,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_valid(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/amwg_complete.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -27,8 +27,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_missing_lnd_data(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_missing_lnd.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -37,8 +37,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_missing_climo(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_missing_climo.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -47,8 +47,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_missing_global(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_no_global.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -57,8 +57,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_missing_project(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_no_project_path.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -67,8 +67,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_bad_transfer(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_bad_transfer.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -90,8 +90,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_bad_job_type(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_bad_job_type.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -100,8 +100,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_bad_data_type(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_bad_data_type.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)
@@ -111,8 +111,8 @@ class TestVerifyConfig(unittest.TestCase):
 
     def test_invalid_bad_regrid(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         config_path = 'tests/test_configs/invalid_config_bad_regrid.cfg'
         config = ConfigObj(config_path)
         messages = verify_config(config)

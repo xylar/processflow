@@ -12,7 +12,7 @@ from uuid import uuid4
 from processflow.lib.jobstatus import JobStatus
 from processflow.lib.serial import Serial
 from processflow.lib.slurm import Slurm
-from processflow.lib.util import render, create_symlink_dir, print_message
+from processflow.lib.util import render, create_symlink_dir, print_line
 
 
 class Job(object):
@@ -39,7 +39,8 @@ class Job(object):
         self._console_output_path = None
         self._output_path = ''
         self._dryrun = dryrun
-
+        self._job_args = list()
+        self._requires = []
         if manager:
             self._manager = manager
         else:
@@ -58,6 +59,7 @@ class Job(object):
             'END_YR': '{:04d}'.format(self.end_year),
             'LOCAL_PATH': config['simulations'][case].get('local_path', ''),
         }
+
     # -----------------------------------------------
 
     def setup_output_directory(self, custom_output_string):
@@ -66,6 +68,12 @@ class Job(object):
                 custom_output_string = custom_output_string.replace(
                     string, val)
         return custom_output_string
+    # -----------------------------------------------
+
+    def setup_job_args(self, config):
+        if config['post-processing'][self._job_type].get('job_args'):
+            for _, val in config['post-processing'][self._job_type]['job_args'].items():
+                self._job_args.append(val)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -85,7 +93,7 @@ class Job(object):
         raise Exception(msg)
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         msg = '{} has not implemented the handle_completion method'.format(
             self.job_type)
         raise Exception(msg)
@@ -109,7 +117,7 @@ class Job(object):
             custom_args (dict): a mapping of args to the arg values
         """
         for arg, val in list(custom_args.items()):
-            new_arg = '{} {}'.format(arg, val)
+            new_arg = val
             for _, manager_args in list(self._manager_args.items()):
                 found = False
                 for idx, marg in enumerate(manager_args):
@@ -135,7 +143,7 @@ class Job(object):
 
     def setup_data(self, config, filemanager, case):
         """
-        symlinks all data_types sepecified in the jobs _data_required field,
+        symlinks all data_types required in the jobs _data_required field,
         and puts a copy of the path for the links into the _input_file_paths field
         """
 
@@ -156,6 +164,8 @@ class Job(object):
 
             # are these history files?
             monthly = datainfo.get('monthly')
+            if 'ts_' in datatype:
+                monthly = True
 
             # first get the list of file paths to the data
             if monthly == 'True' or monthly == True:
@@ -173,6 +183,8 @@ class Job(object):
                     prefix=self.msg_prefix(),
                     datatype=datatype)
                 logging.error(msg)
+                print_line(msg, status='err')
+                self.status = JobStatus.FAILED
                 continue
 
             # extract the file names
@@ -284,13 +296,13 @@ class Job(object):
                 case=self.short_name)
     # -----------------------------------------------
 
-    def _submit_cmd_to_manager(self, config, cmd, event_list):
+    def _submit_cmd_to_manager(self, config, cmd):
         """
         Takes the jobs main cmd, generates a batch script and submits the script
         to the resource manager controller
 
         Parameters:
-            cmd (str): the command to submit
+            cmd (list): a list of strings to turn into the command to submit
             config (dict): the global configuration object
         Returns:
             job_id (int): the job_id from the resource manager
@@ -303,22 +315,23 @@ class Job(object):
         run_name = self.get_run_name()
 
         run_script = os.path.join(scripts_path, run_name)
-        self._console_output_path = '{}.out'.format(run_script)
+        self._console_output_path = f'{run_script}.out'
         if os.path.exists(run_script):
             os.remove(run_script)
 
+        # add job specific args to the command string
+        if self._job_args:
+            cmd.extend(self._job_args)
+
         # generate the run script using the manager arguments and command
-        command = ' '.join(cmd)
+        command = ' '.join([str(x) for x in cmd])
         script_prefix = ''
         if isinstance(self._manager, Slurm):
             margs = self._manager_args['slurm']
-            margs.append(
-                '-o {}'.format(self._console_output_path))
+            margs.append(f'-o {self._console_output_path}')
             manager_prefix = '#SBATCH'
             for item in margs:
-                script_prefix += '{prefix} {value}\n'.format(
-                    prefix=manager_prefix,
-                    value=item)
+                script_prefix += f'{manager_prefix} {item}\n'
 
         with open(run_script, 'w') as batchfile:
             batchfile.write('#!/bin/bash\n')
@@ -339,16 +352,14 @@ class Job(object):
 
         # if this is a dry run, set the status and exit
         if self._dryrun:
-            msg = '{}: dryrun is set, completing without running'.format(
-                self.msg_prefix())
+            msg = f'{self.msg_prefix()}: dryrun is set, completing without running'
             logging.info(msg)
-            print_message(msg, 'ok')
+            print_line(msg)
             self.status = JobStatus.COMPLETED
             return False
 
-        msg = '{}: Job ready, submitting to queue'.format(
-            self.msg_prefix())
-        print_message(msg, 'ok')
+        msg = f'{self.msg_prefix()}: Job ready, submitting to queue'
+        print_line(msg)
 
         # submit the run script to the resource controller
         self._job_id = self._manager.batch(run_script)
@@ -367,6 +378,12 @@ class Job(object):
             logging.error(msg)
             return False
         return True
+    # -----------------------------------------------
+
+    @property
+    def job_type(self):
+        return self._job_type
+
     # -----------------------------------------------
 
     @property
@@ -457,6 +474,11 @@ class Job(object):
             msg = '{} is not a valid job_id type'.format(type(new_id))
             raise Exception(msg)
         self._job_id = new_id
+    # -----------------------------------------------
+    
+    @property
+    def output_path(self):
+        return self._output_path
     # -----------------------------------------------
 
     def __str__(self):

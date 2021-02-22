@@ -5,7 +5,7 @@ import unittest
 
  
 
-from processflow.lib.util import print_message
+from processflow.lib.util import print_line
 from processflow.lib.slurm import Slurm
 
 
@@ -13,8 +13,8 @@ class TestSlurm(unittest.TestCase):
 
     def test_batch_and_cancel(self):
         print '\n'
-        print_message(
-            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         slurm = Slurm()
         command = 'tests/test_resources/test_slurm_batch.sh'
         job_id = slurm.batch(command)

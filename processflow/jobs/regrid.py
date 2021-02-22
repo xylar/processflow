@@ -24,7 +24,8 @@ class Regrid(Job):
         self._job_type = 'regrid'
         self._data_required = [self._run_type]
 
-        custom_args = kwargs['config']['post-processing'][self.job_type].get(
+        config = kwargs.get('config')
+        custom_args = config['post-processing'][self.job_type].get(
             'custom_args')
         if custom_args:
             self.set_custom_args(custom_args)
@@ -36,14 +37,15 @@ class Regrid(Job):
             self._output_path = self.setup_output_directory(custom_output_path)
         else:
             self._output_path = os.path.join(
-                kwargs['config']['global']['project_path'],
+                config['global']['project_path'],
                 'output',
                 'pp',
-                'regrid_' + kwargs['config']['post-processing']['regrid'][self.run_type]['destination_grid_name'],
+                'regrid_' + config['post-processing']['regrid'][self.run_type]['destination_grid_name'],
                 self._short_name,
                 self.run_type)
         if not os.path.exists(self._output_path):
             os.makedirs(self._output_path)
+        self.setup_job_args(config)
     # -----------------------------------------------
 
     def setup_dependencies(self, *args, **kwargs):
@@ -53,14 +55,13 @@ class Regrid(Job):
         return True
     # -----------------------------------------------
 
-    def execute(self, config, event_list, dryrun=False):
+    def execute(self, config, *args, dryrun=False, **kwargs):
         """
         Generates and submits a run script for ncremap to regrid model output
 
         Parameters
         ----------
             config (dict): the global processflow config object
-            event_list (EventList): an event list to push user notifications into
             dryrun (bool): a flag to denote that all the data should be set,
                 and the scripts generated, but not actually submitted
         """
@@ -68,16 +69,15 @@ class Regrid(Job):
 
         input_path, _ = os.path.split(self._input_file_paths[0])
         # setups the ncremap run command
-        cmd = ['ncks --version\n',
-               'ncremap --version\n',
-               'ncremap -I {}'.format(input_path)]
+        cmd = ['ncremap -I {}'.format(input_path)]
 
         if self.run_type == 'lnd':
             cmd.extend([
                 '-P', 'sgs',
                 '-a', 'conserve',
                 '-s', config['post-processing']['regrid']['lnd']['source_grid_path'],
-                '-g', config['post-processing']['regrid']['lnd']['destination_grid_path']
+                '-g', config['post-processing']['regrid']['lnd']['destination_grid_path'],
+                f'--sgs_frac={self._input_file_paths[0]}/landfrac'
             ])
         elif self.run_type == 'ocn' or self.run_type == 'cice': 
             cmd.extend([
@@ -105,8 +105,7 @@ class Regrid(Job):
             '-O', self._output_path,
         ])
 
-        self._has_been_executed = True
-        return self._submit_cmd_to_manager(config, cmd, event_list)
+        return self._submit_cmd_to_manager(config, cmd)
     # -----------------------------------------------
 
     def postvalidate(self, config, *args, **kwargs):
@@ -132,18 +131,15 @@ class Regrid(Job):
         return True
     # -----------------------------------------------
 
-    def handle_completion(self, filemanager, event_list, config, *args, **kwargs):
+    def handle_completion(self, filemanager, config, *args, **kwargs):
         if self.status != JobStatus.COMPLETED:
             msg = '{prefix}: Job failed, not running completion handler'.format(
                 prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
+            print_line(msg)
             return
         else:
-            msg = '{prefix}: Job complete'.format(
-                prefix=self.msg_prefix())
-            print_line(msg, event_list)
-            logging.info(msg)
+            msg = f'{self.msg_prefix()}: Job complete'
+            print_line(msg)
 
         new_files = list()
         regrid_files = get_data_output_files(
@@ -164,10 +160,8 @@ class Regrid(Job):
             config['data_types']['regrid'] = {'monthly': True}
         
         filemanager.write_database()
-        msg = '{prefix}: Job completion handler done'.format(
-            prefix=self.msg_prefix())
-        print_line(msg, event_list)
-        logging.info(msg)
+        msg = f'{self.msg_prefix()}: Job completion handler done\n'
+        print_line(msg)
     # -----------------------------------------------
 
     @property

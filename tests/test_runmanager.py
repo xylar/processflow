@@ -7,12 +7,9 @@ import unittest
 
 from configobj import ConfigObj
 
- 
-
 from processflow.lib.runmanager import RunManager
-from processflow.lib.filemanager import FileManager
-from processflow.lib.events import EventList
-from processflow.lib.util import print_message
+from processflow.lib.util import print_line
+from processflow.version import __version__, __branch__
 
 
 class TestRunManager(unittest.TestCase):
@@ -44,15 +41,19 @@ class TestRunManager(unittest.TestCase):
         self.config['global']['input_path'] = self.input_path
         self.config['global']['run_scripts_path'] = self.run_scripts_path
         self.config['global']['resource_dir'] = os.path.abspath('./resources')
-        self.config['simulations']['start_year'] = int(self.config['simulations']['start_year'])
-        self.config['simulations']['end_year'] = int(self.config['simulations']['end_year'])
+        self.config['simulations']['start_year'] = int(
+            self.config['simulations']['start_year'])
+        self.config['simulations']['end_year'] = int(
+            self.config['simulations']['end_year'])
         self.config['global']['host'] = False
 
     def test_runmanager_setup(self):
         """
         Run the runmanager setup
         """
-        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print '\n'
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
 
         db_path = os.path.join(
             self.project_path,
@@ -61,12 +62,10 @@ class TestRunManager(unittest.TestCase):
             shutil.rmtree(self.project_path)
         os.makedirs(self.project_path)
         filemanager = FileManager(
-            event_list=EventList(),
             database=db_path,
             config=self.config)
-        
+
         runmanager = RunManager(
-            event_list=EventList(),
             config=self.config,
             filemanager=filemanager)
         runmanager.setup_cases()
@@ -102,9 +101,10 @@ class TestRunManager(unittest.TestCase):
             self.assertEqual(num_e3sm, 1)
             self.assertEqual(num_amwg, 1)
 
-
     def test_runmanager_write_job_state(self):
-        print '\n'; print_message('---- Starting Test: {} ----'.format(inspect.stack()[0][3]), 'ok')
+        print '\n'
+        print_line(
+            '---- Starting Test: {} ----'.format(inspect.stack()[0][3]), status='ok')
         db_path = os.path.join(
             self.project_path,
             '{}.db'.format(inspect.stack()[0][3]))
@@ -112,12 +112,10 @@ class TestRunManager(unittest.TestCase):
             shutil.rmtree(self.project_path)
         os.makedirs(self.project_path)
         filemanager = FileManager(
-            event_list=EventList(),
             database=db_path,
             config=self.config)
-        
+
         runmanager = RunManager(
-            event_list=EventList(),
             config=self.config,
             filemanager=filemanager)
         runmanager.setup_cases()
