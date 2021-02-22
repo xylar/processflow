@@ -213,6 +213,7 @@ Please add a space and run again.'''.format(num=line_index))
         except:
             print_line("Unable to create copy of config")
 
+
     if config['global']['always_copy']:
         msg = 'Running in forced-copy mode, previously hosted diagnostic output will be replaced'
     else:
