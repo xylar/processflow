@@ -233,7 +233,7 @@ class FileManager(object):
                             data_type=_type,
                             data_type_option='file_format',
                             case=case)
-                        local_path = os.path.join(local_path, filename)
+                        local_path = os.path.join(local_root, filename)
                         if not os.path.exists(local_path):
                             raise ValueError(f'File {local_path} not found for case {case}')
                         new_files.append({
